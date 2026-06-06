@@ -3,6 +3,7 @@ import GraphCanvas from './components/GraphCanvas';
 import NodeDetailPanel from './components/NodeDetail';
 import SearchBar from './components/SearchBar';
 import FilterPanel from './components/FilterPanel';
+import ChatPanel from './components/ChatPanel';
 import { useGraphData } from './hooks/useGraphData';
 import type { GraphNode, NodeType } from './types/graph';
 
@@ -15,6 +16,7 @@ export default function App() {
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const handleNodeClick = useCallback((node: GraphNode) => {
     selectNode(node.node_type, node.id);
@@ -42,7 +44,7 @@ export default function App() {
   }, [selectNode]);
 
   const handleExplore = useCallback((_nodeId: string) => {
-    // Future: open chat/RAG panel
+    setShowChat(true);
   }, []);
 
   const handleShare = useCallback(async () => {
@@ -133,6 +135,21 @@ export default function App() {
             />
           </div>
 
+          {/* Chat button */}
+          <button
+            onClick={() => setShowChat(!showChat)}
+            className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold font-display tracking-wide transition-all duration-200 border ${
+              showChat
+                ? 'border-stellar-violet/40 text-stellar-violet bg-stellar-violet/10'
+                : 'border-cosmos-border text-cosmos-dim hover:text-cosmos-text hover:border-white/15 hover:bg-white/[0.03]'
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+            AI 对话
+          </button>
+
           {/* Share button */}
           <button
             onClick={handleShare}
@@ -220,6 +237,17 @@ export default function App() {
           </aside>
         )}
       </div>
+
+      {/* ─── Chat panel ───────────────────────────────── */}
+      {showChat && (
+        <div className="h-80 border-t border-cosmos-border glass-panel shrink-0">
+          <ChatPanel
+            isOpen={showChat}
+            onClose={() => setShowChat(false)}
+            onFocusNode={handleFocusNode}
+          />
+        </div>
+      )}
     </div>
   );
 }
