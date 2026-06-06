@@ -225,8 +225,8 @@ class GraphRepository:
                            weight: inc.weight,
                            evidence: inc.evidence
                        }) AS incoming,
-                       collect(DISTINCT neighbor_out { .* }) AS out_neighbors,
-                       collect(DISTINCT neighbor_in { .* }) AS in_neighbors
+                       collect(DISTINCT neighbor_out { .*, _labels: labels(neighbor_out) }) AS out_neighbors,
+                       collect(DISTINCT neighbor_in { .*, _labels: labels(neighbor_in) }) AS in_neighbors
                 """,
                 node_id=node_id,
             )
