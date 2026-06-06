@@ -1,10 +1,11 @@
-"""Data pipeline orchestrator — fetch → extract → deduplicate → store."""
+"""Data pipeline orchestrator — fetch → deduplicate → extract → store."""
 
 import asyncio
 from datetime import datetime, timezone
 from typing import List
 from extractors.base import BaseExtractor, RawDocument
 from knowledge.extractor import KnowledgeExtractor
+from knowledge.deduplicator import build_deduplicator, Deduplicator
 from models.graph import GraphNode, GraphEdge
 from models.repository import GraphRepository
 
@@ -24,7 +25,17 @@ class DataPipeline:
 
     async def run(self) -> dict:
         """Run full pipeline and return stats."""
-        stats = {"documents_fetched": 0, "nodes_created": 0, "edges_created": 0, "errors": []}
+        stats = {
+            "documents_fetched": 0,
+            "documents_skipped": 0,
+            "documents_processed": 0,
+            "nodes_created": 0,
+            "edges_created": 0,
+            "errors": [],
+        }
+
+        # Phase 0: Build deduplicator from existing graph data
+        dedup = self._build_deduplicator()
 
         # Phase 1: Fetch from all sources in parallel
         fetch_tasks = [ext.fetch() for ext in self.extractors]
@@ -39,8 +50,18 @@ class DataPipeline:
 
         stats["documents_fetched"] = len(all_docs)
 
-        # Phase 2: Extract knowledge from each document
+        # Phase 2: Deduplicate — skip known documents
+        fresh_docs: List[RawDocument] = []
         for doc in all_docs:
+            if dedup.is_duplicate(doc):
+                stats["documents_skipped"] += 1
+            else:
+                fresh_docs.append(doc)
+
+        stats["documents_processed"] = len(fresh_docs)
+
+        # Phase 3: Extract knowledge from each fresh document
+        for doc in fresh_docs:
             try:
                 nodes, edges = await self.knowledge_extractor.extract(doc)
                 for node in nodes:
@@ -49,8 +70,29 @@ class DataPipeline:
                 for edge in edges:
                     self.repository.upsert_edge(edge)
                     stats["edges_created"] += 1
+                # Register as seen after successful extraction
+                dedup.register(doc)
                 await asyncio.sleep(0.1)  # Rate limit for API calls
             except Exception as e:
                 stats["errors"].append(f"Extraction failed for {doc.title[:50]}: {e}")
 
         return stats
+
+    def _build_deduplicator(self) -> Deduplicator:
+        """Load existing node URLs and titles from the graph for dedup."""
+        try:
+            existing_nodes = self.repository.get_all_nodes(limit=5000)
+            known_urls: List[str] = []
+            known_titles: List[str] = []
+            for node in existing_nodes:
+                known_urls.extend(node.source_urls)
+                if node.name:
+                    known_titles.append(node.name)
+            return build_deduplicator(
+                known_urls=list(set(known_urls)),
+                known_titles=known_titles,
+                threshold=0.85,
+            )
+        except Exception:
+            # If graph is empty or unreachable, start with empty dedup
+            return build_deduplicator(known_urls=[], known_titles=[])
