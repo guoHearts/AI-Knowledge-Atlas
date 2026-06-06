@@ -123,23 +123,23 @@ async def chat(
 
     # 5. Call LLM
     try:
-        from langchain.chat_models import init_chat_model
-        from langchain_core.messages import SystemMessage, HumanMessage
+        from openai import AsyncOpenAI
         from config import settings
 
-        model = init_chat_model(
-            settings.llm_model,
+        client = AsyncOpenAI(
             api_key=settings.llm_api_key,
-            base_url=settings.llm_base_url or None,
+            base_url=settings.llm_base_url or "https://api.openai.com/v1",
         )
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=user_prompt),
-        ]
-        response = await model.ainvoke(messages)
-        # LangChain content can be str | list — coerce to str
-        raw_content = response.content
-        answer_text: str = raw_content if isinstance(raw_content, str) else str(raw_content)
+        completion = await client.chat.completions.create(
+            model=settings.llm_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.3,
+            max_tokens=1024,
+        )
+        answer_text = completion.choices[0].message.content or ""
     except Exception as e:
         # Fallback: return context without LLM answer
         answer_text = f"抱歉，AI 服务暂时不可用（{str(e)[:100]}）。以下是知识图谱中找到的相关节点：\n\n" + \

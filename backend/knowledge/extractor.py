@@ -3,8 +3,7 @@
 import json
 import re
 from typing import List, Tuple
-from langchain.chat_models import init_chat_model
-from langchain_core.messages import SystemMessage, HumanMessage
+from openai import AsyncOpenAI
 from extractors.base import RawDocument
 from models.graph import GraphNode, GraphEdge, NodeType, RelationType
 
@@ -13,32 +12,32 @@ class KnowledgeExtractor:
     """Extract entities and relationships from text documents using an LLM."""
 
     def __init__(self, model_name: str = "gpt-4o", api_key: str = "", base_url: str = ""):
-        model_kwargs = {}
-        if api_key:
-            model_kwargs["api_key"] = api_key
-        if base_url:
-            model_kwargs["base_url"] = base_url
-
-        self.model = init_chat_model(
-            model_name,
-            **model_kwargs,
+        self.model_name = model_name
+        self.client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url or "https://api.openai.com/v1",
         )
 
     async def extract(self, doc: RawDocument) -> Tuple[List[GraphNode], List[GraphEdge]]:
         """Extract entities and relationships from a single document."""
         from knowledge.prompts import EXTRACTION_SYSTEM, EXTRACTION_USER_TEMPLATE
 
-        messages = [
-            SystemMessage(content=EXTRACTION_SYSTEM),
-            HumanMessage(content=EXTRACTION_USER_TEMPLATE.format(
-                source=doc.source,
-                title=doc.title,
-                content=doc.content[:4000],  # Truncate to control cost
-            )),
-        ]
+        completion = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=[
+                {"role": "system", "content": EXTRACTION_SYSTEM},
+                {"role": "user", "content": EXTRACTION_USER_TEMPLATE.format(
+                    source=doc.source,
+                    title=doc.title,
+                    content=doc.content[:4000],
+                )},
+            ],
+            temperature=0.1,
+            max_tokens=2048,
+        )
 
-        response = await self.model.ainvoke(messages)
-        raw_json = self._extract_json(response.content)
+        raw_content = completion.choices[0].message.content or ""
+        raw_json = self._extract_json(raw_content)
 
         if not raw_json:
             return [], []
