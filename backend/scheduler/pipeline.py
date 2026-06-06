@@ -1,12 +1,10 @@
 """Data pipeline orchestrator — fetch → deduplicate → extract → store."""
 
 import asyncio
-from datetime import datetime, timezone
 from typing import List
 from extractors.base import BaseExtractor, RawDocument
 from knowledge.extractor import KnowledgeExtractor
 from knowledge.deduplicator import build_deduplicator, Deduplicator
-from models.graph import GraphNode, GraphEdge
 from models.repository import GraphRepository
 
 
@@ -43,10 +41,10 @@ class DataPipeline:
 
         all_docs: List[RawDocument] = []
         for i, result in enumerate(results):
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 stats["errors"].append(f"{self.extractors[i].name()}: {result}")
             else:
-                all_docs.extend(result)
+                all_docs.extend(result)  # pyright: ignore[reportArgumentType]
 
         stats["documents_fetched"] = len(all_docs)
 
