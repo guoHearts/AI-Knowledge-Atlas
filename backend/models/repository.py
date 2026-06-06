@@ -256,15 +256,20 @@ class GraphRepository:
         with self.driver.session() as session:
             result = session.run(
                 f"""
-                MATCH (n)
-                WHERE n.id IN $node_ids
-                OPTIONAL MATCH path = (n)-[*1..{depth}]-(m)
-                WITH collect(DISTINCT n) + collect(DISTINCT m) AS all_nodes
-                UNWIND all_nodes AS node
-                WITH DISTINCT node
-                OPTIONAL MATCH (node)-[r]-(other)
-                WHERE other IN collect(DISTINCT node)
-                RETURN collect(DISTINCT node {{ .* }}) AS nodes,
+                // Phase 1: collect all nodes (seeds + N-hop neighbors)
+                MATCH (seed)
+                WHERE seed.id IN $node_ids
+                OPTIONAL MATCH (seed)-[*1..{depth}]-(neighbor)
+                WITH collect(DISTINCT seed) + collect(DISTINCT neighbor) AS raw
+                UNWIND raw AS n
+                WITH DISTINCT n
+                WITH collect(n) AS node_list
+                // Phase 2: find edges between collected nodes
+                UNWIND node_list AS a
+                OPTIONAL MATCH (a)-[r]-(b)
+                WHERE b IN node_list
+                // Phase 3: return deduplicated data
+                RETURN collect(DISTINCT a {{ .*, _labels: labels(a) }}) AS nodes,
                        collect(DISTINCT {{
                            source_id: startNode(r).id,
                            target_id: endNode(r).id,
