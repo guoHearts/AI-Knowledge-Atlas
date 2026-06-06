@@ -305,3 +305,58 @@ class GraphRepository:
                 props["_labels"] = r["_labels"]
                 nodes.append(_record_to_node(props))
             return nodes
+
+    def get_stats(self) -> dict:
+        """Get summary statistics about the graph — node/edge counts, last updated."""
+        with self.driver.session() as session:
+            # Node counts per type
+            node_types = [
+                "Technology", "Model", "Product", "AgentFramework",
+                "AgentType", "Company", "Paper", "Benchmark",
+            ]
+            node_counts: dict = {}
+            total_nodes = 0
+            for nt in node_types:
+                result = session.run(
+                    f"MATCH (n:{nt}) RETURN count(n) AS cnt"
+                )
+                cnt = result.single()["cnt"]
+                node_counts[nt] = cnt
+                total_nodes += cnt
+
+            # Edge counts per relation type
+            edge_counts: dict = {}
+            total_edges = 0
+            relation_types = [
+                "BASED_ON", "PROPOSED_BY", "RELEASED", "COMPETES_WITH",
+                "BELONGS_TO", "POWERS", "EVALUATED_BY", "CATEGORY_OF", "IMPROVES",
+            ]
+            for rt in relation_types:
+                result = session.run(
+                    f"MATCH ()-[r:{rt}]->() RETURN count(r) AS cnt"
+                )
+                cnt = result.single()["cnt"]
+                edge_counts[rt] = cnt
+                total_edges += cnt
+
+            # Last updated timestamp
+            result = session.run(
+                """
+                MATCH (n)
+                WHERE n.last_updated IS NOT NULL
+                RETURN max(n.last_updated) AS last_updated
+                """
+            )
+            last_updated_record = result.single()
+            last_updated = None
+            if last_updated_record and last_updated_record["last_updated"]:
+                dt = last_updated_record["last_updated"]
+                last_updated = dt.isoformat() if hasattr(dt, 'isoformat') else str(dt)
+
+            return {
+                "total_nodes": total_nodes,
+                "total_edges": total_edges,
+                "nodes_by_type": node_counts,
+                "edges_by_type": edge_counts,
+                "last_updated": last_updated,
+            }

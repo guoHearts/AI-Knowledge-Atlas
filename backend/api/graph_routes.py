@@ -78,6 +78,12 @@ async def get_timeline(
     return repo.get_timeline(days, limit)
 
 
+@router.get("/stats")
+async def get_graph_stats(repo: GraphRepository = Depends(get_repo)):
+    """Get summary statistics — node/edge counts per type, last updated time."""
+    return repo.get_stats()
+
+
 @router.post("/admin/sync")
 async def trigger_sync(repo: GraphRepository = Depends(get_repo)):
     """Manually trigger a data pipeline run. Returns stats."""
