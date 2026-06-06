@@ -73,8 +73,10 @@ app.add_middleware(
 # Register API routers
 from api.graph_routes import router as graph_router
 from api.share_routes import router as share_router
+from api.chat_routes import router as chat_router
 app.include_router(graph_router)
 app.include_router(share_router)
+app.include_router(chat_router)
 
 
 @app.get("/health")
