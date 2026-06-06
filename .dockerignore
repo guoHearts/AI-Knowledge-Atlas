@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Node / Frontend
+node_modules/
+.pnp/
+.pnp.js
+
+# Git
+.git/
+.gitattributes
+.gitignore
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker (avoid recursive copy)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Test & coverage
+.coverage
+htmlcov/
+.pytest_cache/
+coverage/
+*.lcov
+
+# Misc
+*.log
+*.tmp
+.cache/
