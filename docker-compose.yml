@@ -10,6 +10,11 @@ services:
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p ${NEO4J_PASSWORD:-ai-knowledge-graph} 'RETURN 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
   backend:
     build:
@@ -24,25 +29,31 @@ services:
       LLM_MODEL: ${LLM_MODEL:-gpt-4o}
       LLM_API_KEY: ${LLM_API_KEY}
       LLM_BASE_URL: ${LLM_BASE_URL}
+      ENABLE_SCHEDULER: ${ENABLE_SCHEDULER:-false}
     depends_on:
-      - neo4j
+      neo4j:
+        condition: service_healthy
     volumes:
       - ./backend:/app
 
-  frontend:
+  # Next.js frontend
+  nextjs:
     build:
-      context: ./frontend
-      dockerfile: ../Dockerfile.frontend
+      context: ./nextjs-frontend
+      dockerfile: ../Dockerfile.nextjs
     ports:
       - "3000:3000"
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      DATABASE_PATH: /app/data/learning.db
     depends_on:
       - backend
     volumes:
-      - ./frontend:/app
+      - ./nextjs-frontend:/app
       - /app/node_modules
+      - nextjs_data:/app/data
 
 volumes:
   neo4j_data:
   neo4j_logs:
+  nextjs_data:

@@ -1,0 +1,79 @@
+---
+title: 微调全景——何时微调、何时 RAG
+difficulty: intermediate
+estimatedMinutes: 50
+analogy: RAG 是"考试带参考书"，微调是"考前刷题内化知识"
+oneLiner: 60-70% 场景 RAG 够用，微调解决 RAG 解决不了的问题
+tags: [微调, LoRA, 决策]
+---
+
+# 微调全景——何时微调、何时 RAG
+
+> 💡 **RAG 和微调不是对立，是互补** — 大部分场景 RAG 优先，微调解决特定难题。
+
+## RAG vs 微调 决策框架
+
+| 维度 | RAG | 微调 |
+|------|-----|------|
+| **知识更新** | 实时（更新文档即可） | 需重新训练 |
+| **幻觉控制** | 好（基于检索文档） | 一般 |
+| **领域术语** | 一般 | 好（内化领域知识） |
+| **风格定制** | 通过 Prompt | 通过训练数据 |
+| **延迟** | 较高（检索+生成） | 低（直接生成） |
+| **成本** | 检索成本 | 训练成本（一次性） |
+| **适用场景** | 知识问答、FAQ | 风格迁移、特定格式输出 |
+
+## 决策流程
+
+```
+你的场景是？
+├── 需要实时信息（新闻、股价）→ RAG
+├── 需要企业内部知识 → RAG（知识库实时更新）
+├── 需要特定输出格式（JSON Schema、代码风格）→ 微调
+├── 需要特定语气/角色（医生、法律顾问）→ 微调
+├── 需要减少延迟（不能等待检索）→ 微调
+├── 很少的训练数据（<100条）→ RAG + Few-shot Prompt
+└── 大量训练数据（>1000条）+ 稳定需求 → 微调
+```
+
+## 微调技术栈速览
+
+| 技术 | 全称 | 特点 | 资源需求 |
+|------|------|------|----------|
+| **Full Fine-tuning** | 全参数微调 | 效果最好 | 8×A100 |
+| **LoRA** | Low-Rank Adaptation | 训练 0.1-1% 参数 | 单卡 4090 |
+| **QLoRA** | Quantized LoRA | 4-bit + LoRA | 单卡 3090 |
+| **DPO** | Direct Preference Optimization | 偏好对齐 | 单卡 4090 |
+| **GRPO** | Group Relative Policy Optimization | 推理增强 | 多卡 |
+
+## LoRA 原理（大白话版）
+
+```
+原始模型权重矩阵：W (175B 参数，太大了不能动)
+
+LoRA 分解：W + ΔW = W + A × B
+                      ↑   ↑   ↑
+                    原始 小矩阵 小矩阵
+                    (冻结) (可训练)
+
+A: [175B × 16]   ← 只有这么一点点参数需要训练！
+B: [16 × 175B]
+
+参数减少 99.9%，效果接近全量微调
+```
+
+## 参考框架
+
+| 框架 | 特点 | Stars |
+|------|------|-------|
+| [Unsloth](https://github.com/unslothai/unsloth) | 2-5x 加速微调 | 30k+ |
+| [Axolotl](https://github.com/OpenAccess-AI-Collective/axolotl) | 一站式微调工具 | 8k+ |
+| [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) | 中文友好，WebUI | 45k+ |
+| [HuggingFace TRL](https://github.com/huggingface/trl) | SFT/DPO/GRPO | 12k+ |
+
+## 自检清单
+
+- □ 能画出 RAG vs 微调的决策树
+- □ 理解 LoRA "只训练一点点参数"的核心理念
+- □ 知道至少 3 种微调技术的资源需求
+- □ 能根据业务场景选择 RAG、微调或组合方案

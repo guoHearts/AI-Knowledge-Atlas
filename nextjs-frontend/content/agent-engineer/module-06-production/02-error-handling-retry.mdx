@@ -1,0 +1,198 @@
+---
+title: 错误处理与重试策略
+difficulty: advanced
+estimatedMinutes: 45
+analogy: 一份好的保险——不是防止意外发生，而是意外发生时知道怎么处理
+oneLiner: LLM 超时？Tool 报错？Token 用完？每个都有对策
+tags: [生产, 错误处理, 重试]
+---
+
+# 错误处理与重试策略
+
+> 💡 **Agent 生产化最大的敌人不是 Bug，是不可预测性** — 系统性错误处理让 Agent 从 Demo 走向生产。
+
+## Agent 六大错误类型
+
+| 错误类型 | 典型场景 | 应对策略 |
+|----------|----------|----------|
+| **LLM API 错误** | 超时、限流、401/429 | 指数退避重试 + 降级模型 |
+| **Tool 执行错误** | 参数错误、第三方 API 挂 | Self-healing + 兜底回复 |
+| **Token 超限** | 上下文太长 | 自动压缩 + 截断策略 |
+| **输出格式错误** | JSON 解析失败 | 重试 + 格式修正提示 |
+| **超时** | Agent 循环过多 | 设置最大步数 + 超时熔断 |
+| **业务逻辑错误** | Agent 理解偏差 | Human-in-the-loop + 校验 |
+
+## 统一错误处理框架
+
+```typescript
+interface RetryConfig {
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  backoffMultiplier: number;
+  retryableErrors: string[];
+}
+
+const defaultRetryConfig: RetryConfig = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 30000,
+  backoffMultiplier: 2,
+  retryableErrors: ['rate_limit', 'timeout', 'server_error', 'network'],
+};
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  config: RetryConfig = defaultRetryConfig
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+
+      // 判断是否可重试
+      if (!isRetryable(error, config.retryableErrors)) {
+        throw error;  // 不可重试的错误直接抛出
+      }
+
+      // 最后一次尝试失败
+      if (attempt === config.maxRetries) break;
+
+      // 指数退避
+      const delay = Math.min(
+        config.baseDelayMs * Math.pow(config.backoffMultiplier, attempt),
+        config.maxDelayMs
+      );
+      console.log(`[Retry] ${attempt + 1}/${config.maxRetries}, waiting ${delay}ms`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+
+  throw new Error(`All ${config.maxRetries} retries exhausted. Last error: ${lastError?.message}`);
+}
+
+function isRetryable(error: any, retryableErrors: string[]): boolean {
+  // HTTP 429 (Rate Limit) → 重试
+  if (error.status === 429) return true;
+  // HTTP 5xx (Server Error) → 重试
+  if (error.status >= 500) return true;
+  // 网络错误 → 重试
+  if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') return true;
+  return false;
+}
+
+// 使用
+const response = await withRetry(
+  () => agent.sendMessage(userInput),
+  { maxRetries: 3, baseDelayMs: 1000, maxDelayMs: 15000, backoffMultiplier: 2, retryableErrors: ['rate_limit', 'timeout', 'server_error'] }
+);
+```
+
+## 降级策略
+
+```typescript
+async function robustAgentCall(
+  userInput: string,
+  preferredModel: string = 'claude-sonnet-4-6',
+  fallbackModel: string = 'claude-haiku-4-5'
+): Promise<string> {
+  try {
+    // 主模型
+    return await withRetry(() => callLLM(preferredModel, userInput));
+  } catch (error: any) {
+    console.warn(`主模型 ${preferredModel} 失败: ${error.message}`);
+
+    try {
+      // 降级模型
+      console.log(`降级到 ${fallbackModel}`);
+      return await callLLM(fallbackModel, userInput);
+    } catch (fallbackError: any) {
+      // 最终兜底
+      console.error(`降级模型也失败: ${fallbackError.message}`);
+      return '抱歉，服务暂时不可用，请稍后再试。';
+    }
+  }
+}
+```
+
+## Token 超限处理
+
+```typescript
+function manageContextWindow(
+  messages: Message[],
+  maxTokens: number,
+  strategy: 'trim' | 'summarize' = 'trim'
+): Message[] {
+  const totalTokens = estimateTokens(messages);
+
+  if (totalTokens <= maxTokens) return messages;
+
+  if (strategy === 'trim') {
+    // 策略 1：保留系统提示 + 最近的消息
+    const systemMessages = messages.filter(m => m.role === 'system');
+    const recentMessages = messages.filter(m => m.role !== 'system').slice(-20);
+    return [...systemMessages, ...recentMessages];
+  }
+
+  // 策略 2：摘要历史消息
+  // （实际实现需调用 LLM 生成摘要）
+  return messages;
+}
+```
+
+## 熔断器（Circuit Breaker）
+
+```typescript
+class CircuitBreaker {
+  private failures = 0;
+  private lastFailureTime = 0;
+  private state: 'closed' | 'open' | 'half-open' = 'closed';
+
+  constructor(
+    private failureThreshold: number = 5,
+    private resetTimeoutMs: number = 30000
+  ) {}
+
+  async execute<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.state === 'open') {
+      if (Date.now() - this.lastFailureTime > this.resetTimeoutMs) {
+        this.state = 'half-open';  // 试探性恢复
+      } else {
+        throw new Error('Circuit breaker is OPEN');
+      }
+    }
+
+    try {
+      const result = await fn();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+
+  private onSuccess() {
+    this.failures = 0;
+    this.state = 'closed';
+  }
+
+  private onFailure() {
+    this.failures++;
+    this.lastFailureTime = Date.now();
+    if (this.failures >= this.failureThreshold) {
+      this.state = 'open';
+    }
+  }
+}
+```
+
+## 自检清单
+
+- □ 能实现指数退避重试
+- □ 理解降级策略（模型降级 + 功能降级）
+- □ 能处理 Token 超限问题
+- □ 知道熔断器的三种状态及转换条件

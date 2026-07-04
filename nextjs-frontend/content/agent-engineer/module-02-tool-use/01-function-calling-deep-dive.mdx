@@ -1,0 +1,158 @@
+---
+title: Function Calling 原理深度解析
+difficulty: beginner
+estimatedMinutes: 50
+analogy: 你给 AI 一本菜单，它点菜，你上菜——AI 说想调什么函数，你来执行
+oneLiner: 理解 AI 如何"使用工具"的完整流程
+tags: [Function Calling, Tool Use, 原理]
+---
+
+# Function Calling 原理深度解析
+
+> 💡 **AI 不会直接调用函数** — 它只是用结构化 JSON 告诉你它想调什么，由你的代码来执行。
+
+## 核心流程
+
+```
+┌──────────┐     ┌──────────────┐     ┌──────────┐
+│ 用户消息  │────▶│  LLM 推理     │────▶│ 返回 text │  普通模式
+│          │     │              │     │          │
+└──────────┘     └──────────────┘     └──────────┘
+
+┌──────────┐     ┌──────────────┐     ┌──────────────────┐
+│ 用户消息  │────▶│  LLM 推理     │────▶│ 返回 tool_calls: │  Function
+│ + 描述   │     │  + tool 定义  │     │ [{name, args}]   │  Calling
+└──────────┘     └──────────────┘     └──────────────────┘
+                                              │
+                                         ┌────▼────┐
+                                         │ 你的代码  │
+                                         │ 执行函数  │
+                                         └────┬────┘
+                                              │
+                                         ┌────▼────┐
+                                         │  LLM 生成│
+                                         │ 最终回复  │
+                                         └─────────┘
+```
+
+## 三步解剖 Function Calling
+
+### 第 1 步：定义 Tool Schema（给 AI 的"菜单"）
+
+```typescript
+// Tool Schema = AI 能调用的函数说明书
+const tools = [
+  {
+    name: 'get_weather',
+    description: '获取指定城市的实时天气。当用户询问天气时使用此工具。',
+    parameters: {
+      type: 'object',
+      properties: {
+        city: {
+          type: 'string',
+          description: '城市名称，如"北京"、"上海"',
+        },
+        unit: {
+          type: 'string',
+          enum: ['celsius', 'fahrenheit'],
+          description: '温度单位',
+        },
+      },
+      required: ['city'],
+    },
+  },
+];
+```
+
+**关键原则**：
+- `name`：动词开头，语义清晰（`get_weather` 而非 `func1`）
+- `description`：越详细越好——LLM 靠它决定用哪个工具
+- `parameters`：精确的类型约束，避免 LLM 传错参数
+
+### 第 2 步：发送请求（AI 点菜）
+
+```typescript
+const response = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.ANTHROPIC_API_KEY!,
+    'anthropic-version': '2023-06-01',
+  },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-6',
+    messages: [{ role: 'user', content: '北京今天多少度？' }],
+    tools: tools, // ← 关键：传入 tool 定义
+  }),
+});
+
+const data = await response.json();
+// AI 返回的不是文本，而是：
+// {
+//   "stop_reason": "tool_use",
+//   "content": [{
+//     "type": "tool_use",
+//     "name": "get_weather",
+//     "input": { "city": "北京", "unit": "celsius" }
+//   }]
+// }
+```
+
+### 第 3 步：执行函数 + 返回结果（你上菜）
+
+```typescript
+// 解析 AI 想要的函数调用
+const toolCall = data.content.find(c => c.type === 'tool_use');
+
+// 你的代码执行真实函数
+const weatherResult = await getRealWeather(
+  toolCall.input.city,
+  toolCall.input.unit
+);
+
+// 把结果返回给 AI，让它生成最终回复
+const finalResponse = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.ANTHROPIC_API_KEY!,
+    'anthropic-version': '2023-06-01',
+  },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-6',
+    messages: [
+      { role: 'user', content: '北京今天多少度？' },
+      { role: 'assistant', content: data.content },       // AI 的 tool_use
+      { role: 'user', content: [{
+        type: 'tool_result',
+        tool_use_id: toolCall.id,
+        content: JSON.stringify(weatherResult),            // 工具执行结果
+      }]},
+    ],
+  }),
+});
+
+// AI 最终回复："北京今天 26°C，晴间多云，适合户外活动。"
+```
+
+## 深入理解：LLM 如何"决定"调用工具？
+
+LLM 内部通过 **概率预测** 来决定：
+1. 它分析你的消息 + 所有 tool 的 description
+2. 如果判断"这个问题需要工具"，它选择匹配度最高的 tool
+3. 它根据 tool 的 parameters schema 生成对应的 JSON 参数
+
+**实验验证**：试试给同一个问题，但使用模糊的 tool description vs 精确的——LLM 选择 tool 的准确率会有显著差异。
+
+## 常见误区
+
+- ❌ **AI 真的执行了函数**：AI 只输出 JSON，你的代码才执行
+- ❌ **工具越多越好**：tool 太多会降低选择准确率（建议 5-10 个以内）
+- ❌ **description 随便写**：description 是最关键的 prompt engineering
+
+## 自检清单
+
+- □ 能画出 Function Calling 的三步流程图
+- □ 能手写一个完整的 tool schema（包含 name、description、parameters）
+- □ 理解 stop_reason: "tool_use" 的含义
+- □ 知道 tool_result 如何回传给 LLM

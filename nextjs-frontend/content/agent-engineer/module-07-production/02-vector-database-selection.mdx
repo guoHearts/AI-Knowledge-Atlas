@@ -1,0 +1,141 @@
+---
+title: 向量数据库选型与实战
+difficulty: intermediate
+estimatedMinutes: 60
+analogy: 选数据库就像选房子——pgvector 是精装公寓，Pinecone 是全托管酒店
+oneLiner: pgvector、Pinecone、Qdrant、Milvus 全面对比
+tags: [RAG, 向量数据库, 选型]
+---
+
+# 向量数据库选型与实战
+
+> 💡 **没有最好的向量数据库，只有最适合你的** — 数据量、延迟要求、运维能力决定选型。
+
+## 四大主流对比
+
+| 维度 | pgvector | Qdrant | Milvus | Pinecone |
+|------|----------|--------|--------|----------|
+| **类型** | PG 扩展 | 独立数据库 | 独立数据库 | 云托管 |
+| **部署** | 最简单（已有 PG） | 简单 | 复杂 | 无需运维 |
+| **性能** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **规模上限** | 10M 向量 | 1B 向量 | 10B 向量 | 无限制 |
+| **成本** | 免费 | 免费开源 | 免费开源 | 按量付费 |
+| **适用** | 中小项目 | 中型 RAG | 大型搜索 | 无运维团队 |
+
+## pgvector 实战（推荐入门）
+
+```sql
+-- 1. 启用扩展
+CREATE EXTENSION vector;
+
+-- 2. 创建文档表
+CREATE TABLE documents (
+    id SERIAL PRIMARY KEY,
+    content TEXT NOT NULL,
+    embedding vector(1536),  -- OpenAI embedding 维度
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 3. 创建索引（加速检索）
+CREATE INDEX ON documents USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+-- 4. 插入文档（应用层生成 embedding 后）
+INSERT INTO documents (content, embedding, metadata) VALUES
+    ('MCP 协议入门指南...', '[0.1, 0.2, ...]', '{"source": "docs", "topic": "mcp"}');
+
+-- 5. 相似度检索
+SELECT content, metadata, 1 - (embedding <=> '[0.15, 0.25, ...]') AS similarity
+FROM documents
+ORDER BY embedding <=> '[0.15, 0.25, ...]'
+LIMIT 5;
+```
+
+```python
+# Python 客户端
+import psycopg2
+from pgvector.psycopg2 import register_vector
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer('BAAI/bge-small-zh-v1.5')
+conn = psycopg2.connect("postgresql://localhost/rag_db")
+register_vector(conn)
+
+def search_similar(query: str, limit: int = 5):
+    embedding = model.encode(query).tolist()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT content, 1 - (embedding <=> %s::vector) AS score
+        FROM documents
+        ORDER BY embedding <=> %s::vector
+        LIMIT %s
+    """, (embedding, embedding, limit))
+    return cur.fetchall()
+```
+
+## Qdrant 实战（性能优先）
+
+```python
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
+
+client = QdrantClient("localhost", port=6333)
+
+# 创建集合
+client.create_collection(
+    collection_name="ai_knowledge",
+    vectors_config=VectorParams(size=1024, distance=Distance.COSINE),
+)
+
+# 插入向量
+client.upsert(
+    collection_name="ai_knowledge",
+    points=[
+        PointStruct(
+            id=i,
+            vector=embedding.tolist(),
+            payload={"text": doc, "source": "github", "topic": "agent"},
+        )
+        for i, (doc, embedding) in enumerate(zip(docs, embeddings))
+    ],
+)
+
+# 检索
+results = client.search(
+    collection_name="ai_knowledge",
+    query_vector=query_embedding.tolist(),
+    limit=5,
+    with_payload=True,
+)
+```
+
+## 选型决策树
+
+```
+你的数据量？
+├── < 100K 文档 → pgvector（最简单，和业务数据库一体）
+├── 100K - 10M → Qdrant（性能好，运维简单）
+├── > 10M → Milvus（分布式，大规模）
+└── 不想运维 → Pinecone / Zilliz Cloud（全托管）
+
+需要混合检索（向量 + 关键词）？
+├── 是 → Qdrant / Elasticsearch
+└── 否 → 任意方案都可以
+
+已有 PostgreSQL？
+├── 是 → pgvector 零成本接入
+└── 否 → 根据数据量选择
+```
+
+## 参考
+
+- [pgvector](https://github.com/pgvector/pgvector) — PG 向量扩展，最流行的方案
+- [Qdrant](https://github.com/qdrant/qdrant) — Rust 编写的高性能向量数据库
+- [Milvus](https://github.com/milvus-io/milvus) — 云原生分布式向量数据库
+
+## 自检清单
+
+- □ 能在 PostgreSQL 中启用 pgvector 并创建向量索引
+- □ 能独立进行向量检索（插入 + 查询）
+- □ 理解 IVFFlat 和 HNSW 索引的区别
+- □ 能根据业务需求选择合适的向量数据库

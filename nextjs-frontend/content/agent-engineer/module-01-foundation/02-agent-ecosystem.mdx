@@ -1,0 +1,123 @@
+---
+title: Agent 生态全景
+difficulty: beginner
+estimatedMinutes: 45
+analogy: 就像选择开发语言——Java 还是 Python？各有各的适用场景
+oneLiner: 了解框架/协议/平台三大赛道
+tags: [Agent 基础, 生态对比]
+---
+
+# Agent 生态全景
+
+> 💡 **选对工具，事半功倍** — Agent 生态分为框架、协议、平台三大赛道，各有强项，了解全景再做选择。
+
+## Agent 生态三大赛道
+
+```
+┌─────────────────────────────────────────────────┐
+│              AI Agent 生态全景                    │
+├──────────────┬──────────────┬──────────────────┤
+│   框架/库     │   协议/标准    │   平台/低代码      │
+├──────────────┼──────────────┼──────────────────┤
+│ LangChain    │ MCP (Anthropic│ Dify             │
+│ LangGraph    │  A2A (Google) │ Coze (字节)       │
+│ CrewAI       │ AG-UI         │ FastGPT          │
+│ AutoGen      │ UTCP          │ n8n              │
+│ Semantic     │ Agent2Agent   │ Flowise          │
+│  Kernel      │               │                  │
+└──────────────┴──────────────┴──────────────────┘
+```
+
+## 赛道一：框架/库 — 最灵活
+
+适合需要深度定制的开发者。
+
+### 🔥 主流框架对比
+
+| 框架 | 语言 | 定位 | 适合场景 | Stars |
+|------|------|------|----------|-------|
+| **LangChain** | Python/JS | 通用 LLM 框架 | RAG、Chain、Agent | 100k+ |
+| **LangGraph** | Python/JS | 有状态 Agent 工作流 | 复杂多步 Agent | 10k+ |
+| **CrewAI** | Python | 多 Agent 角色扮演 | 团队协作模拟 | 25k+ |
+| **AutoGen** (Microsoft) | Python | 多 Agent 对话 | 企业 Agent 系统 | 38k+ |
+| **Semantic Kernel** (MS) | .NET/Python/Java | 企业级 AI 编排 | 企业内部应用 | 23k+ |
+| **mcp-agent** | Python | MCP 原生 Agent | MCP 生态 Agent | 8.3k |
+| **Upsonic** | Python | 自主 Agent 框架 | 生产级 Agent | 7.8k |
+| **Nerve** | Python | 简单 Agent 开发 | 轻量级 Agent | 1.3k |
+
+### 💡 选择建议
+
+```python
+# 如果你想快速上手 → LangChain
+from langchain.agents import create_openai_functions_agent
+agent = create_openai_functions_agent(llm, tools, prompt)
+
+# 如果你需要复杂工作流 → LangGraph
+from langgraph.graph import StateGraph
+graph = StateGraph(MyState)
+graph.add_node("analyze", analyze_node)
+graph.add_node("execute", execute_node)
+graph.add_edge("analyze", "execute")
+
+# 如果你做多 Agent 协作 → CrewAI
+from crewai import Agent, Task, Crew
+researcher = Agent(role="研究员", goal="搜索相关技术资料")
+writer = Agent(role="技术作家", goal="输出技术文档")
+crew = Crew(agents=[researcher, writer], tasks=[...])
+```
+
+## 赛道二：协议/标准 — 连接一切
+
+协议是 Agent 生态的"USB 标准"。目前最核心的是 **MCP（Model Context Protocol）**。
+
+### 主要协议
+
+| 协议 | 提出者 | 用途 | 状态 |
+|------|--------|------|------|
+| **MCP** | Anthropic | Agent ↔ 工具连接 | ✅ 广泛采用 |
+| **A2A** | Google | Agent ↔ Agent 通信 | 🆕 2025 发布 |
+| **AG-UI** | CopilotKit | Agent ↔ 前端 UI | 🔥 快速增长 |
+| **UTCP** | 社区 | 通用工具调用协议 | 📋 提案阶段 |
+
+### MCP 为什么重要？
+
+```
+传统方式：每个工具单独集成
+Agent ──→ 天气 API（专用代码）
+Agent ──→ 数据库（专用代码）
+Agent ──→ 邮件服务（专用代码）
+
+MCP 方式：一次连接，所有工具可用
+Agent ──→ MCP Client ──→ MCP Server 1（天气）
+                      ──→ MCP Server 2（数据库）
+                      ──→ MCP Server 3（邮件）
+```
+
+参考实现：[PrefectHQ/fastmcp](https://github.com/PrefectHQ/fastmcp) — 25k+ stars，Pythonic MCP 开发框架
+
+## 赛道三：平台/低代码 — 最易上手
+
+适合不写代码或快速原型验证。
+
+| 平台 | 特点 | 适合 |
+|------|------|------|
+| **Dify** | 开源，可视化工作流 | 快速搭建 AI 应用 |
+| **Coze (扣子)** | 字节跳动，免费 | 个人开发者/学生 |
+| **FastGPT** | 开源，知识库强 | 企业知识问答 |
+| **n8n** | 工作流自动化 | 集成多种服务 |
+
+## 2026 年趋势
+
+1. **MCP 成为标配**：几乎所有主流 Agent 框架都支持 MCP
+2. **多模态 Agent**：视觉+音频+语言的统一感知（如 Nemotron Nano Omni）
+3. **Computer Use**：Agent 直接操作电脑（Claude Computer Use、Browser Use）
+4. **从 Demo 到生产**：可观测性、安全护栏、部署方案日趋成熟
+
+参考：[awesome-agentic-ai-zh](https://github.com/WenyuChiou/awesome-agentic-ai-zh) — 240+ 精选项目，8 阶段学习路线
+
+## 自检清单
+
+- □ 能画出 Agent 生态三大赛道的结构图
+- □ 能说出至少 4 个主流 Agent 框架及其定位
+- □ 理解 MCP 协议解决的核心问题
+- □ 能根据需求场景推荐合适的框架/平台

@@ -1,0 +1,150 @@
+---
+title: Agentic RAG——让 Agent 决定何时检索
+difficulty: advanced
+estimatedMinutes: 60
+analogy: 不是每次对话都翻书，而是 Agent 判断"这个我不确定，查一下"
+oneLiner: Agent 自主决策检索时机和策略
+tags: [RAG, Agent, 高级]
+---
+
+# Agentic RAG——让 Agent 决定何时检索
+
+> 💡 **传统 RAG 每次必检索，Agentic RAG 自主决策** — "这个问题我懂，不用查" vs "这我需要查一下"。
+
+## 传统 RAG vs Agentic RAG
+
+```
+传统 RAG（被动）：
+用户提问 → 检索 → 生成 → 回答
+（每次都检索，即使 LLM 本来就知道答案）
+
+Agentic RAG（主动）：
+用户提问 → Agent 判断 → 需要检索？→ 检索 → 生成
+                     → 不需要？→ 直接回答
+```
+
+## 核心能力
+
+| 能力 | 说明 |
+|------|------|
+| **判断是否需要检索** | Agent 自我评估知识覆盖 |
+| **选择检索策略** | 向量搜索？关键词？混合？ |
+| **迭代检索** | 第一次没找到 → 改写查询 → 再搜 |
+| **多源聚合** | 同时查知识库 + 网页 + API |
+| **引用溯源** | 每个答案附带来源 |
+
+## 实现
+
+```typescript
+async function agenticRag(userQuery: string): Promise<{
+  answer: string;
+  sources: string[];
+  didRetrieve: boolean;
+}> {
+  const agent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: `你是知识问答 Agent。回答用户问题时遵循以下规则：
+
+1. 如果你已经确定知道答案，直接回答，标注"基于我的知识"。
+2. 如果你不确定或需要最新信息，使用 search_knowledge_base 工具检索。
+3. 如果检索结果不充分，尝试改写查询重新检索（最多 2 次）。
+4. 如果检索结果充分，基于检索内容回答，标注来源。`,
+    tools: [
+      {
+        name: 'search_knowledge_base',
+        description: '检索知识库。当你对答案不确定、需要最新信息或具体数据时使用。',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: '检索查询，建议使用关键词' },
+            top_k: { type: 'integer', description: '返回文档数，默认 5', default: 5 },
+          },
+          required: ['query'],
+        },
+        handler: async ({ query, top_k = 5 }) => {
+          const results = await hybridRetriever.search(query, top_k);
+          return results.map(r => ({
+            content: r.document,
+            score: r.score,
+            source: r.metadata?.source || 'unknown',
+          }));
+        },
+      },
+      {
+        name: 'rewrite_query',
+        description: '改写查询以提高检索效果。当第一次检索结果不相关时使用。',
+        parameters: {
+          type: 'object',
+          properties: {
+            original: { type: 'string', description: '原始查询' },
+            feedback: { type: 'string', description: '为什么第一次检索效果不好' },
+          },
+          required: ['original', 'feedback'],
+        },
+        handler: async ({ original, feedback }) => {
+          // LLM 改写查询，例如扩展同义词、调整关键词
+          const rewritten = await rewriteQuery(original, feedback);
+          return { rewritten };
+        },
+      },
+    ],
+  });
+
+  const response = await agent.sendMessage(userQuery);
+  
+  return {
+    answer: response.text,
+    sources: response.metadata?.sources || [],
+    didRetrieve: response.metadata?.didRetrieve || false,
+  };
+}
+```
+
+## 检索质量自我评估
+
+```python
+# Agent 评估检索结果是否足够回答问题
+async def evaluate_retrieval_sufficiency(query: str, retrieved_docs: list[str]) -> dict:
+    evaluator = Agent(
+        model="claude-sonnet-4-6",
+        instruction="评估检索结果是否足够回答问题。返回 JSON。",
+    )
+    
+    result = await evaluator.send_message(f"""
+问题: {query}
+
+检索结果:
+{chr(10).join(f"- {doc}" for doc in retrieved_docs)}
+
+评估：
+1. 这些结果是否包含回答所需的全部信息？
+2. 是否需要重新检索？
+3. 如果需要，建议改写为什么查询？
+
+返回 JSON:
+{{
+  "sufficient": true/false,
+  "reason": "原因",
+  "rewritten_query": "建议的新查询（如果需要）"
+}}
+""")
+    return json.loads(result)
+```
+
+## GraphRAG 简介
+
+GraphRAG 是 Agentic RAG 的进阶方向，不仅检索文档，还理解实体间的关系：
+
+```
+传统 RAG:  文档 → 向量 → 相似度 → Top-K
+GraphRAG:  文档 → 实体+关系图谱 → 社区检测 → 主题摘要 → 回答
+```
+
+参考：[Microsoft GraphRAG](https://github.com/microsoft/graphrag)
+
+## 自检清单
+
+- □ 能实现 Agent 自主判断是否需要检索
+- □ 能实现检索失败后的查询改写
+- □ 理解 Agentic RAG 相比传统 RAG 的优势
+- □ 知道 GraphRAG 的适用场景

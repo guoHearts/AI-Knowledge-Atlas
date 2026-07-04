@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-cosmos-bg text-cosmos-text font-body;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.14);
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-cosmos-surface/80 backdrop-blur-xl border border-cosmos-border;
+  }
+
+  .glass-card {
+    @apply glass-panel rounded-2xl transition-all duration-300;
+    &:hover {
+      @apply border-white/10 shadow-lg shadow-black/10;
+    }
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
+           bg-stellar-blue/20 text-stellar-blue border border-stellar-blue/30
+           hover:bg-stellar-blue/30 transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm
+           text-cosmos-dim hover:text-cosmos-text hover:bg-white/[0.03]
+           border border-transparent hover:border-cosmos-border transition-all duration-200;
+  }
+
+  .difficulty-badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border;
+  }
+
+  .prose-cosmos {
+    @apply prose prose-invert max-w-none
+           prose-headings:text-cosmos-text prose-headings:font-display
+           prose-h1:text-2xl prose-h1:font-bold
+           prose-h2:text-xl prose-h2:font-semibold prose-h2:border-b prose-h2:border-cosmos-border prose-h2:pb-3
+           prose-h3:text-lg prose-h3:font-semibold
+           prose-p:text-cosmos-dim prose-p:leading-relaxed
+           prose-code:text-stellar-blue prose-code:bg-cosmos-bg/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+           prose-pre:bg-cosmos-bg prose-pre:border prose-pre:border-cosmos-border
+           prose-blockquote:border-l-stellar-violet prose-blockquote:bg-stellar-violet/5 prose-blockquote:text-cosmos-text
+           prose-a:text-stellar-blue hover:prose-a:text-stellar-violet
+           prose-strong:text-cosmos-text
+           prose-li:text-cosmos-dim
+           prose-img:rounded-xl;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-stellar-blue to-stellar-violet;
+  }
+}

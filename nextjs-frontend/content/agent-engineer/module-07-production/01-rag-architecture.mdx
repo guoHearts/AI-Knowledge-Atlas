@@ -1,0 +1,150 @@
+---
+title: RAG 架构全景——从原理到生产
+difficulty: intermediate
+estimatedMinutes: 50
+analogy: 考试带参考书——先翻书找答案，再写卷子，答得更准
+oneLiner: Embedding → 检索 → 增强 → 生成
+tags: [RAG, 检索增强, 架构]
+---
+
+# RAG 架构全景——从原理到生产
+
+> 💡 **RAG = 给 LLM 配一个私人图书馆** — 每次回答前先检索相关资料，大幅减少幻觉。
+
+## RAG 为什么重要？
+
+| 纯 LLM 的问题 | RAG 的解决 |
+|-------------|----------|
+| 训练数据有时效性 | 实时检索最新资料 |
+| "幻觉"编造事实 | 基于检索到的真实文档回答 |
+| 不知道企业内部知识 | 检索企业知识库 |
+| 无法溯源答案 | 返回答案 + 引用来源 |
+
+## RAG 核心流程
+
+```
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  文档库   │───▶│  Embedding │───▶│  向量数据库 │
+│          │    │  向量化    │    │  存储索引  │
+└──────────┘    └──────────┘    └────┬─────┘
+                                     │
+                              用户查询来了
+                                     │
+                              ┌──────▼─────┐
+                              │ 查询 Embedding│
+                              └──────┬─────┘
+                                     │
+                              ┌──────▼─────┐
+                              │  相似度检索  │
+                              │  Top-K 文档  │
+                              └──────┬─────┘
+                                     │
+                              ┌──────▼─────┐
+                              │ Prompt 增强  │
+                              │ 系统提示+文档+查询│
+                              └──────┬─────┘
+                                     │
+                              ┌──────▼─────┐
+                              │  LLM 生成  │
+                              │ 带引用回答  │
+                              └────────────┘
+```
+
+## 最小实现（50 行）
+
+```python
+import chromadb
+from sentence_transformers import SentenceTransformer
+
+# 1. 准备嵌入模型
+embedder = SentenceTransformer('BAAI/bge-small-zh-v1.5')
+
+# 2. 创建向量数据库
+client = chromadb.Client()
+collection = client.create_collection("my_docs")
+
+# 3. 索引文档
+documents = [
+    "MCP 协议由 Anthropic 于 2024 年底发布，是 AI Agent 与工具间的通用连接标准。",
+    "RAG 全称 Retrieval-Augmented Generation，通过检索增强 LLM 的回答准确性。",
+    "LangChain 是最流行的 LLM 应用开发框架，支持 Python 和 JavaScript。",
+]
+
+collection.add(
+    documents=documents,
+    ids=[f"doc_{i}" for i in range(len(documents))],
+)
+
+# 4. 查询
+query = "什么是 MCP 协议？"
+query_embedding = embedder.encode(query).tolist()
+
+results = collection.query(
+    query_embeddings=[query_embedding],
+    n_results=2,
+)
+
+# 5. 构建增强 Prompt
+context = "\n".join(results['documents'][0])
+augmented_prompt = f"""基于以下资料回答问题。如果资料中没有相关信息，请说"我不确定"。
+
+资料：
+{context}
+
+问题：{query}
+
+回答："""
+
+# 6. 调用 LLM
+# response = llm.generate(augmented_prompt)
+print(augmented_prompt)
+```
+
+## 生产级 RAG 架构
+
+```
+                    ┌──────────────┐
+                    │  文档摄入管道  │
+                    └──────┬───────┘
+                           │
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+        ┌──────────┐ ┌──────────┐ ┌──────────┐
+        │ 文本分割  │ │ 元数据提取│ │ OCR/解析 │
+        └────┬─────┘ └────┬─────┘ └────┬─────┘
+             │            │            │
+             └────────────┼────────────┘
+                          ▼
+                   ┌──────────────┐
+                   │  向量化+存储   │
+                   └──────┬───────┘
+                          │
+                   ┌──────▼───────┐
+                   │   检索层      │
+                   │ 稠密+稀疏+重排│
+                   └──────┬───────┘
+                          │
+                   ┌──────▼───────┐
+                   │   生成层      │
+                   │ LLM+引用溯源 │
+                   └──────────────┘
+```
+
+## 核心组件选型
+
+| 组件 | 推荐方案 | 备选 |
+|------|----------|------|
+| **嵌入模型** | BGE-M3 / text-embedding-3 | Jina Embeddings |
+| **向量数据库** | pgvector / Qdrant | Pinecone, Milvus, Chroma |
+| **文档解析** | Unstructured / LlamaParse | PyPDF, Docling |
+| **检索框架** | LangChain / LlamaIndex | 自研 |
+| **重排序** | Cohere Rerank / BGE-Reranker | Cross-encoder |
+
+参考：[WenyuChiou/awesome-agentic-ai-zh](https://github.com/WenyuChiou/awesome-agentic-ai-zh) RAG 专章
+
+## 自检清单
+
+- □ 能画出 RAG 的完整流程图
+- □ 能用 Chroma + SentenceTransformers 实现最小 RAG
+- □ 理解 Embedding → 检索 → 增强 → 生成四步
+- □ 知道至少 3 个向量数据库的适用场景

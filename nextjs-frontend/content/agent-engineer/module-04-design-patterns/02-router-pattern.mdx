@@ -1,0 +1,160 @@
+---
+title: Router 模式——智能分发
+difficulty: intermediate
+estimatedMinutes: 45
+analogy: 前台接待员——看一眼访客，就知道该引到哪个部门
+oneLiner: 根据输入特征分发到不同处理分支
+tags: [设计模式, Router, 分发]
+---
+
+# Router 模式——智能分发
+
+> 💡 **一个入口，多条路线** — 根据用户意图自动分发到专门的处理器。
+
+## 动机——解决什么问题？
+
+不同用户请求需要完全不同的处理方式，混在一起会产生"意大利面条代码"。
+
+```
+没有 Router：巨型 if-else
+function handleRequest(msg) {
+  if (msg.includes('bug')) { /* 200 行 Bug 处理 */ }
+  else if (msg.includes('feature')) { /* 200 行需求处理 */ }
+  else if (msg.includes('question')) { /* 200 行问答处理 */ }
+  else { /* 兜底 */ }
+}
+
+有 Router：清晰分离
+function handleRequest(msg) {
+  const intent = router.classify(msg);    // 分类
+  return handlers[intent].process(msg);   // 分发
+}
+```
+
+## 结构
+
+```
+          ┌─→ Handler A（技术问题）──→ 技术知识库
+用户 ──→ Router ──→ Handler B（产品咨询）──→  产品文档
+          └─→ Handler C（投诉建议）──→ 投诉工单
+```
+
+## TypeScript 实现
+
+```typescript
+interface Intent {
+  category: 'technical' | 'product' | 'complaint';
+  confidence: number;
+}
+
+class IntentRouter {
+  async classify(input: string): Promise<Intent> {
+    // 用 LLM 做意图分类
+    const agent = new Agent({
+      model: 'claude-sonnet-4-6',
+      systemPrompt: `你是一个客服意图分类器。给定用户消息，判断意图类别。
+返回 JSON: {"category": "technical|product|complaint", "confidence": 0-1}`,
+    });
+    const result = await agent.sendMessage(input);
+    return JSON.parse(result);
+  }
+}
+
+const handlers: Record<string, (input: string) => Promise<string>> = {
+  technical: async (input) => {
+    // 查技术文档，返回解决方案
+    const docs = await searchTechnicalDocs(input);
+    return `技术回复: ${docs}`;
+  },
+  product: async (input) => {
+    const info = await queryProductInfo(input);
+    return `产品咨询: ${info}`;
+  },
+  complaint: async (input) => {
+    const ticket = await createEscalationTicket(input);
+    return `已创建投诉工单: ${ticket.id}`;
+  },
+};
+
+async function handleRequest(input: string) {
+  const router = new IntentRouter();
+  const intent = await router.classify(input);
+
+  if (intent.confidence < 0.7) {
+    return '我不太确定您的需求，能否再说详细一点？';
+  }
+
+  const handler = handlers[intent.category];
+  return handler(input);
+}
+
+// 测试
+console.log(await handleRequest('你们的登录页面打不开了'));
+// → Route to: technical → "技术回复: 请尝试清除浏览器缓存..."
+
+console.log(await handleRequest('这个功能怎么收费的？'));
+// → Route to: product → "产品咨询: 基础版免费，Pro 版 ¥99/月..."
+```
+
+## Python LangGraph 实现
+
+```python
+from langgraph.graph import StateGraph
+from typing import TypedDict, Literal
+
+class RouterState(TypedDict):
+    input: str
+    intent: str
+    response: str
+
+def classify_intent(state: RouterState) -> RouterState:
+    """LLM 分类用户意图"""
+    # 调用 LLM 判断意图
+    state["intent"] = "technical"  # 简化示例，实际用 LLM
+    return state
+
+def route_to_handler(state: RouterState) -> Literal["tech_handler", "product_handler", "complaint_handler"]:
+    if state["intent"] == "technical":
+        return "tech_handler"
+    elif state["intent"] == "product":
+        return "product_handler"
+    return "complaint_handler"
+
+def tech_handler(state: RouterState) -> RouterState:
+    state["response"] = f"技术回复: {state['input']} 的解决方案是..."
+    return state
+
+graph = StateGraph(RouterState)
+graph.add_node("classify", classify_intent)
+graph.add_node("tech_handler", tech_handler)
+graph.add_conditional_edges("classify", route_to_handler, {
+    "tech_handler": "tech_handler",
+    "product_handler": "product_handler",
+    "complaint_handler": "complaint_handler",
+})
+graph.set_entry_point("classify")
+```
+
+## 取舍
+
+| 该用 Router 时 | 不该用 Router 时 |
+|---------------|-----------------|
+| 输入类型明确可分 | 输入类型模糊重叠 |
+| 每类有专属处理逻辑 | 所有类型处理逻辑差不多 |
+| 需要独立优化各分支 | 分支数量太多（>10）管理困难 |
+
+## 企业场景
+
+📌 **典型应用**：智能客服意图分发、代码审查分类、内容审核路由、工单自动分配
+
+💼 **面试常问**：
+- "Router 分类错误怎么办？" → 低置信度时降级到通用 Handler，人工兜底
+- "如何扩展新分支？" → 只需添加新 Handler + 注册路由，不修改现有代码
+- "Router 本身怎么测试？" → 准备标注数据集，评估分类准确率和召回率
+
+## 自检清单
+
+- □ 能实现一个基于 LLM 的意图分类 Router
+- □ 理解 Router 分类置信度阈值的设计意义
+- □ 知道如何在不修改现有代码的情况下扩展新分支
+- □ 能说出 Router 模式至少 2 个企业应用场景

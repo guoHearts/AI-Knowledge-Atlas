@@ -1,0 +1,165 @@
+---
+title: 选择你的第一个 Agent SDK
+difficulty: beginner
+estimatedMinutes: 60
+analogy: 选一把趁手的工具——先学会用锤子，再考虑要不要买电钻
+oneLiner: 对比主流 SDK，选最适合你的那个
+tags: [Agent 基础, SDK]
+---
+
+# 选择你的第一个 Agent SDK
+
+> 💡 **好工具让你事半功倍** — 2026 年最值得关注的三个 Agent SDK：Anthropic Agent SDK、Vercel AI SDK、LangChain。
+
+## 三大 SDK 速览
+
+| 维度 | Anthropic Agent SDK | Vercel AI SDK | LangChain |
+|------|---------------------|---------------|-----------|
+| **语言** | TypeScript / Python | TypeScript | Python / JS |
+| **定位** | Agent 原生开发 | 全栈 AI 应用 | 通用 LLM 框架 |
+| **学习曲线** | ⭐⭐ 友好 | ⭐⭐⭐ 中等 | ⭐⭐⭐⭐ 较陡 |
+| **MCP 支持** | ✅ 原生一等公民 | ✅ 通过插件 | ✅ 社区支持 |
+| **流式输出** | ✅ 原生 | ✅ 核心特性 | ✅ 支持 |
+| **前端集成** | 需要自己搭 | ✅ Next.js 深度集成 | 需要自己搭 |
+| **模型支持** | Claude 系列 | 所有主流模型 | 所有主流模型 |
+
+## 方案一：Anthropic Agent SDK（推荐入门）
+
+最简单直接的 Agent 开发方式，原生支持 MCP 协议。
+
+```typescript
+// 安装：npm install @anthropic-ai/sdk
+import { Agent } from '@anthropic-ai/sdk';
+
+// 5 行代码创建第一个 Agent
+const agent = new Agent({
+  model: 'claude-sonnet-4-6',
+  systemPrompt: '你是一个友好的中文助手。',
+});
+
+const response = await agent.sendMessage('用一句大白话解释什么是 MCP 协议');
+console.log(response);
+// → MCP 就像 AI 的 USB-C 接口——插上就能用任何工具。
+```
+
+**优势**：
+- 最简洁的 API 设计
+- 原生 MCP 集成，工具即插即用
+- 快速原型验证的首选
+
+**适用场景**：快速原型、MCP 工具集成、单 Agent 系统
+
+## 方案二：Vercel AI SDK（全栈首选）
+
+如果你在做 Next.js 全栈项目，Vercel AI SDK 是最佳选择。
+
+```typescript
+// 安装：npm install ai @ai-sdk/anthropic
+import { generateText, tool } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { z } from 'zod';
+
+// 带 Tool 的 Agent
+const { text } = await generateText({
+  model: anthropic('claude-sonnet-4-6'),
+  prompt: '北京今天天气怎么样？',
+  tools: {
+    getWeather: tool({
+      description: '获取指定城市的天气信息',
+      parameters: z.object({
+        city: z.string().describe('城市名称'),
+      }),
+      execute: async ({ city }) => {
+        // 调用真实天气 API
+        return `城市:${city}，温度:25°C，晴`;
+      },
+    }),
+  },
+});
+
+console.log(text);
+```
+
+**优势**：
+- React/Next.js 深度集成（`useChat` hook 等）
+- 流式输出内置支持
+- 多模型切换（Claude、GPT、Gemini 统一接口）
+
+**适用场景**：全栈 Web 应用、聊天 UI、需要流式输出的产品
+
+## 方案三：LangChain（最全面）
+
+功能最全但学习曲线最陡。
+
+```python
+from langchain.agents import create_agent
+from langchain_anthropic import ChatAnthropic
+from langchain.tools import tool
+
+@tool
+def get_weather(city: str) -> str:
+    """获取指定城市的天气信息"""
+    return f"{city}: 25°C, 晴"
+
+llm = ChatAnthropic(model="claude-sonnet-4-6")
+agent = create_agent(llm, [get_weather])
+agent.invoke({"messages": [{"role": "user", "content": "北京天气？"}]})
+```
+
+**优势**：
+- 最丰富的工具生态（100+ 内置工具）
+- 成熟的 RAG 栈
+- 广泛的社区和文档
+
+**适用场景**：复杂企业应用、需要大量内置工具的 RAG 系统
+
+## 我们的推荐
+
+```
+快速原型 / 学习 Agent 基础     → Anthropic Agent SDK
+全栈 Web 应用 / 前端开发者      → Vercel AI SDK  
+企业复杂系统 / Python 技术栈   → LangChain
+```
+
+本课程以 **Anthropic Agent SDK** 为主线教学，因为它的 API 最简洁，让你专注于 Agent 核心概念而非框架细节。学会核心概念后，切换到其他 SDK 只需熟悉 API 差异。
+
+## 实战：5 分钟跑通第一个 Agent
+
+```bash
+# 1. 创建项目
+mkdir my-first-agent && cd my-first-agent
+npm init -y
+
+# 2. 安装 SDK
+npm install @anthropic-ai/sdk
+
+# 3. 设置 API Key
+echo 'ANTHROPIC_API_KEY=your-key-here' > .env.local
+
+# 4. 创建 agent.ts
+cat > agent.ts << 'EOF'
+import { Agent } from '@anthropic-ai/sdk';
+
+async function main() {
+  const agent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: '你是友好的中文 AI 助手，回答简洁有力。',
+  });
+
+  const answer = await agent.sendMessage('用一句话解释什么是 Agent');
+  console.log(answer);
+}
+
+main().catch(console.error);
+EOF
+
+# 5. 运行
+npx tsx agent.ts
+```
+
+## 自检清单
+
+- □ 能说出三大 SDK 的核心区别和适用场景
+- □ 成功安装并运行了 Anthropic Agent SDK 的 Hello World
+- □ 理解 API Key 的安全存储方式（.env.local）
+- □ 知道用什么 SDK 开始学习最合适

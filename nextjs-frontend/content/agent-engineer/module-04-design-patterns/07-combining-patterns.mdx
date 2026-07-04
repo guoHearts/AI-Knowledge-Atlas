@@ -1,0 +1,194 @@
+---
+title: 实战——组合多个模式设计完整 Agent 系统
+difficulty: advanced
+estimatedMinutes: 90
+analogy: 造一辆汽车——Pipeline 是传动轴、Router 是方向盘、Orchestrator 是引擎管理系统
+oneLiner: 真实世界里没有纯模式，只有组合拳
+tags: [设计模式, 综合实战]
+---
+
+# 实战——组合多个模式设计完整 Agent 系统
+
+> 💡 **模式不是积木，是工具箱** — 真实系统需要组合 Pipeline + Fan-out + Human-in-the-loop + Self-healing。
+
+## 案例：AI 课程内容生成系统
+
+用本平台自身的 CMS 系统作为实战案例。目标：
+1. 用户输入课程主题
+2. Agent 自动检索资料 → 生成大纲 → 并行生成各课时 → 质量校验 → 人工审批 → 发布
+3. 如果某步失败，自动修复重试
+
+## 架构图
+
+```
+                用户输入: "RAG 架构入门课程"
+                         │
+                    ┌────▼────┐
+                    │ Pipeline │  顺序执行
+                    └────┬────┘
+                         │
+           ┌─────────────┼─────────────┐
+           ▼             ▼             ▼
+      Step 1: 检索   Step 2: 大纲   Step 3: ⏸️ 人工审批大纲
+      ┌──────────┐   ┌──────────┐   ┌──────────────┐
+      │ RAG 检索  │   │ LLM 生成  │   │ Human-in-   │
+      │ 相关资料  │──▶│ 课程大纲  │──▶│ the-loop    │
+      └──────────┘   └──────────┘   └──────┬───────┘
+                                           │ approved
+                                           ▼
+                                     Step 4: Fan-out
+                                     ┌──────────────┐
+                                     │ 并行生成课时  │
+                                     └──────┬───────┘
+                                            │
+                          ┌─────────────────┼─────────────────┐
+                          ▼                 ▼                 ▼
+                    课时 1: 概览      课时 2: 向量DB     课时 3: 混合检索
+                    ┌──────────┐    ┌──────────┐      ┌──────────┐
+                    │ Generate │    │ Generate │      │ Generate │
+                    │ Execute  │    │ Execute  │      │ Execute  │
+                    │ ❌ → Fix │    │ ✅ pass  │      │ ✅ pass  │
+                    │ ✅ pass  │    └──────────┘      └──────────┘
+                    └──────────┘
+                          │                 │                 │
+                          └─────────────────┼─────────────────┘
+                                            │ Fan-in
+                                            ▼
+                                     Step 5: 校验
+                                     ┌──────────────┐
+                                     │ Agent as     │
+                                     │ Judge 打分   │
+                                     └──────┬───────┘
+                                            │ all passed
+                                            ▼
+                                     Step 6: ⏸️ 发布审批
+                                     ┌──────────────┐
+                                     │ Human-in-   │
+                                     │ the-loop    │
+                                     └──────┬───────┘
+                                            │ approved
+                                            ▼
+                                        ✅ 发布
+```
+
+## 核心实现
+
+```typescript
+// 主流程：Pipeline 编排
+async function generateCourse(topic: string) {
+  const pipeline = new Pipeline<CourseState>()
+    // Step 1: 检索（Router 决定搜索策略）
+    .addStep({
+      name: 'research',
+      execute: async (state) => {
+        const router = new IntentRouter();
+        const intent = await router.classify(topic);
+        // 根据主题类型选择不同的搜索策略
+        const strategy = intent.category === 'technical'
+          ? searchTechnicalDocs
+          : searchGeneralDocs;
+        state.research = await strategy(topic);
+        return state;
+      },
+    })
+    // Step 2: 生成大纲
+    .addStep({
+      name: 'outline',
+      execute: async (state) => {
+        state.outline = await generateOutline(topic, state.research);
+        return state;
+      },
+    })
+    // Step 3: Human-in-the-loop — 审批大纲
+    .addStep({
+      name: 'approve_outline',
+      execute: async (state) => {
+        const approved = await requestHumanApproval({
+          action: '课程大纲审批',
+          content: state.outline,
+          risk: 'medium',
+        });
+        if (!approved) throw new ApprovalRejectedError('大纲被驳回');
+        return state;
+      },
+    })
+    // Step 4: Fan-out 并行生成课时 + Self-healing
+    .addStep({
+      name: 'generate_lessons',
+      execute: async (state) => {
+        const lessons = parseOutlineToLessons(state.outline);
+        // Fan-out：并行生成
+        const results = await Promise.all(
+          lessons.map(lesson =>
+            selfHealingExecute(
+              // Generator
+              async (errorCtx) => generateLessonContent(lesson, state.research, errorCtx),
+              // Executor
+              async (content) => validateLesson(content),
+              3  // max retries
+            )
+          )
+        );
+        state.lessons = results.filter(r => r.success).map(r => r.result);
+        return state;
+      },
+    })
+    // Step 5: Agent-as-Judge 校验
+    .addStep({
+      name: 'quality_check',
+      execute: async (state) => {
+        state.qualityReport = await judgeQuality(state.lessons, [
+          '正确性', '完整性', '可读性', '代码可运行'
+        ]);
+        return state;
+      },
+    })
+    // Step 6: Human-in-the-loop — 发布审批
+    .addStep({
+      name: 'approve_publish',
+      execute: async (state) => {
+        const approved = await requestHumanApproval({
+          action: '课程发布',
+          content: { lessons: state.lessons, quality: state.qualityReport },
+          risk: 'high',
+        });
+        if (!approved) throw new ApprovalRejectedError('发布被驳回');
+        state.published = true;
+        return state;
+      },
+    });
+
+  return pipeline.run({ topic });
+}
+```
+
+## 模式组合原则
+
+| 模式 | 在系统中的角色 | 为什么放在这 |
+|------|---------------|-------------|
+| **Pipeline** | 顶层编排 | 课程生成是线性流程 |
+| **Router** | 检索策略选择 | 不同主题需要不同的搜索方式 |
+| **Fan-out** | 并行生成课时 | 各课时独立生成，可并行 |
+| **Self-healing** | 课时代码修正 | 自动修复生成中的错误 |
+| **Human-in-the-loop** | 大纲 + 发布审批 | 人把关质量关键节点 |
+| **Agent-as-Judge** | 自动质量校验 | 减少人工校验负担 |
+
+## 关键经验
+
+1. **Pipeline 做骨架**：用 Pipeline 定义主流程
+2. **Fan-out 加速**：独立任务并行化
+3. **Human-in-the-loop 做安全网**：关键决策必须有人的确认
+4. **Self-healing 减负担**：能让 Agent 自己修的，不麻烦人
+5. **不要过度设计**：新增模式必须有明确的痛点在解决
+
+## 参考
+
+- [mcp-agent](https://github.com/lastmile-ai/mcp-agent) — 提供了 AugmentedLLM 模式（类似组合模式）
+- [awesome-agentic-ai-zh](https://github.com/WenyuChiou/awesome-agentic-ai-zh) — 包含多模式实战案例
+
+## 自检清单
+
+- □ 能画出多模式组合的架构图（标注每个模式的边界）
+- □ 能实现 Pipeline + Fan-out + Self-healing 的组合代码
+- □ 理解 Human-in-the-loop 应该放在流程中哪些位置
+- □ 掌握"不过度设计"的判断标准

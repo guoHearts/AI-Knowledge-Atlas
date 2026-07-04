@@ -1,0 +1,208 @@
+---
+title: 实战——客服 Agent 系统
+difficulty: advanced
+estimatedMinutes: 90
+analogy: 一个客服团队——前台接待分流、技术支持解决、投诉升级处理
+oneLiner: 3 个 Agent 协作完成客服工单全流程
+tags: [多Agent, 实战, 客服]
+---
+
+# 实战——客服 Agent 系统
+
+> 💡 **用 3 个 Agent 构建一个完整的智能客服系统** — Router 分流 + Support 解答 + Escalation 升级。
+
+## 系统架构
+
+```
+用户消息
+    │
+    ▼
+┌──────────────┐
+│ Router Agent │  分析意图，分发给合适的 Agent
+└──┬───┬───┬──┘
+   │   │   │
+   ▼   ▼   ▼
+┌──────┐ ┌──────┐ ┌──────────┐
+│Support│ │Product│ │Escalation│
+│Agent │ │Agent │ │Agent     │
+└──┬───┘ └──┬───┘ └────┬─────┘
+   │        │          │
+   └────────┼──────────┘
+            ▼
+      ┌──────────┐
+      │ 工单记录  │
+      └──────────┘
+```
+
+## 完整实现
+
+```typescript
+// ─── Agent 角色定义 ───
+interface CustomerServiceState {
+  userMessage: string;
+  intent: 'technical' | 'product' | 'complaint' | 'general';
+  confidence: number;
+  response: string;
+  ticket?: { id: string; priority: 'low' | 'medium' | 'high'; status: string };
+  history: Array<{ agent: string; action: string }>;
+}
+
+// ─── Router Agent ───
+async function routerAgent(message: string): Promise<{
+  intent: CustomerServiceState['intent'];
+  confidence: number;
+}> {
+  const agent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: `你是客服意图分类器。分析用户消息并返回 JSON。
+
+意图类别：
+- technical: 技术问题（报错、不会用、功能异常）
+- product: 产品咨询（价格、功能、对比）
+- complaint: 投诉建议（不满、要求退款、升级）
+- general: 一般问题（问候、感谢、其他）
+
+返回格式：{"intent": "...", "confidence": 0-1}`,
+  });
+
+  const result = await agent.sendMessage(message);
+  return JSON.parse(result);
+}
+
+// ─── Support Agent ───
+const KNOWLEDGE_BASE = {
+  login: '请尝试：1. 清除浏览器缓存 2. 检查网络连接 3. 重置密码',
+  payment: '支持的支付方式：微信支付、支付宝、银联。如支付失败请检查银行卡限额。',
+  api: 'API 文档地址：https://docs.example.com。常见错误码：401(认证失败)、429(请求过多)',
+};
+
+async function supportAgent(
+  message: string,
+  state: CustomerServiceState
+): Promise<string> {
+  const agent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: `你是技术支持专家。使用以下知识库回答用户问题：
+
+${JSON.stringify(KNOWLEDGE_BASE, null, 2)}
+
+如果知识库没有覆盖用户的问题，回复："我已记录您的问题，技术人员将在 2 小时内回复。"
+不要编造信息。`,
+  });
+
+  return agent.sendMessage(message);
+}
+
+// ─── Escalation Agent ───
+async function escalationAgent(
+  message: string,
+  state: CustomerServiceState
+): Promise<{ response: string; ticket: CustomerServiceState['ticket'] }> {
+  const agent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: `你是投诉处理专员。收到用户投诉后：
+1. 表示理解和歉意
+2. 为投诉生成工单
+3. 告知用户处理时间（48 小时内）
+
+返回 JSON：
+{
+  "response": "给用户的回复",
+  "ticket": {
+    "id": "TKT-xxxx",
+    "priority": "low|medium|high",
+    "summary": "问题摘要"
+  }
+}`,
+  });
+
+  const result = await agent.sendMessage(message);
+  return JSON.parse(result);
+}
+
+// ─── 主流程 ───
+async function customerServiceSystem(userMessage: string): Promise<string> {
+  const state: CustomerServiceState = {
+    userMessage,
+    intent: 'general',
+    confidence: 0,
+    response: '',
+    history: [],
+  };
+
+  // Step 1: Router 分流
+  const { intent, confidence } = await routerAgent(userMessage);
+  state.intent = intent;
+  state.confidence = confidence;
+  state.history.push({ agent: 'router', action: `分类为 ${intent} (置信度: ${confidence})` });
+
+  // 低置信度 → 人工介入
+  if (confidence < 0.6) {
+    return '您的需求我已收到，已转接人工客服，请稍候...';
+  }
+
+  // Step 2: 根据意图分发
+  switch (intent) {
+    case 'technical':
+      state.response = await supportAgent(userMessage, state);
+      state.history.push({ agent: 'support', action: '技术解答' });
+      break;
+
+    case 'product':
+      // Product Agent 类似 Support，但连接产品数据库
+      state.response = `关于产品的问题，我来为您解答...`;
+      state.history.push({ agent: 'product', action: '产品咨询' });
+      break;
+
+    case 'complaint': {
+      const { response, ticket } = await escalationAgent(userMessage, state);
+      state.response = response;
+      state.ticket = ticket;
+      state.history.push({ agent: 'escalation', action: `生成工单 ${ticket?.id}` });
+      break;
+    }
+
+    default:
+      state.response = '您好！有什么可以帮您的？';
+      state.history.push({ agent: 'router', action: '通用回复' });
+  }
+
+  return state.response;
+}
+
+// ─── 测试 ───
+async function test() {
+  console.log(await customerServiceSystem('登录页面打不开了'));
+  // → Router → technical → Support → "请尝试清除浏览器缓存..."
+
+  console.log(await customerServiceSystem('你们的服务太差了，我要投诉'));
+  // → Router → complaint → Escalation → "非常抱歉...工单 TKT-001 已创建..."
+
+  console.log(await customerServiceSystem('你好'));
+  // → Router → general → "您好！有什么可以帮您的？"
+}
+
+test();
+```
+
+## 三个测试场景
+
+| 场景 | 用户输入 | 预期路由 | 预期结果 |
+|------|----------|----------|----------|
+| 技术问题 | "API 一直返回 500" | technical | 查知识库 → 给出排错步骤 |
+| 投诉升级 | "产品太差了，退款" | complaint | 道歉 + 生成工单 + 48h 承诺 |
+| 意图模糊 | "嗯...我想问个事" | low confidence | 转接人工客服 |
+
+## 改进方向
+
+1. **知识库升级为 RAG**：从静态 JSON 升级为向量数据库实时检索
+2. **接入 MCP Server**：Support Agent 通过 MCP 查询真实数据库和日志
+3. **多轮对话**：Agent 记住上下文，支持追问
+4. **监控面板**：实时统计路由准确率、响应时间、工单处理速度
+
+## 自检清单
+
+- □ 能实现 3 个 Agent 的客服系统：Router + Support + Escalation
+- □ 理解低置信度降级到人工的策略
+- □ 能设计至少 3 个端到端测试场景
+- □ 知道如何扩展系统支持更多意图类型

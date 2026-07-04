@@ -1,0 +1,190 @@
+---
+title: Orchestrator-Worker 模式——主从协作
+difficulty: intermediate
+estimatedMinutes: 50
+analogy: 包工头带施工队——包工头派活，工人各自干自己的
+oneLiner: 中央调度 → 并行执行 → 汇总
+tags: [设计模式, Orchestrator, 协作]
+---
+
+# Orchestrator-Worker 模式——主从协作
+
+> 💡 **让一个中央调度指挥多个专业 Worker** — 像包工头派活，每个 Worker 专心做好自己的任务。
+
+## 动机
+
+复杂任务需要协调多个专业能力，但不同能力之间应该解耦。
+
+```
+任务: "写一份 MCP 协议的市场分析报告"
+
+没有 Orchestrator：一个巨型 Agent 包揽所有活
+  → 查资料 + 分析竞品 + 写报告 + 做图表 + 排版（职责混乱）
+
+有 Orchestrator：
+  Orchestrator 拆解任务：
+  ├── Worker 1: 搜索 MCP 最新动态
+  ├── Worker 2: 分析竞品协议对比
+  ├── Worker 3: 撰写报告正文
+  ├── Worker 4: 生成数据图表
+  └── Orchestrator 汇总 → 最终报告
+```
+
+## 结构
+
+```
+                  ┌────────────────────┐
+                  │   Orchestrator      │
+                  │ 1. 分析任务         │
+                  │ 2. 拆分子任务       │
+                  │ 3. 分发给 Worker    │
+                  │ 4. 收集结果         │
+                  │ 5. 综合输出         │
+                  └───┬────┬────┬──────┘
+                      │    │    │
+               ┌──────┘    │    └──────┐
+               ▼           ▼           ▼
+          ┌─────────┐ ┌─────────┐ ┌─────────┐
+          │Worker A │ │Worker B │ │Worker C │
+          │ 搜索专家 │ │ 分析专家 │ │ 写作专家 │
+          └─────────┘ └─────────┘ └─────────┘
+```
+
+## TypeScript 实现
+
+```typescript
+class Orchestrator {
+  private workers: Map<string, Worker> = new Map();
+
+  registerWorker(name: string, worker: Worker) {
+    this.workers.set(name, worker);
+  }
+
+  async execute(task: string): Promise<FinalResult> {
+    // 步骤 1：Orchestrator 分析任务，拆分子任务
+    const subtasks = await this.decomposeTask(task);
+    console.log(`Orchestrator: 拆分为 ${subtasks.length} 个子任务`);
+
+    // 步骤 2：并行分发给合适的 Worker
+    const results = await Promise.all(
+      subtasks.map(async (subtask) => {
+        const worker = this.workers.get(subtask.workerType);
+        if (!worker) throw new Error(`没有 Worker 能处理: ${subtask.workerType}`);
+        return {
+          subtask: subtask.id,
+          result: await worker.execute(subtask.prompt),
+        };
+      })
+    );
+
+    // 步骤 3：Orchestrator 综合所有结果
+    return this.synthesize(task, results);
+  }
+
+  private async decomposeTask(task: string): Promise<SubTask[]> {
+    // LLM 拆解任务
+    const agent = new Agent({
+      model: 'claude-sonnet-4-6',
+      systemPrompt: `你是一个任务分解专家。将复杂任务拆分为独立的子任务。
+每个子任务需要指定 workerType 和具体 prompt。
+
+可用 Worker 类型：
+- researcher: 搜索和收集信息
+- analyst: 分析和对比
+- writer: 撰写和润色`,
+    });
+    const result = await agent.sendMessage(`拆解任务: ${task}`);
+    return JSON.parse(result).subtasks;
+  }
+
+  private async synthesize(task: string, results: SubTaskResult[]): Promise<FinalResult> {
+    const agent = new Agent({
+      model: 'claude-sonnet-4-6',
+      systemPrompt: '你是内容综合专家，将多个子任务的结果综合为连贯的最终输出。',
+    });
+    const allResults = results.map(r => r.result).join('\n\n---\n\n');
+    return agent.sendMessage(`原始任务: ${task}\n\n各子任务结果:\n${allResults}`);
+  }
+}
+
+// 使用
+const orchestrator = new Orchestrator();
+orchestrator.registerWorker('researcher', new ResearchWorker());
+orchestrator.registerWorker('analyst', new AnalystWorker());
+orchestrator.registerWorker('writer', new WriterWorker());
+
+const report = await orchestrator.execute('写一份 2026 年 AI Agent 框架对比报告');
+```
+
+## Python mcp-agent 实现
+
+```python
+from mcp_agent import Agent
+import asyncio
+
+async def orchestrator_worker_example():
+    # Orchestrator Agent
+    orchestrator = Agent(
+        model="claude-sonnet-4-6",
+        instruction="""你是任务协调专家。分析用户请求，拆解为子任务，
+分发给对应 Worker，最后综合结果。""",
+    )
+
+    # Worker Agents
+    researcher = Agent(
+        model="claude-sonnet-4-6",
+        instruction="你是技术研究员，负责搜索和收集信息。",
+    )
+    analyst = Agent(
+        model="claude-sonnet-4-6",
+        instruction="你是分析师，负责对比和评估。",
+    )
+    writer = Agent(
+        model="claude-sonnet-4-6",
+        instruction="你是技术作家，负责撰写清晰的技术文档。",
+    )
+
+    task = "对比 Anthropic Agent SDK 和 LangChain 的 Agent 开发体验"
+
+    # Orchestrator 拆解
+    plan = await orchestrator.send_message(f"拆解任务为子任务: {task}")
+
+    # 并行 Worker
+    research_a, research_b = await asyncio.gather(
+        researcher.send_message("研究 Anthropic Agent SDK 的特点、API 设计、优缺点"),
+        researcher.send_message("研究 LangChain Agent 的特点、API 设计、优缺点"),
+    )
+
+    analysis = await analyst.send_message(
+        f"基于以下研究，对比两者:\n---\n{research_a}\n---\n{research_b}"
+    )
+
+    report = await writer.send_message(
+        f"基于以下分析，撰写对比报告:\n{analysis}"
+    )
+
+    return report
+```
+
+## 取舍
+
+| 该用 Orchestrator 时 | 不该用 Orchestrator 时 |
+|---------------------|----------------------|
+| 任务需要多种专业能力 | 简单任务，单一 Agent 够用 |
+| 子任务相对独立可并行 | 子任务间有强依赖必须串行 |
+| 需要灵活增减 Worker | 任务流程固定不变 |
+
+## 常见陷阱
+
+1. **Orchestrator 成为瓶颈**：所有结果汇集到 Orchestrator，它成了性能瓶颈
+2. **Worker 粒度不当**：太粗 → Worker 难以专注；太细 → 调度开销大
+3. **错误传播**：一个 Worker 输出有误，Orchestrator 综合时放大错误
+
+💡 **缓解措施**：给 Orchestrator 添加"质疑模式"——当 Worker 结果互斥时主动要求澄清。
+
+## 自检清单
+
+- □ 能实现一个基础的 Orchestrator-Worker 系统
+- □ 理解 Orchestrator 的三个核心职责（拆解/分发/综合）
+- □ 能说出该模式至少 2 个常见陷阱和缓解措施
+- □ 能识别什么场景 Orchestrator 过度设计了

@@ -1,0 +1,198 @@
+---
+title: 搭建 MCP Server
+difficulty: intermediate
+estimatedMinutes: 60
+analogy: 就像给手机装一个 USB-C 转接头——原本插不上的设备现在都能用了
+oneLiner: 把任何 API 变成 Agent 能直接用的工具
+tags: [MCP, 实战, Server]
+---
+
+# 搭建 MCP Server
+
+> 💡 **让任何 API 都变成 Agent 的工具** — 写一次 MCP Server，所有 MCP 兼容的 Agent 都能用。
+
+## 开发框架选择
+
+| 框架 | 适合人群 | 学习曲线 |
+|------|----------|----------|
+| **fastmcp** (Python) | Python 开发者 | ⭐ 最简单 |
+| **MCP SDK** (TypeScript) | TS/JS 全栈 | ⭐⭐ |
+| **MCP SDK** (Python 官方) | Python，更灵活 | ⭐⭐⭐ |
+
+本课用 **fastmcp**，因为它最简洁。参考 [PrefectHQ/fastmcp](https://github.com/PrefectHQ/fastmcp)。
+
+## 第 1 步：初始化项目
+
+```bash
+mkdir weather-mcp-server
+cd weather-mcp-server
+
+# Python 项目
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Mac/Linux
+
+pip install fastmcp httpx
+```
+
+## 第 2 步：创建第一个 MCP Server
+
+```python
+# server.py
+from fastmcp import FastMCP
+import httpx
+
+mcp = FastMCP("Weather Server", version="1.0.0")
+
+@mcp.tool()
+async def get_weather(city: str, unit: str = "celsius") -> str:
+    """获取指定城市的实时天气信息。
+
+    当用户询问当前天气、温度、是否下雨等问题时使用。
+    
+    Args:
+        city: 城市名称，如 "北京"、"上海"
+        unit: 温度单位，celsius(摄氏度) 或 fahrenheit(华氏度)
+    """
+    # 使用免费的天气 API
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            "https://wttr.in/" + city,
+            params={"format": "%C %t %h %w", "lang": "zh"}
+        )
+        return f"{city}天气：{resp.text.strip()}"
+
+@mcp.tool()
+async def send_email(to: str, subject: str, body: str) -> str:
+    """发送邮件。当用户说要"发邮件"、"通知某人"时使用。
+    
+    Args:
+        to: 收件人邮箱地址
+        subject: 邮件主题
+        body: 邮件正文内容
+    """
+    # 模拟发送（真实场景接入 SendGrid/Resend API）
+    return f"邮件已发送：\n收件人: {to}\n主题: {subject}\n---\n{body}"
+
+if __name__ == "__main__":
+    # stdio 模式：供 Claude Desktop 等本地使用
+    mcp.run()
+```
+
+## 第 3 步：测试 MCP Server
+
+### 方式 A：用 MCP Inspector 调试
+
+```bash
+# 安装 Inspector
+npx @anthropic-ai/mcp-inspector python server.py
+```
+
+打开浏览器，可以看到注册的 Tool 列表，手动测试。
+
+### 方式 B：直接在 Claude Desktop 中配置
+
+```json
+// %APPDATA%\Claude\claude_desktop_config.json (Windows)
+// ~/Library/Application Support/Claude/claude_desktop_config.json (Mac)
+{
+  "mcpServers": {
+    "weather": {
+      "command": "python",
+      "args": ["D:/project/weather-mcp-server/server.py"]
+    }
+  }
+}
+```
+
+重启 Claude Desktop → 你的 Tool 出现在 Agent 工具列表中。
+
+### 方式 C：HTTP 模式（远程访问）
+
+```python
+# 改用 HTTP 模式
+if __name__ == "__main__":
+    mcp.run(transport="http", host="0.0.0.0", port=3001)
+```
+
+```bash
+python server.py
+# → MCP Server running on http://localhost:3001
+```
+
+## 第 4 步：添加更多 Tool
+
+```python
+@mcp.tool()
+async def search_web(query: str, max_results: int = 5) -> str:
+    """搜索网页内容。当用户询问最新信息、新闻、或需要查资料时使用。
+    
+    Args:
+        query: 搜索关键词
+        max_results: 最大结果数，默认 5
+    """
+    # 接入搜索 API（如 Tavily、Brave Search）
+    results = await search_api(query, max_results)
+    return "\n\n".join(
+        f"{i+1}. {r['title']}\n   {r['url']}\n   {r['snippet']}"
+        for i, r in enumerate(results)
+    )
+
+@mcp.tool()
+async def read_file(path: str) -> str:
+    """读取本地文件内容。当用户说"打开XX文件"、"看看XX文档"时使用。
+    
+    Args:
+        path: 文件的绝对路径
+    """
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return f"文件: {path}\n---\n{content[:5000]}"  # 限制长度
+    except Exception as e:
+        return f"读取失败: {str(e)}"
+```
+
+## 常见问题
+
+### Q：Tool 的 description 写多详细？
+
+A：越详细越好。description 是 LLM 决定"要不要用这个 Tool"的唯一依据。
+
+### Q：一个 MCP Server 放几个 Tool？
+
+A：5-10 个为佳。太多会降低选择准确率。可以按领域拆分多个 MCP Server。
+
+### Q：怎样处理 Tool 执行错误？
+
+A：不要抛异常。返回结构化的错误信息，让 Agent 能理解并重试。
+
+```python
+@mcp.tool()
+async def query_database(sql: str) -> dict:
+    try:
+        rows = execute_sql(sql)
+        return {"success": True, "data": rows}
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "hint": "可用的表：users, orders, products"
+        }
+```
+
+## 生产级 MCP Server 参考
+
+| 项目 | 功能 | Stars |
+|------|------|-------|
+| [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) | Jira/Confluence | 5.3k |
+| [google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) | Gmail/Calendar/Drive | 2.6k |
+| [mysql_mcp_server](https://github.com/designcomputer/mysql_mcp_server) | MySQL 数据库 | 1.2k |
+| [mcp-server-antv](https://github.com/antvis/mcp-server-antv) | 可视化图表 | 39 |
+
+## 自检清单
+
+- □ 能用 fastmcp 创建包含 2 个 Tool 的 MCP Server
+- □ 能用 MCP Inspector 测试自己的 Server
+- □ 理解 stdio 和 HTTP 两种通信模式的适用场景
+- □ 能说出 Tool description 为什么是"最重要的 Prompt Engineering"

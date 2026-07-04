@@ -1,0 +1,141 @@
+---
+title: AI Gateway 与语义缓存
+difficulty: intermediate
+estimatedMinutes: 45
+analogy: CDN 缓存网页，语义缓存缓存"意思差不多的提问"
+oneLiner: 语义缓存命中率 60-85%，延迟降至 0.05s
+tags: [LLMOps, Gateway, 缓存]
+---
+
+# AI Gateway 与语义缓存
+
+> 💡 **不要每次都调 LLM** — AI Gateway 统一接入 + 语义缓存大幅降本提速。
+
+## AI Gateway 是什么？
+
+```
+没有 Gateway：
+App A ──→ Claude API
+App B ──→ Claude API  各自管理 Key、限流、重试...
+App C ──→ Claude API
+
+有 Gateway：
+App A ──┐
+App B ──┼──→ AI Gateway ──→ Claude API
+App C ──┘        │         → GPT API
+                  │         → DeepSeek API
+                  │
+          统一管理：认证、限流、缓存、重试、监控、路由
+```
+
+## AI Gateway 核心能力
+
+| 能力 | 说明 |
+|------|------|
+| **统一接入** | 一个 API Key 访问所有模型 |
+| **负载均衡** | 多模型/多区域自动分流 |
+| **限流熔断** | 保护后端，防止过载 |
+| **语义缓存** | 相似问题直接返回缓存 |
+| **成本追踪** | 按项目/用户/模型维度统计 |
+| **安全护栏** | 输入输出内容过滤 |
+
+## 语义缓存实战
+
+```python
+from redis import Redis
+from sentence_transformers import SentenceTransformer
+import numpy as np
+import hashlib
+import json
+
+class SemanticCache:
+    def __init__(self, similarity_threshold=0.92, ttl=3600):
+        self.redis = Redis(host='localhost', port=6379)
+        self.encoder = SentenceTransformer('BAAI/bge-small-zh-v1.5')
+        self.threshold = similarity_threshold
+        self.ttl = ttl
+
+    async def get(self, query: str) -> str | None:
+        """查找语义相似的缓存"""
+        query_vec = self.encoder.encode(query, normalize_embeddings=True)
+        
+        # 获取所有缓存的向量（生产环境用向量数据库索引）
+        keys = self.redis.keys('cache:*:vec')
+        if not keys:
+            return None
+        
+        best_score = 0
+        best_key = None
+        
+        for key in keys:
+            cached_vec = np.frombuffer(self.redis.get(key), dtype=np.float32)
+            score = np.dot(query_vec, cached_vec)
+            if score > best_score:
+                best_score = score
+                best_key = key
+        
+        if best_score >= self.threshold and best_key:
+            # 返回缓存结果
+            result_key = best_key.replace(b':vec', b':result')
+            return json.loads(self.redis.get(result_key))
+        
+        return None
+
+    async def set(self, query: str, result: str):
+        """存储查询和结果"""
+        query_vec = self.encoder.encode(query, normalize_embeddings=True)
+        query_hash = hashlib.md5(query.encode()).hexdigest()
+        
+        # 存储向量和结果
+        self.redis.set(f'cache:{query_hash}:vec', query_vec.tobytes(), ex=self.ttl)
+        self.redis.set(f'cache:{query_hash}:result', json.dumps(result), ex=self.ttl)
+```
+
+## 使用 AI Gateway 降本
+
+```python
+# 以 Portkey 为例
+from portkey_ai import Portkey
+
+portkey = Portkey(
+    api_key="pk-...",
+    virtual_key="anthropic-main",  # 统一管理实际 API Key
+)
+
+# 自动享受 Gateway 的缓存、重试、监控
+response = portkey.chat.completions.create(
+    model="claude-sonnet-4-6",
+    messages=[{"role": "user", "content": "什么是语义缓存？"}],
+    # Gateway 自动处理：
+    # - 语义缓存命中 → 直接返回（0.05s vs 2s）
+    # - 限流 → 指数退避重试
+    # - 错误 → 降级到备用模型
+)
+```
+
+## 缓存架构建议
+
+```
+请求流：
+
+用户请求 → AI Gateway
+              │
+              ├── 语义缓存命中（~5ms）→ 直接返回
+              │
+              ├── 缓存未命中 → LLM API → 结果存入缓存 → 返回
+              │
+              └── 监控：记录缓存命中率、延迟、成本节省
+```
+
+## 参考
+
+- [Portkey](https://portkey.ai/) — 开源 AI Gateway，支持语义缓存
+- [headroom](https://github.com/chopratejas/headroom) — Token 压缩，16k stars
+- [IBM/mcp-context-forge](https://github.com/IBM/mcp-context-forge) — 企业级 AI Gateway
+
+## 自检清单
+
+- □ 能实现基础的语义缓存（向量相似度匹配）
+- □ 理解 AI Gateway 的六大核心能力
+- □ 知道语义缓存的命中率预期和适用场景
+- □ 能评估缓存引入后的成本节省

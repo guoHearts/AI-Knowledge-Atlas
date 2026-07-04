@@ -1,0 +1,179 @@
+---
+title: 设计可复用的 Tool 接口
+difficulty: intermediate
+estimatedMinutes: 50
+analogy: 好的 Tool 就像设计良好的 API——命名清晰、参数合理、错误友好
+oneLiner: 好 Tool 和坏 Tool 的区别在哪？
+tags: [Tool 设计, 接口设计, 进阶]
+---
+
+# 设计可复用的 Tool 接口
+
+> 💡 **Tool 是 Agent 的 API** — 设计质量直接决定 Agent 调用成功率和用户体验。
+
+## 坏 Tool vs 好 Tool —— 真实对比
+
+### ❌ 坏 Tool 示例（Agent 调用成功率 < 40%）
+
+```typescript
+const badTool = {
+  name: 'do_stuff',              // 名字模糊
+  description: 'does things',    // 描述太泛
+  parameters: {
+    type: 'object',
+    properties: {
+      x: { type: 'string' },     // 参数名无意义
+    },
+  },
+};
+```
+
+**症状**：Agent 不知道什么时候该调用、传什么参数，频繁调错或漏调。
+
+### ✅ 好 Tool 示例（Agent 调用成功率 > 90%）
+
+```typescript
+const goodTool = {
+  name: 'search_knowledge_base',
+  description: '在公司内部知识库中搜索技术文档。当用户询问关于产品、技术方案或内部流程的问题时使用。不支持搜索外部网络内容。',
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: '搜索关键词或自然语言问题。建议使用中文，长度在 5-100 字符之间。',
+      },
+      category: {
+        type: 'string',
+        enum: ['technical', 'product', 'process', 'hr'],
+        description: '知识分类，不指定则搜索全部',
+      },
+      maxResults: {
+        type: 'integer',
+        description: '返回结果数量上限，默认 5，最大 20',
+        default: 5,
+      },
+    },
+    required: ['query'],
+  },
+};
+```
+
+## Tool 设计五大原则
+
+### 原则 1：命名 —— 动词开头，语义自明
+
+```
+✅ search_knowledge_base, get_weather, send_email, create_ticket
+❌ func1, tool_a, do_stuff, handler
+```
+
+### 原则 2：描述 —— 何时用 + 何时不用
+
+```typescript
+description: '获取指定城市的实时天气。当用户询问当前天气或温度时使用。不支持查询历史天气或天气预报。'
+//              ^^^^^^^^^^^^^^^^ 做什么  ^^^^^^^^^^^^^^^^^^^^^^ 何时用  ^^^^^^^^^^^^^^^^^^^^^^^^^^ 限制
+```
+
+### 原则 3：参数 —— 类型精确 + 约束明确
+
+```typescript
+parameters: {
+  type: 'object',
+  properties: {
+    priority: {
+      type: 'string',
+      enum: ['low', 'medium', 'high', 'urgent'],  // 严格枚举
+      description: '工单优先级。urgent 仅用于生产环境故障。',
+    },
+    deadline: {
+      type: 'string',
+      format: 'date-time',                         // 格式约束
+      description: '截止日期，ISO 8601 格式。不指定则默认为 3 个工作日后。',
+    },
+  },
+  required: ['priority'],  // 明确必需参数
+}
+```
+
+### 原则 4：错误处理 —— 友好报错
+
+```typescript
+async function searchKnowledgeBase(args: { query: string; category?: string }) {
+  try {
+    const results = await db.search(args.query, args.category);
+    return { success: true, data: results };
+  } catch (error) {
+    // 返回结构化的错误信息，让 Agent 能理解和重试
+    return {
+      success: false,
+      error: `搜索失败: ${error.message}`,
+      suggestion: '请尝试缩短搜索词或更换分类条件',
+    };
+  }
+}
+```
+
+### 原则 5：幂等性 —— 安全可重试
+
+```typescript
+// ❌ 非幂等：重复调用会创建重复工单
+const createTicket = {
+  name: 'create_ticket',
+  handler: async ({ title }) => {
+    return await db.tickets.create({ title });  // 每次都新建
+  },
+};
+
+// ✅ 幂等：用 idempotency key 防止重复
+const createTicketSafe = {
+  name: 'create_ticket',
+  handler: async ({ title, idempotencyKey }) => {
+    const existing = await db.tickets.findByKey(idempotencyKey);
+    if (existing) return { status: 'already_exists', ticket: existing };
+    return await db.tickets.create({ title, idempotencyKey });
+  },
+};
+```
+
+## 实验：同一任务，不同 Schema 的 Agent 成功率
+
+```typescript
+// ─── 实验设置 ───
+const task = '帮我把周五的会议挪到下周一';
+
+// Tool A：模糊 Schema
+const toolA = {
+  name: 'modify_event',
+  description: 'modifies an event',
+  parameters: { properties: { id: { type: 'string' }, date: { type: 'string' } } },
+};
+// Agent 成功率：35%（不知道要传什么参数）
+
+// Tool B：精确 Schema
+const toolB = {
+  name: 'reschedule_meeting',
+  description: '将指定会议改期到新的日期时间。当用户要改会议时间、延期会议、提前会议时使用。',
+  parameters: {
+    properties: {
+      meetingTitle: { type: 'string', description: '会议标题关键词，用于查找会议' },
+      newDate: { type: 'string', description: '新日期，ISO 8601 格式 (YYYY-MM-DD)' },
+      reason: { type: 'string', description: '改期原因，用于通知参会人' },
+    },
+    required: ['meetingTitle', 'newDate'],
+  },
+};
+// Agent 成功率：92%
+```
+
+## 参考资源
+
+- [fastmcp](https://github.com/PrefectHQ/fastmcp) — Python MCP 框架，25k+ stars，提供 Tool 注册最佳实践
+- [awesome-agentic-ai-zh](https://github.com/WenyuChiou/awesome-agentic-ai-zh) — Agent 学习路线，包含 Tool 设计章节
+
+## 自检清单
+
+- □ 能指出坏 Schema 的至少 3 个问题
+- □ 能独立设计一个符合五大原则的 Tool Schema
+- □ 理解幂等性在 Tool 设计中的重要性
+- □ 能说出至少 3 个提高 Agent 调用 Tool 成功率的技巧

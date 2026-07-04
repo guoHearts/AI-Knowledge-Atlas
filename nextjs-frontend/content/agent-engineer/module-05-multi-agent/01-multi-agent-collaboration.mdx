@@ -1,0 +1,148 @@
+---
+title: 多 Agent 协作模式
+difficulty: intermediate
+estimatedMinutes: 50
+analogy: 一个项目组——产品经理想需求、程序员写代码、测试找 Bug
+oneLiner: 什么时候需要多个 Agent？怎么分工？
+tags: [多Agent, 协作, 分工]
+---
+
+# 多 Agent 协作模式
+
+> 💡 **一人难挑千斤担，多人能移万座山** — 多个 Agent 各司其职，协作完成单 Agent 难以胜任的复杂任务。
+
+## 为什么需要多 Agent？
+
+| 单 Agent 局限 | 多 Agent 解法 |
+|-------------|-------------|
+| 一个角色包揽所有，专业度不够 | 每个 Agent 专精一个领域 |
+| 长上下文容易混乱 | 各 Agent 独立上下文，清晰隔离 |
+| 单个 LLM 有偏见 | 多模型/多提示交叉验证 |
+| 无法并行处理独立子任务 | 各 Agent 并行执行 |
+
+## 三种协作模式
+
+### 模式 1：流水线式（Sequential）
+
+```
+Agent A → Agent B → Agent C → 输出
+
+适用：任务有明确的阶段依赖
+案例：研究 Agent → 撰写 Agent → 审核 Agent
+```
+
+### 模式 2：星型式（Hub-and-Spoke）
+
+```
+              ┌→ Agent B
+协调者 Agent A ─┼→ Agent C
+              └→ Agent D
+
+适用：中央调度，Worker 独立执行
+案例：Orchestrator-Worker 模式
+```
+
+### 模式 3：网状式（Mesh）
+
+```
+Agent A ←→ Agent B
+  ↕          ↕
+Agent C ←→ Agent D
+
+适用：Agent 之间需要直接通信协商
+案例：辩论式推理（Debate）、对抗式验证
+```
+
+## 实战：代码审查多 Agent 系统
+
+```typescript
+// 三个专业 Agent 协作审查代码
+interface ReviewResult {
+  agent: string;
+  issues: Array<{ severity: 'error' | 'warning' | 'info'; line: number; message: string }>;
+}
+
+async function multiAgentCodeReview(code: string) {
+  // Agent 1：安全检查
+  const securityAgent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: `你是资深安全工程师。审查代码的安全漏洞：
+- SQL 注入、XSS、CSRF
+- 敏感信息泄露
+- 权限校验缺失
+- 依赖库漏洞`,
+  });
+
+  // Agent 2：性能审查
+  const performanceAgent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: `你是性能优化专家。审查代码的性能问题：
+- N+1 查询
+- 不必要的循环/递归
+- 内存泄漏风险
+- 缺少缓存/索引`,
+  });
+
+  // Agent 3：可维护性审查
+  const maintainabilityAgent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: `你是代码质量专家。审查可维护性问题：
+- 命名规范
+- 函数长度/复杂度
+- 缺少错误处理
+- 硬编码/魔法数字`,
+  });
+
+  // 并行审查（Fan-out）
+  const [securityReview, performanceReview, maintainabilityReview] = await Promise.all([
+    securityAgent.sendMessage(`审查以下代码的安全性:\n\`\`\`\n${code}\n\`\`\``),
+    performanceAgent.sendMessage(`审查以下代码的性能:\n\`\`\`\n${code}\n\`\`\``),
+    maintainabilityAgent.sendMessage(`审查以下代码的可维护性:\n\`\`\`\n${code}\n\`\`\``),
+  ]);
+
+  // 合并 Agent：综合审查结果
+  const mergeAgent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: '综合多个审查结果，去重并按严重程度排序，生成最终审查报告。',
+  });
+
+  return mergeAgent.sendMessage(`
+## 安全性审查
+${securityReview}
+
+## 性能审查
+${performanceReview}
+
+## 可维护性审查
+${maintainabilityReview}
+  `);
+}
+```
+
+## 多 Agent 协作的挑战
+
+| 挑战 | 解决方案 |
+|------|----------|
+| **通信开销** | 定义清晰的消息格式；减少不必要的往返 |
+| **状态同步** | 共享状态对象 + 版本控制 |
+| **结果冲突** | 投票机制、优先级仲裁、人工裁决 |
+| **成本爆炸** | 按需启动 Agent，不用全量并行 |
+| **死锁** | 超时机制 + 循环检测 |
+
+## 主流通用框架
+
+| 框架 | 协作模型 | 特点 |
+|------|---------|------|
+| **LangGraph** | 图结构定义 | 最灵活，支持任意拓扑 |
+| **CrewAI** | 角色扮演 | 最直观，自然语言定义角色 |
+| **AutoGen** | 对话驱动 | 微软出品，企业级 |
+| **mcp-agent** | MCP 原生 | AugmentedLLM + 工作流 |
+
+参考：[awesome-agentic-ai-zh](https://github.com/WenyuChiou/awesome-agentic-ai-zh) — 多 Agent 协作专章
+
+## 自检清单
+
+- □ 能画出三种多 Agent 协作模式的拓扑图
+- □ 能实现至少 2 个 Agent 的并行协作系统
+- □ 理解多 Agent 系统的 5 大挑战及对应方案
+- □ 能根据需求选择合适的协作模式

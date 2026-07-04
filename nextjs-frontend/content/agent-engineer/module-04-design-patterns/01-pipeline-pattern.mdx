@@ -1,0 +1,166 @@
+---
+title: Pipeline 模式——线性任务链
+difficulty: intermediate
+estimatedMinutes: 50
+analogy: 工厂流水线——每站只做一件事，做完传给下一站
+oneLiner: A→B→C，数据按序流动
+tags: [设计模式, Pipeline, 编排]
+---
+
+# Pipeline 模式——线性任务链
+
+> 💡 **工厂流水线** — 每站只做一件事，做完传给下一站，不需要回头。A→B→C，数据按序流动。
+
+## 动机——解决什么问题？
+
+在企业开发中，很多任务按固定顺序执行：
+
+```
+用户输入"帮我写一篇关于 MCP 协议的技术博客"
+  → Step 1: 检索 MCP 相关资料
+  → Step 2: 分析目标读者和技术深度
+  → Step 3: 生成大纲
+  → Step 4: 按大纲生成正文
+  → Step 5: 质量检查（术语、格式、代码可运行）
+  → 输出：完整博客文章
+```
+
+**没有 Pipeline 之前**：所有逻辑塞在一个巨型函数里，测试难、复用难、调试难。
+
+**用 Pipeline 之后**：每个 Step 独立开发测试，可以灵活替换或插入新 Step。
+
+## 结构——数据怎么流动？
+
+```
+┌──────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌──────┐
+│ Input │───▶│ Step 1  │───▶│ Step 2  │───▶│ Step 3  │───▶│Output│
+└──────┘    └─────────┘    └─────────┘    └─────────┘    └──────┘
+                  │              │              │
+                  ▼              ▼              ▼
+              可以访问       可以访问前      可以访问前
+              初始输入       两步的结果      三步的结果
+```
+
+关键特点：
+- **严格顺序**：Step 2 必须等 Step 1 完成
+- **上下文累积**：后面的 Step 可以看前面所有 Step 的输出
+- **每个 Step 可独立替换**：换个 LLM 或算法不影响其他 Step
+
+## 实现——两种主流框架
+
+### TypeScript 原生实现
+
+```typescript
+interface PipelineStep<T> {
+  name: string;
+  execute: (input: T, context: PipelineContext) => Promise<T>;
+}
+
+interface PipelineContext {
+  history: Array<{ step: string; output: unknown }>;
+}
+
+class Pipeline<T> {
+  private steps: PipelineStep<T>[] = [];
+  private context: PipelineContext = { history: [] };
+
+  addStep(step: PipelineStep<T>): this {
+    this.steps.push(step);
+    return this; // 链式调用
+  }
+
+  async run(initial: T): Promise<{ result: T; history: PipelineContext['history'] }> {
+    let current = initial;
+    for (const step of this.steps) {
+      console.log(`[Pipeline] ▶ ${step.name}`);
+      current = await step.execute(current, this.context);
+      this.context.history.push({ step: step.name, output: current });
+      console.log(`[Pipeline] ✓ ${step.name} done`);
+    }
+    return { result: current, history: this.context.history };
+  }
+}
+
+// 使用示例
+const blogPipeline = new Pipeline<string>()
+  .addStep({
+    name: 'research',
+    execute: async (topic) => {
+      // 调用 RAG 检索相关文档
+      return `检索结果: MCP 协议由 Anthropic 提出...\n原始主题: ${topic}`;
+    }
+  })
+  .addStep({
+    name: 'outline',
+    execute: async (research, ctx) => {
+      // 根据检索结果生成大纲
+      return `大纲:\n1. MCP 是什么\n2. 为什么需要 MCP\n3. 怎么用\n\n---\n${research}`;
+    }
+  })
+  .addStep({
+    name: 'write',
+    execute: async (outline) => {
+      // 按大纲写正文
+      return `# MCP 协议入门指南\n\n正文内容...`;
+    }
+  });
+```
+
+### Python LangChain 实现
+
+```python
+from langchain_core.runnables import RunnableSequence
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model="gpt-4o")
+
+research_prompt = ChatPromptTemplate.from_template(
+    "检索以下主题的相关资料: {topic}"
+)
+outline_prompt = ChatPromptTemplate.from_template(
+    "根据以下资料生成大纲: {research_result}"
+)
+write_prompt = ChatPromptTemplate.from_template(
+    "根据大纲撰写正文: {outline}"
+)
+
+pipeline = RunnableSequence([
+    {"research_result": research_prompt | llm},
+    {"outline": outline_prompt | llm},
+    {"article": write_prompt | llm},
+])
+
+result = pipeline.invoke({"topic": "MCP 协议入门"})
+```
+
+## 取舍——该用还是不该用？
+
+| 该用 Pipeline 时 | 不该用 Pipeline 时 |
+|------------------|-------------------|
+| 任务步骤固定，顺序明确 | 需要根据中间结果动态决定下一步 |
+| 每步职责单一，边界清晰 | 步骤间有复杂的交互和依赖 |
+| 需要每一步结果可追溯 | 对延迟极度敏感（串行） |
+| 希望独立测试每个 Step | 任务流程经常变化 |
+
+### 替代方案
+
+- **Chain 模式**：Agent 自主决定下一步，而非固定顺序
+- **Orchestrator**：中央调度动态分配，而非顺序传递
+- **DAG（有向无环图）**：部分并行 + 部分顺序
+
+## 企业场景
+
+📌 **典型应用**：内容生成流水线、ETL 数据处理、代码审查流程、CI/CD 管道
+
+💼 **面试常问**：
+- "Pipeline 和 Chain 的区别？" → Pipeline 是固定顺序，Chain 是 Agent 自主决策
+- "Pipeline 中某步失败了怎么办？" → 可以记录中间状态、从断点重试、或者降级跳过
+- "怎么提高 Pipeline 性能？" → 识别可并行的 Step（如多源检索），用 Fan-out 模式
+
+## 自检清单
+
+- □ 我能画出 Pipeline 的数据流图
+- □ 能在 TypeScript 中实现一个 Pipeline 基类
+- □ 能说出 Pipeline 和 Chain 模式的关键区别
+- □ 能列举 3 个企业中的 Pipeline 应用场景

@@ -1,0 +1,229 @@
+---
+title: 实战——用 MCP 连接外部数据源
+difficulty: intermediate
+estimatedMinutes: 60
+analogy: Agent 突然能访问公司数据库、Slack 消息、Google 日历——就像装了一堆专业扩展
+oneLiner: MCP → 数据库 + API + 文件系统
+tags: [MCP, 实战, 数据源]
+---
+
+# 实战——用 MCP 连接外部数据源
+
+> 💡 **一个 Agent，多种数据源** — MCP 让 Agent 无缝操作数据库、日历、邮件、文件系统。
+
+## 场景：个人办公助手 Agent
+
+构建一个 Agent，它能：
+- 📅 查看和管理日历
+- 📧 发送和查看邮件
+- 📁 读写本地文件
+- 🔍 搜索网页
+
+## 架构
+
+```
+┌──────────────────────┐
+│   办公助手 Agent       │
+│   (mcp-agent)         │
+└──────┬───────────────┘
+       │ MCP Client
+       │
+  ┌────┼────┬──────────┐
+  │    │    │          │
+  ▼    ▼    ▼          ▼
+┌────┐┌────┐┌──────┐┌──────┐
+│日历 ││邮件 ││文件  ││搜索  │
+│MCP ││MCP ││MCP  ││MCP  │
+│Svr ││Svr ││Svr  ││Svr  │
+└────┘└────┘└──────┘└──────┘
+```
+
+## 第 1 步：创建三个 MCP Server
+
+### 日历 MCP Server
+
+```python
+# calendar_server.py
+from fastmcp import FastMCP
+from datetime import datetime, timedelta
+
+mcp = FastMCP("Calendar", version="1.0.0")
+
+# 模拟日历数据
+events = [
+    {"id": 1, "title": "周会", "date": "2026-06-09", "time": "10:00", "attendees": ["张三", "李四"]},
+    {"id": 2, "title": "产品评审", "date": "2026-06-10", "time": "14:00", "attendees": ["王五"]},
+    {"id": 3, "title": "技术分享", "date": "2026-06-12", "time": "16:00", "attendees": ["全体"]},
+]
+
+@mcp.tool()
+def list_events(date_from: str = "", date_to: str = "") -> str:
+    """查看日历中的事件。可以指定日期范围。
+    
+    Args:
+        date_from: 开始日期 YYYY-MM-DD，不指定则从今天开始
+        date_to: 结束日期 YYYY-MM-DD，不指定则为 7 天后
+    """
+    filtered = events
+    if date_from:
+        filtered = [e for e in filtered if e["date"] >= date_from]
+    if date_to:
+        filtered = [e for e in filtered if e["date"] <= date_to]
+    
+    if not filtered:
+        return "该时间段没有日程。"
+    
+    return "\n".join(
+        f"{e['date']} {e['time']} - {e['title']} (参与人: {', '.join(e['attendees'])})"
+        for e in filtered
+    )
+
+@mcp.tool()
+def create_event(title: str, date: str, time: str, attendees: str = "") -> str:
+    """创建新日历事件。
+    
+    Args:
+        title: 事件标题
+        date: 日期 YYYY-MM-DD
+        time: 时间 HH:MM
+        attendees: 参与人，逗号分隔
+    """
+    new_event = {
+        "id": len(events) + 1,
+        "title": title,
+        "date": date,
+        "time": time,
+        "attendees": [a.strip() for a in attendees.split(",") if a.strip()],
+    }
+    events.append(new_event)
+    return f"✅ 已创建：{date} {time} - {title}"
+
+if __name__ == "__main__":
+    mcp.run(transport="http", port=3001)
+```
+
+### 邮件 MCP Server
+
+```python
+# email_server.py
+from fastmcp import FastMCP
+
+mcp = FastMCP("Email", version="1.0.0")
+
+inbox = []  # 模拟收件箱
+
+@mcp.tool()
+def send_email(to: str, subject: str, body: str) -> str:
+    """发送邮件。
+    
+    Args:
+        to: 收件人邮箱
+        subject: 主题
+        body: 正文
+    """
+    return f"✅ 邮件已发送\n收件人: {to}\n主题: {subject}\n---\n{body}"
+
+@mcp.tool()
+def check_inbox() -> str:
+    """查看收件箱中的未读邮件。"""
+    if not inbox:
+        return "收件箱为空。"
+    return "\n---\n".join(
+        f"发件人: {m['from']}\n主题: {m['subject']}\n{m['body']}"
+        for m in inbox
+    )
+
+if __name__ == "__main__":
+    mcp.run(transport="http", port=3002)
+```
+
+## 第 2 步：创建统一 Agent
+
+```python
+# office_agent.py
+from mcp_agent import Agent, MCPApp
+
+app = MCPApp("office-assistant")
+
+@app.mcp_server("calendar", transport="http", url="http://localhost:3001")
+@app.mcp_server("email", transport="http", url="http://localhost:3002")
+
+async def main():
+    agent = Agent(
+        model="claude-sonnet-4-6",
+        instruction="""你是个人办公助手。你能：
+1. 查看和创建日历事件
+2. 发送和查看邮件
+
+使用中文回复。当完成一个任务时，总结你做了什么。""",
+        servers=["calendar", "email"],
+    )
+
+    # 场景 1：查看日程
+    print("用户: 这周有什么安排？")
+    resp = await agent.send_message("这周有什么安排？")
+    print(f"Agent: {resp}\n")
+
+    # 场景 2：创建会议并通知
+    print("用户: 下周三下午 3 点安排产品评审会，通知王五参加")
+    resp = await agent.send_message("下周三下午 3 点安排产品评审会，通知王五参加")
+    print(f"Agent: {resp}\n")
+
+    # 场景 3：串联操作
+    print("用户: 查下明天的日程，如果上午有空就安排一个代码审查，然后邮件通知团队")
+    resp = await agent.send_message(
+        "查下明天的日程，如果上午有空就安排一个代码审查，然后邮件通知团队"
+    )
+    print(f"Agent: {resp}")
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
+```
+
+## 第 3 步：启动和测试
+
+```bash
+# 终端 1：启动日历 Server
+python calendar_server.py
+# → Calendar MCP Server on http://localhost:3001
+
+# 终端 2：启动邮件 Server
+python email_server.py
+# → Email MCP Server on http://localhost:3002
+
+# 终端 3：运行 Agent
+python office_agent.py
+```
+
+## 关键设计要点
+
+### 1. Server 独立性
+每个 MCP Server 是独立进程，可以独立开发、测试、部署。
+
+### 2. Agent 自动路由
+Agent 根据工具描述自动选择正确的 Server，无需人工指定路由规则。
+
+### 3. 错误隔离
+一个 Server 崩溃不影响其他 Server 和 Agent 主流程。
+
+```python
+# Agent 自动处理 Server 不可用的情况
+try:
+    result = await calendar_client.list_events()
+except ConnectionError:
+    result = "⚠️ 日历服务暂时不可用"
+```
+
+## 真实生产案例
+
+- [google_workspace_mcp](https://github.com/taylorwilsdon/google_workspace_mcp) — Gmail + Calendar + Drive + Docs，2.6k stars
+- [sooperset/mcp-atlassian](https://github.com/sooperset/mcp-atlassian) — Jira + Confluence，5.3k stars
+- [hexstrike-ai](https://github.com/0x4m4/hexstrike-ai) — 150+ 安全工具 MCP，9.3k stars
+
+## 自检清单
+
+- □ 能创建至少 2 个独立的 MCP Server
+- □ 能用 mcp-agent 连接多个 Server 并创建 Agent
+- □ 能实现 Agent 串联调用多个 Server 的 Tool
+- □ 理解 MCP Server 独立部署和错误隔离的价值

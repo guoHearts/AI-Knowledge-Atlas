@@ -1,0 +1,154 @@
+---
+title: MCP 协议原理与架构
+difficulty: intermediate
+estimatedMinutes: 45
+analogy: USB-C 接口标准——任何设备都能插，任何 Agent 都能用
+oneLiner: Agent 和工具的通用连接标准
+tags: [MCP, 协议, 原理]
+---
+
+# MCP 协议原理与架构
+
+> 💡 **MCP 是 AI Agent 的"USB-C 标准"** — 一种连接方式，所有工具通用，由 Anthropic 2024 年底发布。
+
+## 为什么需要 MCP？
+
+### MCP 之前：N×M 问题
+
+```
+没有标准协议时，每个 Agent 框架都要为每个工具单独写适配代码：
+
+LangChain ──→ 天气 API（专用代码）
+LangChain ──→ 数据库（专用代码）
+CrewAI    ──→ 天气 API（又写一遍）
+CrewAI    ──→ 数据库（又写一遍）
+...
+
+N 个框架 × M 个工具 = N×M 份适配代码
+```
+
+### MCP 之后：1×M 模型
+
+```
+有了 MCP 协议后：
+
+Agent A ──┐                      ┌── MCP Server（天气）
+Agent B ──┼── MCP Client ────────┼── MCP Server（数据库）
+Agent C ──┘                      └── MCP Server（文件系统）
+
+1 个协议 × M 个工具 = M 份 MCP Server，所有 Agent 通用
+```
+
+## MCP 架构三要素
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  MCP Host    │────▶│ MCP Client   │────▶│ MCP Server   │
+│  (Claude/IDE)│     │ (协议层)     │     │ (提供工具)    │
+└──────────────┘     └──────────────┘     └──────────────┘
+      │                    │                     │
+  用户交互界面         协议协商/路由         执行具体操作
+  发起工具调用          JSON-RPC 2.0         数据库/API/文件
+```
+
+### MCP Host
+AI 应用本身——Claude Desktop、VS Code、Claude Code 等。发送初始查询。
+
+### MCP Client
+协议客户端层——与 MCP Server 建立连接、协商能力、转发请求/响应。使用 JSON-RPC 2.0 协议通信。
+
+### MCP Server
+轻量级服务——暴露具体功能（Tools、Resources、Prompts）。每个 MCP Server 专注于一个领域。
+
+## MCP 的三种通信方式
+
+| 方式 | 协议 | 适用场景 |
+|------|------|----------|
+| **stdio** | 标准输入/输出 | 本地进程，最简单 |
+| **HTTP (Streamable)** | HTTP + SSE | 远程服务、Web 集成 |
+| **WebSocket** | WS | 双向实时通信 |
+
+```typescript
+// stdio 方式（本地 MCP Server）
+const server = new McpServer({
+  name: 'my-tools',
+  version: '1.0.0',
+});
+// 通过 stdin/stdout 与 Claude Desktop 通信
+
+// HTTP Streamable 方式（远程 MCP Server）
+const server = new McpServer({
+  name: 'remote-tools',
+  version: '1.0.0',
+  transport: { type: 'http', port: 3001 },
+});
+// Agent 通过 HTTP 连接：http://localhost:3001
+```
+
+## MCP 提供三种能力
+
+### 1. Tools（工具）
+Agent 可以调用的函数。最核心的能力。
+
+```typescript
+server.addTool({
+  name: 'get_weather',
+  description: '获取天气信息',
+  parameters: { /* JSON Schema */ },
+  handler: async (args) => { /* 实现 */ },
+});
+```
+
+### 2. Resources（资源）
+Agent 可以读取的结构化数据，像文件系统一样暴露数据。
+
+```typescript
+server.addResource({
+  uri: 'docs://architecture',
+  name: '系统架构文档',
+  description: '当前系统的架构设计文档',
+  handler: async () => ({ content: '# 架构文档\n...' }),
+});
+```
+
+### 3. Prompts（提示模板）
+预定义的 prompt 模板，帮助用户快速开始常见任务。
+
+```typescript
+server.addPrompt({
+  name: 'code_review',
+  description: '代码审查模板',
+  handler: async () => ({
+    messages: [{ role: 'user', content: '请审查以下代码的质量和安全性：' }],
+  }),
+});
+```
+
+## 主流 MCP 开发框架
+
+| 框架 | 语言 | 特点 | Stars |
+|------|------|------|-------|
+| **fastmcp** | Python | 最 Pythonic，开发效率最高 | 25k+ |
+| **mcp-agent** | Python | MCP + Agent 工作流 | 8.3k |
+| **MCP SDK (官方)** | TS/Python | Anthropic 官方，最稳定 | - |
+| **CopilotKit** | TypeScript | Agent UI + AG-UI 协议 | 33k |
+
+推荐入门：[fastmcp](https://github.com/PrefectHQ/fastmcp)，Python 开发者的首选。
+
+## MCP 生态现状（2026）
+
+- ✅ **Claude Code、Claude Desktop** 原生支持 MCP
+- ✅ **Cursor、Windsurf、Continue** 等 IDE 集成 MCP
+- ✅ **社区 MCP Server 超过 2000+**，覆盖数据库、搜索引擎、办公工具
+- ✅ **MCP Registry**（mcpm.sh）作为包管理平台
+- 🔥 **Streamable HTTP** 成为远程通信标准
+- 🔥 **A2A (Agent-to-Agent)** Google 提出，Agent 间通信协议
+
+参考：[awesome-agentic-ai-zh](https://github.com/WenyuChiou/awesome-agentic-ai-zh) — MCP 生态专章
+
+## 自检清单
+
+- □ 能解释 MCP 解决了什么问题（N×M → 1×M）
+- □ 能画出 MCP Host/Client/Server 三层架构图
+- □ 能说出 MCP 的三种能力（Tools/Resources/Prompts）
+- □ 知道至少 3 种 MCP 通信方式及其适用场景

@@ -1,124 +1,106 @@
-# AI 前沿知识图谱
+# AI Knowledge Atlas
 
-交互式 AI 知识图谱，自动追踪 AI 领域最新技术、模型、产品和 Agent 动态。
+面向 AI 工程师的知识图谱与实战课程平台。项目把 Neo4j 知识图谱、FastAPI 数据服务和 Next.js 课程系统整合在一起，用结构化路线帮助学习者理解 AI 技术全貌，并通过可运行实验掌握 Agent、MCP、RAG、LLMOps、多模态和 AI 产品工程。
 
-## 快速开始
+## 功能亮点
 
-### 前置要求
-- Docker & Docker Compose
-- OpenAI API Key（或其他兼容的 LLM API）
+- **AI 知识图谱**：基于 Neo4j 存储技术、模型、产品、公司、框架、评测等实体和关系。
+- **实战课程体系**：内置 Agent 工程师路线，覆盖 12 个模块、49 节课程。
+- **前沿主题覆盖**：包含 OpenAI Agents SDK、LangGraph、MCP 工具治理、Agent Evals、实时语音 Agent、多模态文档 Agent、AI 编程 Agent、合成数据与蒸馏。
+- **后端数据管道**：支持 arXiv、Hugging Face、Hacker News、RSS、GitHub Trending 等来源扩展。
+- **一键 Docker 启动**：启动 Neo4j、FastAPI 后端和 Next.js 前端，并自动检查图谱数据。
 
-### 安装
+## 快速启动
 
-1. 克隆并配置环境变量
-   ```bash
-   cp .env.example .env
-   # 编辑 .env，填入你的 LLM_API_KEY
-   ```
+前置要求：
 
-2. 启动所有服务
-   ```bash
-   docker compose up -d
-   ```
+- Docker Desktop / Docker Compose
+- Git Bash、WSL 或 macOS/Linux shell
 
-3. 导入种子数据
-   ```bash
-   docker compose exec backend python scripts/seed_data.py
-   ```
+启动：
 
-4. 打开浏览器
-   - 前端：http://localhost:3000
-   - 后端 API：http://localhost:8000
-   - Neo4j Browser：http://localhost:7474
-
-### 使用
-
-- **浏览图谱** — 拖拽、滚轮缩放
-- **点击节点** — 右侧面板查看详情和学习资源
-- **搜索** — 顶部搜索框输入技术/模型/产品名
-- **筛选** — 顶部标签按类型过滤
-- **分享** — 将当前视图生成分享链接
-
-## 架构
-
-```
-信息源 (arXiv/HF/HN/RSS/GitHub) → 数据管道 → Neo4j → FastAPI → React+D3.js
+```bash
+./start-docker.sh
 ```
 
-## 数据模型
+访问：
 
-### 8 种节点类型
-| 类型 | 标签 | 示例 |
-|------|------|------|
-| Technology | 技术/概念 | Agentic AI, MCP 协议, GraphRAG |
-| Model | 模型 | GPT-5, Claude Opus 4.8, DeepSeek-V4 |
-| Product | 产品/工具 | Claude Code, Cursor, Perplexity |
-| AgentFramework | Agent 框架 | LangChain, CrewAI, Dify |
-| AgentType | Agent 类型 | 自主 Agent, 代码 Agent |
-| Company | 公司 | OpenAI, Anthropic, 深度求索 |
-| Paper | 论文 | arXiv 论文, 技术博客 |
-| Benchmark | 评测基准 | SWE-bench, MMLU, HumanEval |
+- 前端：http://localhost:3000
+- 知识图谱：http://localhost:3000/graph
+- 后端 API：http://localhost:8000
+- API 文档：http://localhost:8000/docs
+- Neo4j Browser：http://localhost:7474
 
-### 9 种关系类型
-BASED_ON, PROPOSED_BY, RELEASED, COMPETES_WITH, BELONGS_TO, POWERS, EVALUATED_BY, CATEGORY_OF, IMPROVES
+Neo4j 默认账号：
 
-## 技术栈
+```text
+username: neo4j
+password: ai-knowledge-graph
+```
 
-- 后端：Python 3.11+, FastAPI, Neo4j 5.x, LangChain, APScheduler
-- 前端：React 19+, TypeScript, D3.js, Tailwind CSS, Vite
-- 部署：Docker Compose
+## 常用命令
 
-## 信息源
+```bash
+# 启动服务
+docker compose up -d --build neo4j backend nextjs
 
-| 来源 | 内容 | 更新 |
-|------|------|------|
-| arXiv | cs.AI, cs.CL, cs.CV 论文 | 每日 |
-| Hugging Face | Daily Papers 社区精选 | 每日 |
-| Hacker News | AI 相关热帖 | 实时 |
-| RSS | 公司技术博客 | 每周 |
-| GitHub Trending | AI/ML 热门仓库 | 每日 |
+# 导入图谱种子数据
+docker compose exec -T backend python scripts/seed_data.py
 
-## API 端点
+# 查看服务状态
+docker compose ps
 
-| 端点 | 说明 |
-|------|------|
-| `GET /graph/nodes` | 列出所有节点（可按类型筛选） |
-| `GET /graph/nodes/search?q=` | 全文搜索节点 |
-| `GET /graph/nodes/{type}/{id}` | 节点详情+邻居 |
-| `GET /graph/edges` | 列出所有关系 |
-| `GET /graph/timeline` | 时间线最新节点 |
-| `POST /graph/admin/sync` | 手动触发数据同步 |
-| `POST /share/` | 生成分享链接 |
-| `GET /share/{id}` | 获取分享视图 |
-| `GET /health` | 健康检查 |
+# 查看日志
+docker compose logs -f backend nextjs neo4j
+
+# 停止服务
+docker compose down
+```
 
 ## 项目结构
 
-```
+```text
 ai-knowledge-graph/
-├── docker-compose.yml
+├── backend/              # FastAPI + Neo4j 图谱 API 与数据管道
+├── nextjs-frontend/      # Next.js 课程平台与图谱前端
+├── docs/                 # 测试计划、测试报告等项目文档
+├── docker-compose.yml    # Neo4j + Backend + Frontend 编排
 ├── Dockerfile.backend
-├── Dockerfile.frontend
-├── .env.example
-├── backend/
-│   ├── main.py              # FastAPI 入口
-│   ├── config.py            # 配置管理
-│   ├── api/                 # API 路由
-│   │   ├── graph_routes.py  # 图谱浏览 API
-│   │   └── share_routes.py  # 分享链接 API
-│   ├── models/              # 数据模型
-│   │   ├── schema.py        # Neo4j schema
-│   │   ├── graph.py         # Pydantic 模型
-│   │   └── repository.py    # Neo4j 数据访问
-│   ├── extractors/          # 数据源适配器
-│   ├── knowledge/           # LLM 知识提取
-│   ├── scheduler/           # 定时任务
-│   └── scripts/             # 工具脚本
-└── frontend/
-    └── src/
-        ├── App.tsx          # 主布局
-        ├── components/      # UI 组件
-        ├── hooks/           # 自定义 hooks
-        ├── pages/           # 页面组件
-        └── types/           # TypeScript 类型
+├── Dockerfile.nextjs
+└── start-docker.sh       # 一键启动脚本
+```
+
+## 技术栈
+
+- 后端：Python 3.11, FastAPI, Neo4j, LangChain, APScheduler
+- 前端：Next.js 15, React 19, TypeScript, D3.js, Tailwind CSS, MDX
+- 数据：Neo4j 图数据库，SQLite 课程进度/课程索引
+- 部署：Docker Compose
+
+## API 概览
+
+| Endpoint | 说明 |
+| --- | --- |
+| `GET /health` | 后端健康检查 |
+| `GET /graph/nodes` | 获取图谱节点 |
+| `GET /graph/edges` | 获取图谱关系 |
+| `GET /graph/nodes/search?q=` | 搜索图谱节点 |
+| `GET /graph/nodes/{type}/{id}` | 获取节点详情和邻居 |
+| `GET /graph/subgraph` | 获取局部子图 |
+| `POST /graph/admin/sync` | 手动触发数据同步 |
+
+## 环境变量
+
+复制 `.env.example` 为 `.env` 后可按需配置：
+
+```bash
+cp .env.example .env
+```
+
+默认 Docker 启动会关闭后台抓取任务，保证本地演示稳定；需要启用数据同步时设置：
+
+```env
+ENABLE_SCHEDULER=true
+LLM_API_KEY=your_api_key
+LLM_MODEL=gpt-4o
 ```

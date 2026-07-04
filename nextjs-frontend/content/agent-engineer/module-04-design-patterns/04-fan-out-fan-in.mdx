@@ -1,0 +1,174 @@
+---
+title: Fan-out/Fan-in 模式——并行聚合
+difficulty: intermediate
+estimatedMinutes: 45
+analogy: 项目经理把任务拆成 N 份，分发给 N 个人同时干，最后合并结果
+oneLiner: 并行执行 → 结果聚合
+tags: [设计模式, Fan-out, 并行]
+---
+
+# Fan-out/Fan-in 模式——并行聚合
+
+> 💡 **同时做 N 件事，最后汇总结论** — 多视角分析、质量投票、并行加速。
+
+## 动机
+
+一个任务从多个角度同时处理，往往比单个 Agent 反复迭代更高效。
+
+```
+单个 Agent 串行处理（慢且容易遗漏）：
+Agent → 分析安全性 → 分析性能 → 分析可维护性 → 汇总
+
+Fan-out 并行处理（快且覆盖面广）：
+          ┌→ Agent A: 安全性分析 ──┐
+任务 Fan-out ├→ Agent B: 性能分析   ──┼→ Fan-in 汇总
+          └→ Agent C: 可维护性分析 ──┘
+```
+
+## 结构
+
+```
+         Fan-out              Fan-in
+     ┌──────┐              ┌──────────┐
+     │Agent1│──安全分析──→  │          │
+     ├──────┤              │          │
+输入─┤Agent2│──性能分析──→  │  聚合器  │──→ 综合报告
+     ├──────┤              │          │
+     │Agent3│──可维护性──→  │          │
+     └──────┘              └──────────┘
+```
+
+## TypeScript 实现
+
+```typescript
+interface FanOutResult {
+  perspective: string;
+  findings: string[];
+  score: number;
+}
+
+async function fanOutFanIn(
+  task: string,
+  perspectives: string[]
+): Promise<string> {
+  // Fan-out：N 个视角并行分析
+  const results = await Promise.all(
+    perspectives.map(async (perspective) => {
+      const agent = new Agent({
+        model: 'claude-sonnet-4-6',
+        systemPrompt: `你从"${perspective}"角度分析给定的内容。
+返回 JSON: {"findings": ["发现1", "发现2"], "score": 1-10}`,
+      });
+      const raw = await agent.sendMessage(`分析: ${task}`);
+      return { perspective, ...JSON.parse(raw) };
+    })
+  );
+
+  // Fan-in：聚合所有结果
+  const validResults = results.filter(r => r.score > 0);
+
+  // 聚合策略：投票法（多视角共同发现 = 高可信度）
+  const allFindings = validResults.flatMap(r =>
+    r.findings.map(f => ({ finding: f, perspective: r.perspective }))
+  );
+
+  // 去重 + 统计出现次数
+  const findingMap = new Map<string, string[]>();
+  for (const { finding, perspective } of allFindings) {
+    if (!findingMap.has(finding)) findingMap.set(finding, []);
+    findingMap.get(finding)!.push(perspective);
+  }
+
+  // 按共识度排序
+  const sorted = [...findingMap.entries()]
+    .sort((a, b) => b[1].length - a[1].length);
+
+  return `
+# 多视角分析报告
+
+## 高共识发现 (≥2 个视角一致)
+${sorted
+  .filter(([, views]) => views.length >= 2)
+  .map(([finding, views]) => `- **${finding}** (来源: ${views.join(', ')})`)
+  .join('\n')}
+
+## 单一视角发现
+${sorted
+  .filter(([, views]) => views.length === 1)
+  .map(([finding, views]) => `- ${finding} (${views[0]})`)
+  .join('\n')}
+
+## 综合评分
+平均分: ${(validResults.reduce((s, r) => s + r.score, 0) / validResults.length).toFixed(1)}/10
+`;
+}
+
+// 使用：代码审查
+const review = await fanOutFanIn(
+  readFile('critical-module.ts'),
+  ['安全性', '性能', '可维护性', '可读性']
+);
+```
+
+## Python 实现
+
+```python
+import asyncio
+from mcp_agent import Agent
+
+async def fan_out_analysis(code: str) -> str:
+    perspectives = ["安全性", "性能", "可维护性", "Bug风险"]
+    
+    async def analyze_from(perspective: str) -> dict:
+        agent = Agent(
+            model="claude-sonnet-4-6",
+            instruction=f"你是{perspective}分析专家。找出代码中的{perspective}问题。",
+        )
+        result = await agent.send_message(f"分析以下代码:\n{code}")
+        return {"perspective": perspective, "result": result}
+    
+    # Fan-out: 并行分析
+    results = await asyncio.gather(
+        *[analyze_from(p) for p in perspectives]
+    )
+    
+    # Fan-in: 汇总
+    combined = "\n\n---\n\n".join(
+        f"## {r['perspective']}\n{r['result']}" for r in results
+    )
+    
+    # 最终综合 Agent
+    synthesizer = Agent(
+        model="claude-sonnet-4-6",
+        instruction="综合多视角分析，按严重程度排序，生成代码审查报告。",
+    )
+    return await synthesizer.send_message(combined)
+```
+
+## Fan-in 聚合策略
+
+| 策略 | 适用场景 | 方法 |
+|------|----------|------|
+| **投票** | 需要多视角共识 | 多数一致则采用 |
+| **加权** | 各视角重要性不同 | 安全 40% + 性能 30% + 可维护 30% |
+| **级联** | 串联依赖 | A 结果筛选后给 B，B 筛选后给 C |
+| **去重** | 避免重复发现 | Union 所有发现，按共识度排序 |
+
+## 取舍
+
+| 该用时 | 不该用时 |
+|--------|---------|
+| 需要多维度分析 | 成本敏感（N 倍 Token 消耗） |
+| 并行加速可接受 | 实时性要求极高 |
+| 结论需要高置信度 | 简单任务一个 Agent 就够 |
+
+## 企业场景
+
+📌 **典型应用**：多维度代码审查、金融风控多模型 Ensemble、多源舆情分析、安全审计多引擎扫描
+
+## 自检清单
+
+- □ 能实现基础的 Fan-out/Fan-in 流程
+- □ 理解至少 2 种 Fan-in 聚合策略及其适用场景
+- □ 能评估并行处理的成本（Token × N 倍）
+- □ 知道如何用投票法提高分析的可信度

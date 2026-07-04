@@ -1,0 +1,215 @@
+---
+title: Human-in-the-loop 模式——人机协同
+difficulty: intermediate
+estimatedMinutes: 45
+analogy: 飞机起飞前的塔台批准——关键操作必须人点头
+oneLiner: AI 做事，人在关键时刻拍板
+tags: [设计模式, 人机协同, 审批]
+---
+
+# Human-in-the-loop 模式——人机协同
+
+> 💡 **AI 干活，人类把关** — 高风险操作（内容发布、金融交易、代码合并）必须经过人工审批。
+
+## 动机
+
+Agent 很能干，但有些事情它不应该自己决定：
+- 内容公开发布（品牌风险）
+- 金融交易执行（金钱风险）
+- 生产环境部署（系统风险）
+- 医疗建议输出（安全风险）
+
+```
+Agent 执行流程:
+研究 → 分析 → 生成 → ⏸️ 暂停等待审批 → 发布 / 驳回
+                        ↑
+                   人工确认点
+```
+
+## 结构
+
+```
+┌──────┐   ┌──────┐   ┌──────┐   ┌──────────┐   ┌──────┐
+│ Step1│──▶│ Step2│──▶│ Step3│──▶│⏸️ 审批点 │──▶│ 发布 │
+└──────┘   └──────┘   └──────┘   └────┬─────┘   └──────┘
+                                     │
+                              ┌──────▼─────┐
+                              │   人工审批   │
+                              │ approve/reject│
+                              └──────────────┘
+```
+
+## TypeScript 实现
+
+```typescript
+interface ApprovalRequest {
+  id: string;
+  action: string;
+  preview: string;
+  risk: 'low' | 'medium' | 'high';
+  timestamp: Date;
+}
+
+class HumanInTheLoopAgent {
+  private pendingApprovals: Map<string, {
+    resolve: (approved: boolean) => void;
+    request: ApprovalRequest;
+  }> = new Map();
+
+  async executeWithApproval(
+    steps: Step[],
+    approvalPoints: string[]  // 哪些步骤需要审批
+  ): Promise<Result> {
+    let context = {};
+
+    for (const step of steps) {
+      // 执行步骤
+      const output = await step.execute(context);
+      context = { ...context, ...output };
+
+      // 检查是否需要审批
+      if (approvalPoints.includes(step.name)) {
+        const approval = await this.requestApproval({
+          id: crypto.randomUUID(),
+          action: step.name,
+          preview: JSON.stringify(output, null, 2),
+          risk: step.risk || 'medium',
+          timestamp: new Date(),
+        });
+
+        if (!approval) {
+          return {
+            status: 'rejected',
+            message: `步骤 ${step.name} 被人工驳回`,
+            context,
+          };
+        }
+      }
+    }
+
+    return { status: 'approved', context };
+  }
+
+  private async requestApproval(request: ApprovalRequest): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.pendingApprovals.set(request.id, { resolve, request });
+
+      // 在实际应用中，这里会：
+      // 1. 发送通知（Slack/钉钉/邮件）
+      // 2. 展示审批界面
+      // 3. 等待人工操作
+      console.log(`\n⏸️  等待审批: ${request.action}`);
+      console.log(`   风险等级: ${request.risk}`);
+      console.log(`   预览: ${request.preview.slice(0, 200)}...`);
+    });
+  }
+
+  // 人工审批接口（通过 UI 或 API 调用）
+  approve(requestId: string, decision: boolean, comment?: string) {
+    const pending = this.pendingApprovals.get(requestId);
+    if (!pending) throw new Error('审批请求不存在');
+    pending.resolve(decision);
+    this.pendingApprovals.delete(requestId);
+  }
+}
+
+// 使用示例：内容发布 Agent
+const agent = new HumanInTheLoopAgent();
+
+const articleGenSteps = [
+  { name: 'research', execute: researchStep, risk: 'low' },
+  { name: 'outline', execute: outlineStep, risk: 'low' },
+  { name: 'write', execute: writeStep, risk: 'low' },
+  { name: 'review', execute: reviewStep, risk: 'high' },   // 需要审批
+  { name: 'publish', execute: publishStep, risk: 'high' },  // 需要审批
+];
+
+const result = await agent.executeWithApproval(
+  articleGenSteps,
+  ['review', 'publish']  // 这两步需要审批
+);
+```
+
+## Python LangGraph 实现
+
+```python
+from langgraph.graph import StateGraph
+from langgraph.checkpoint import MemorySaver
+from typing import TypedDict
+
+class ContentState(TypedDict):
+    topic: str
+    outline: str
+    draft: str
+    approved: bool
+    published: bool
+
+def generate_outline(state: ContentState) -> ContentState:
+    state["outline"] = f"大纲: 1. 概述 2. 详述 3. 总结"
+    return state
+
+def write_draft(state: ContentState) -> ContentState:
+    state["draft"] = "# 正文内容..."
+    return state
+
+def human_review(state: ContentState) -> ContentState:
+    # 这里会暂停，等待人工在 UI 上点击"通过"或"驳回"
+    # LangGraph 通过 interrupt_before 实现
+    return state
+
+graph = StateGraph(ContentState)
+graph.add_node("outline", generate_outline)
+graph.add_node("write", write_draft)
+graph.add_node("review", human_review)
+graph.add_node("publish", lambda s: {**s, "published": True})
+
+graph.set_entry_point("outline")
+graph.add_edge("outline", "write")
+graph.add_edge("write", "review")
+graph.add_edge("review", "publish")
+
+# 关键：mark review 为中断点
+app = graph.compile(
+    checkpointer=MemorySaver(),
+    interrupt_before=["review"]  # ← 此处暂停等人工
+)
+```
+
+## 审批 UI 设计考虑
+
+```
+✅ 好的审批界面：
+- 清晰展示 AI 的输出内容
+- 标注风险等级（低/中/高）
+- 显示 AI 的决策理由
+- 一键 approve / reject
+- 提供修改建议输入框
+- 审批记录可追溯
+
+❌ 差的审批界面：
+- 只显示 "AI 建议发布，同意？"
+- 没有预览内容
+- 没有风险提示
+- 审批历史不可查
+```
+
+## 取舍
+
+| 该用时 | 不该用时 |
+|--------|---------|
+| 高风险操作 | 低风险高频操作 |
+| 合规要求 | 内部实验项目 |
+| 品牌/法律敏感 | 个人辅助工具 |
+
+## 企业场景
+
+📌 **典型应用**：内容发布审批、金融交易确认、代码合并审核、医疗诊断辅助、法律文件生成
+
+💼 **面试常问**：审批超时怎么办？→ 超时自动驳回（安全优先），或降级到高级审批人。
+
+## 自检清单
+
+- □ 能实现带审批点的 Agent 执行流程
+- □ 理解 interrupt_before 在 LangGraph 中的用法
+- □ 能设计审批 UI 的关键要素
+- □ 知道审批超时的安全处理策略

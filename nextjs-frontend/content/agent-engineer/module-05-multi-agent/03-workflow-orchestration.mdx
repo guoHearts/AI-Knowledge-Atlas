@@ -1,0 +1,180 @@
+---
+title: 工作流编排
+difficulty: advanced
+estimatedMinutes: 45
+analogy: 项目经理排甘特图——哪个先做、哪个并行、哪个依赖哪个
+oneLiner: 顺序/并行/条件——Agent 工作流的三种编排方式
+tags: [多Agent, 编排, 工作流]
+---
+
+# 工作流编排
+
+> 💡 **定义 Agent 执行的"交通规则"** — 顺序、并行、条件分支、循环。
+
+## 四种编排原语
+
+### 1. 顺序（Sequence）
+
+```
+A ──→ B ──→ C
+```
+
+```typescript
+async function sequence(steps: Step[], input: any) {
+  let current = input;
+  for (const step of steps) {
+    current = await step.execute(current);
+  }
+  return current;
+}
+```
+
+### 2. 并行（Parallel）
+
+```
+    ┌→ A ──┐
+X ──┼→ B ──┼── Y
+    └→ C ──┘
+```
+
+```typescript
+async function parallel(steps: Step[], input: any) {
+  const results = await Promise.all(
+    steps.map(s => s.execute(input))
+  );
+  return merge(results);
+}
+```
+
+### 3. 条件分支（Conditional）
+
+```
+        ┌→ A ──┐
+X ──?──┤       ├── Y
+        └→ B ──┘
+```
+
+```typescript
+async function conditional(
+  condition: (input: any) => Promise<string>,
+  branches: Record<string, Step>,
+  input: any
+) {
+  const branch = await condition(input);
+  return branches[branch].execute(input);
+}
+```
+
+### 4. 循环（Loop）
+
+```
+X ──→ A ──→ ? ──→ X (条件满足则继续)
+         └──→ Y (条件满足则退出)
+```
+
+```typescript
+async function loop(
+  step: Step,
+  condition: (output: any) => Promise<boolean>,
+  input: any,
+  maxIterations = 10
+) {
+  let current = input;
+  for (let i = 0; i < maxIterations; i++) {
+    current = await step.execute(current);
+    if (!(await condition(current))) break;
+  }
+  return current;
+}
+```
+
+## LangGraph 图编排
+
+LangGraph 是目前最强大的 Agent 工作流编排框架。
+
+```python
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, Literal
+
+class WorkflowState(TypedDict):
+    input: str
+    research: str
+    draft: str
+    review_score: int
+    final: str
+
+def research_node(state: WorkflowState) -> WorkflowState:
+    """搜索资料"""
+    state["research"] = f"关于 {state['input']} 的研究资料..."
+    return state
+
+def draft_node(state: WorkflowState) -> WorkflowState:
+    """撰写初稿"""
+    state["draft"] = f"基于研究: {state['research']} 的初稿..."
+    return state
+
+def review_node(state: WorkflowState) -> WorkflowState:
+    """质量审查"""
+    state["review_score"] = 7  # 1-10
+    return state
+
+def improve_node(state: WorkflowState) -> WorkflowState:
+    """改进"""
+    state["draft"] = f"[改进版] {state['draft']}"
+    return state
+
+def should_improve(state: WorkflowState) -> Literal["improve", "finalize"]:
+    """条件判断：需要改进吗？"""
+    return "improve" if state["review_score"] < 8 else "finalize"
+
+def finalize_node(state: WorkflowState) -> WorkflowState:
+    state["final"] = state["draft"]
+    return state
+
+# 构建图
+graph = StateGraph(WorkflowState)
+
+# 添加节点
+graph.add_node("research", research_node)
+graph.add_node("draft", draft_node)
+graph.add_node("review", review_node)
+graph.add_node("improve", improve_node)
+graph.add_node("finalize", finalize_node)
+
+# 添加边
+graph.set_entry_point("research")
+graph.add_edge("research", "draft")
+graph.add_edge("draft", "review")
+# 条件边：根据审查分数决定下一步
+graph.add_conditional_edges("review", should_improve, {
+    "improve": "improve",
+    "finalize": "finalize",
+})
+graph.add_edge("improve", "review")  # 循环回审查
+graph.add_edge("finalize", END)
+
+app = graph.compile()
+result = app.invoke({"input": "MCP 协议入门"})
+```
+
+## 编排模式对比
+
+| 模式 | 适用场景 | 复杂度 | 灵活性 |
+|------|----------|--------|--------|
+| **硬编码** | 流程固定不变 | ⭐ | ⭐ |
+| **DAG（有向无环图）** | 有明确的并发和依赖 | ⭐⭐ | ⭐⭐ |
+| **LLM 动态编排** | 流程由 AI 自主决定 | ⭐⭐⭐ | ⭐⭐⭐ |
+| **混合编排** | 框架定骨架 + AI 填细节 | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+
+## 企业级编排参考
+
+- [Prefect](https://github.com/PrefectHQ/prefect) — 数据管道编排（非 AI 专用但模式相通）
+- [Temporal](https://temporal.io/) — 分布式工作流引擎，支持 Saga 模式
+- [LangGraph](https://github.com/langchain-ai/langgraph) — AI 专用状态图编排
+
+## 自检清单
+
+- □ 能实现顺序、并行、条件、循环四种编排原语
+- □ 能用 LangGraph 构建带条件循环的工作流图
+- □ 理解 LLM 动态编排 vs 预定义编排的取舍
+- □ 能画出至少一个包含条件分支的工作流 DAG 图

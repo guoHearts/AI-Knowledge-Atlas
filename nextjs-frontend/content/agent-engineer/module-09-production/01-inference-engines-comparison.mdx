@@ -1,0 +1,100 @@
+---
+title: 推理引擎对比——vLLM vs TensorRT-LLM vs SGLang
+difficulty: advanced
+estimatedMinutes: 55
+analogy: 选车型——vLLM 是丰田（可靠省油），TensorRT-LLM 是法拉利（极致性能）
+oneLiner: PagedAttention + Continuous Batching + FP8 量化
+tags: [LLMOps, 推理引擎, 对比]
+---
+
+# 推理引擎对比——vLLM vs TensorRT-LLM vs SGLang
+
+> 💡 **推理引擎是 LLM 部署的核心** — 选对引擎，同样的硬件能多服务 3-10 倍用户。
+
+## 核心加速技术
+
+### PagedAttention
+传统方式为每个请求预留固定大小的 KV Cache → 大量显存浪费。
+PagedAttention 像操作系统的虚拟内存一样分页管理 → 显存利用率翻倍。
+
+### Continuous Batching
+传统方式等整个 batch 完成才能加新请求 → 快慢请求互相拖累。
+Continuous Batching 随时插入新请求 → 吞吐量大幅提升。
+
+## 三大引擎对比
+
+| 维度 | vLLM | TensorRT-LLM | SGLang |
+|------|------|-------------|--------|
+| **开发者** | UC Berkeley | NVIDIA | 社区（源自 Stanford） |
+| **Stars** | 45k+ | 12k+ | 12k+ |
+| **性能** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **易用性** | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ |
+| **模型支持** | 最广泛 | 需转换 | 广 |
+| **量化支持** | AWQ, GPTQ, FP8 | FP8, INT4, NVFP4 | AWQ, FP8 |
+| **多 LoRA** | ✅ 原生 | ✅ | ✅ |
+| **适用** | 通用场景 | 极致性能 | 结构化输出 |
+
+## vLLM 快速部署
+
+```bash
+# 安装
+pip install vllm
+
+# 启动 API 服务（兼容 OpenAI API）
+vllm serve mistralai/Mistral-7B-Instruct-v0.3 \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --max-model-len 8192 \
+  --gpu-memory-utilization 0.90 \
+  --enable-prefix-caching
+```
+
+```python
+# 客户端调用
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8000/v1", api_key="not-needed")
+
+response = client.chat.completions.create(
+    model="mistralai/Mistral-7B-Instruct-v0.3",
+    messages=[{"role": "user", "content": "解释 PagedAttention 原理"}],
+    max_tokens=500,
+    temperature=0.7,
+)
+print(response.choices[0].message.content)
+```
+
+## 性能基准（参考数据）
+
+| 引擎 | 吞吐量 (tok/s) | TTFT (ms) | 显存占用 |
+|------|---------------|-----------|----------|
+| HuggingFace (baseline) | 100 | 500 | 16 GB |
+| vLLM | 800 | 80 | 14 GB |
+| TensorRT-LLM | 1200 | 50 | 12 GB |
+| SGLang | 900 | 70 | 14 GB |
+
+> 注：基于 Mistral-7B，A100 80G，batch_size=32。实际数据因配置而异。
+
+## 选型建议
+
+```
+你的场景？
+├── 快速上线、模型种类多 → vLLM（最易用）
+├── 追求极致性能、NVIDIA 硬件 → TensorRT-LLM
+├── 需要结构化输出（JSON/正则）→ SGLang（RadixAttention）
+└── Apple Silicon → vllm-mlx（Apple 芯片专用）
+```
+
+## 参考
+
+- [vLLM](https://github.com/vllm-project/vllm) — 最流行的开源推理引擎
+- [TensorRT-LLM](https://github.com/NVIDIA/TensorRT-LLM) — NVIDIA 官方
+- [SGLang](https://github.com/sgl-project/sglang) — 结构化生成专家
+- [vllm-mlx](https://github.com/waybarrios/vllm-mlx) — Apple Silicon 版，1.3k stars
+
+## 自检清单
+
+- □ 能用 vLLM 部署一个 OpenAI 兼容的 API 服务
+- □ 理解 PagedAttention 和 Continuous Batching 的原理
+- □ 能说出三大引擎的核心差异
+- □ 知道如何根据场景选择推理引擎

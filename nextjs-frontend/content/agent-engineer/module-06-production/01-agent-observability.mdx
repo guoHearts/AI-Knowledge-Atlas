@@ -1,0 +1,178 @@
+---
+title: Agent 可观测性与日志
+difficulty: advanced
+estimatedMinutes: 50
+analogy: 给你的 Agent 装一个"黑匣子"——每一步决策、每次 tool 调用都有记录
+oneLiner: 能看到 Agent "怎么想的"才知道哪里出了问题
+tags: [生产, 可观测性, 日志]
+---
+
+# Agent 可观测性与日志
+
+> 💡 **Agent 的黑匣子** — 追踪每一步决策、每次 Tool 调用、每次 LLM 交互。
+
+## Agent 可观测性的四个维度
+
+```
+┌─────────────────────────────────────────────┐
+│           Agent 可观测性                      │
+├──────────┬──────────┬──────────┬────────────┤
+│  Traces  │ Metrics  │  Logs    │ Evaluations│
+│  链路追踪 │  指标    │  日志    │  评估      │
+├──────────┼──────────┼──────────┼────────────┤
+│ 谁调了谁  │ 延迟/成本 │ 决策理由  │ 质量评分   │
+│ 顺序/耗时 │ 成功率   │ 错误信息  │ 用户反馈   │
+└──────────┴──────────┴──────────┴────────────┘
+```
+
+## 核心工具：Langfuse
+
+[Langfuse](https://langfuse.com/) 是最流行的 LLM 可观测性开源工具（类似 LLM 领域的 Datadog）。
+
+```typescript
+import { Langfuse } from 'langfuse';
+
+const langfuse = new Langfuse({
+  publicKey: process.env.LANGFUSE_PUBLIC_KEY!,
+  secretKey: process.env.LANGFUSE_SECRET_KEY!,
+});
+
+async function traceAgentCall(userInput: string) {
+  // 创建 Trace
+  const trace = langfuse.trace({
+    name: 'customer-support',
+    metadata: { userId: 'user-123', sessionId: 'session-456' },
+  });
+
+  // Span 1: 意图分类
+  const routerSpan = trace.span({
+    name: 'intent-classification',
+    input: { message: userInput },
+  });
+
+  const intent = await classifyIntent(userInput);
+
+  routerSpan.end({
+    output: { intent, confidence: 0.92 },
+  });
+
+  // Span 2: LLM 调用
+  const llmSpan = trace.span({
+    name: 'llm-generation',
+    input: { intent, messages: [{ role: 'user', content: userInput }] },
+  });
+
+  const response = await agent.sendMessage(userInput);
+
+  llmSpan.end({
+    output: { response },
+    usage: { promptTokens: 150, completionTokens: 80, totalTokens: 230 },
+  });
+
+  // Span 3: Tool 调用
+  if (response.toolUse) {
+    const toolSpan = trace.span({
+      name: `tool-${response.toolUse.name}`,
+      input: response.toolUse.input,
+    });
+
+    const toolResult = await executeTool(response.toolUse);
+
+    toolSpan.end({
+      output: toolResult,
+      metadata: { durationMs: 120 },
+    });
+  }
+
+  await langfuse.flushAsync();
+  return response;
+}
+```
+
+## 关键指标监控
+
+```typescript
+// Agent 健康检查
+interface AgentMetrics {
+  // 延迟指标
+  avgResponseTime: number;    // 平均响应时间
+  p95ResponseTime: number;    // P95 响应时间
+  avgTimeToFirstToken: number; // 首 Token 时间
+  
+  // 成本指标
+  totalTokensUsed: number;
+  estimatedCost: number;
+  
+  // 质量指标
+  successRate: number;        // 任务成功率
+  toolCallAccuracy: number;   // Tool 调用准确率
+  userSatisfaction: number;   // 用户满意度
+  
+  // 错误指标
+  errorRate: number;
+  retryCount: number;
+  fallbackTriggered: number;
+}
+```
+
+## 日志最佳实践
+
+```typescript
+// 结构化日志
+function logAgentDecision(decision: {
+  agent: string;
+  action: string;
+  reasoning: string;
+  alternatives: string[];
+  timestamp: Date;
+}) {
+  console.log(JSON.stringify({
+    level: 'info',
+    component: 'agent-decision',
+    ...decision,
+  }));
+}
+
+// 使用示例
+logAgentDecision({
+  agent: 'router',
+  action: 'route to support',
+  reasoning: '用户提到了"登录失败"关键词，置信度 0.92',
+  alternatives: ['product_agent (0.05)', 'escalation (0.03)'],
+  timestamp: new Date(),
+});
+```
+
+## 告警配置
+
+```yaml
+# 告警规则示例
+alerts:
+  - name: agent_high_error_rate
+    condition: error_rate > 0.05
+    action: notify_slack #agent-alerts
+    
+  - name: agent_slow_response
+    condition: p95_latency > 10s
+    action: notify_oncall
+    
+  - name: tool_call_accuracy_drop
+    condition: tool_call_success_rate < 0.80
+    action: notify_slack + create_ticket
+```
+
+## 参考工具
+
+| 工具 | 定位 | 开源 |
+|------|------|------|
+| [Langfuse](https://github.com/langfuse/langfuse) | LLM 全栈追踪 | ✅ |
+| [LangSmith](https://www.langchain.com/langsmith) | LangChain 官方监控 | 部分 |
+| [Arize Phoenix](https://github.com/Arize-AI/phoenix) | LLM 可观测性 | ✅ |
+| [Braintrust](https://www.braintrust.dev/) | 评估 + 日志 | ✅ |
+
+## 自检清单
+
+- □ 能为 Agent 添加完整的 Trace/Span 追踪
+- □ 理解 Agent 可观测性的四个维度
+- □ 能配置基本的告警规则
+- □ 知道 Langfuse 和 LangSmith 的区别和选择

@@ -1,0 +1,165 @@
+---
+title: 混合检索——稠密+稀疏+重排序
+difficulty: intermediate
+estimatedMinutes: 50
+analogy: 搜索引擎的"语义理解 + 关键词匹配"——两个维度互补
+oneLiner: 稠密向量 + BM25 关键词 + Cross-encoder 重排序
+tags: [RAG, 混合检索, 实战]
+---
+
+# 混合检索——稠密+稀疏+重排序
+
+> 💡 **单一检索方式总有盲区** — 语义理解（向量）+ 关键词匹配（BM25）+ 精排（Reranker）= 最佳召回。
+
+## 为什么需要混合检索？
+
+| 检索方式 | 擅长 | 不擅长 |
+|----------|------|--------|
+| **稠密向量** | 语义相似、同义词 | 精确匹配（API 名、ID） |
+| **稀疏关键词 (BM25)** | 精确术语、ID、代码 | 语义理解、改写 |
+| **混合检索** | 两者互补 | 计算开销稍大 |
+
+```
+查询："MCP-2024 协议规范"
+
+稠密向量检索 → 找到"Agent 通信标准"相关的文档（语义正确但可能不是规范原文）
+BM25 关键词  → 找到包含"MCP-2024"的文档（精确匹配但可能漏掉相关讨论）
+混合检索    → 两路召回 → 去重 → 重排序 → 最佳 Top-K
+```
+
+## 完整实现
+
+```python
+from sentence_transformers import SentenceTransformer, CrossEncoder
+from rank_bm25 import BM25Okapi
+import numpy as np
+
+class HybridRetriever:
+    def __init__(self, documents: list[str]):
+        self.documents = documents
+        
+        # 稠密检索：向量模型
+        self.dense_model = SentenceTransformer('BAAI/bge-small-zh-v1.5')
+        self.doc_embeddings = self.dense_model.encode(documents, normalize_embeddings=True)
+        
+        # 稀疏检索：BM25
+        tokenized = [doc.split() for doc in documents]
+        self.bm25 = BM25Okapi(tokenized)
+        
+        # 重排序：Cross-encoder
+        self.reranker = CrossEncoder('BAAI/bge-reranker-v2-m3')
+    
+    def search(self, query: str, top_k: int = 5, dense_weight: float = 0.5):
+        # ── 第 1 步：双路召回 ──
+        
+        # 稠密检索
+        query_emb = self.dense_model.encode(query, normalize_embeddings=True)
+        dense_scores = np.dot(self.doc_embeddings, query_emb)
+        dense_top_k = np.argsort(dense_scores)[-top_k * 2:][::-1]  # 多召回一些
+        
+        # 稀疏检索 (BM25)
+        tokenized_query = query.split()
+        bm25_scores = np.array(self.bm25.get_scores(tokenized_query))
+        sparse_top_k = np.argsort(bm25_scores)[-top_k * 2:][::-1]
+        
+        # ── 第 2 步：融合去重 ──
+        candidate_indices = list(set(dense_top_k.tolist() + sparse_top_k.tolist()))
+        
+        # 加权融合分数
+        fusion_scores = []
+        for idx in candidate_indices:
+            score = (
+                dense_weight * dense_scores[idx] +
+                (1 - dense_weight) * (bm25_scores[idx] / max(bm25_scores.max(), 1))
+            )
+            fusion_scores.append((idx, score))
+        
+        # 按融合分数排序
+        fusion_scores.sort(key=lambda x: x[1], reverse=True)
+        candidates = fusion_scores[:top_k * 2]  # 给重排序留更多候选
+        
+        # ── 第 3 步：Cross-encoder 重排序 ──
+        rerank_pairs = [(query, self.documents[idx]) for idx, _ in candidates]
+        rerank_scores = self.reranker.predict(rerank_pairs)
+        
+        # 按重排序分数取最终结果
+        reranked = sorted(
+            zip(candidates, rerank_scores),
+            key=lambda x: x[1], reverse=True
+        )[:top_k]
+        
+        return [
+            {
+                "index": idx,
+                "document": self.documents[idx],
+                "score": float(score),
+            }
+            for (idx, _), score in reranked
+        ]
+
+# 使用
+docs = [
+    "MCP 协议 2024 版：Model Context Protocol 规范 v1.0",
+    "AI Agent 需要与外部工具通信，MCP 是最佳选择",
+    "Claude Desktop 支持 MCP 协议，可以连接各种工具",
+    "RAG 是检索增强生成技术，不是通信协议",
+    "Python 3.12 引入了新的类型注解语法",
+]
+
+retriever = HybridRetriever(docs)
+results = retriever.search("MCP 通信协议", top_k=3)
+
+for r in results:
+    print(f"[{r['score']:.3f}] {r['document']}")
+```
+
+## 重排序的价值
+
+```
+没有重排序：
+查询 → 向量检索 Top-10 → 直接给 LLM
+问题：第 1 名不一定是第 1 相关的
+
+有重排序：
+查询 → 向量检索 Top-20 → Cross-encoder 重排 → Top-5 给 LLM
+价值：精确率提升 10-30%
+```
+
+## 检索评估指标
+
+```python
+def evaluate_retrieval(retriever, test_queries: list[dict]):
+    """评估检索质量"""
+    mrr_scores = []
+    recall_scores = []
+    
+    for test in test_queries:
+        results = retriever.search(test['query'], top_k=10)
+        retrieved_docs = [r['document'] for r in results]
+        
+        # MRR (Mean Reciprocal Rank)
+        for rank, doc in enumerate(retrieved_docs, 1):
+            if doc == test['relevant_doc']:
+                mrr_scores.append(1.0 / rank)
+                break
+        else:
+            mrr_scores.append(0.0)
+        
+        # Recall@K
+        relevant_retrieved = sum(
+            1 for doc in retrieved_docs if doc in test['relevant_docs']
+        )
+        recall_scores.append(relevant_retrieved / len(test['relevant_docs']))
+    
+    return {
+        'MRR@10': np.mean(mrr_scores),
+        'Recall@10': np.mean(recall_scores),
+    }
+```
+
+## 自检清单
+
+- □ 能实现双路召回（稠密 + 稀疏）
+- □ 理解融合去重和加权策略
+- □ 能用 Cross-encoder 做重排序
+- □ 知道 MRR 和 Recall@K 的评估意义

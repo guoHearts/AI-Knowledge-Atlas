@@ -1,0 +1,182 @@
+---
+title: 多模态 Agent 开发入门
+difficulty: intermediate
+estimatedMinutes: 55
+analogy: 人类不只用文字交流——看图、听声、读文档，AI 也该如此
+oneLiner: Nemotron Nano Omni 30B — 视觉+音频+语言 统一推理
+tags: [多模态, 视觉, 音频]
+---
+
+# 多模态 Agent 开发入门
+
+> 💡 **Agent 不只会读文字了** — 看图、听声、读 PDF、看视频，2026 年多模态 Agent 进入实用阶段。
+
+## 多模态 Agent 的能力
+
+```
+传统 Agent（仅文本）:
+"这个 UI 有什么问题？"（用户必须文字描述）
+
+多模态 Agent（文本+视觉+音频）:
+用户发一张截图 → Agent 看图分析 UI 问题
+用户上传一段录音 → Agent 听录音总结会议纪要
+用户给一份 PDF → Agent 读懂图表和表格
+```
+
+## 2026 多模态模型格局
+
+| 模型 | 模态 | 特点 |
+|------|------|------|
+| **Nemotron Nano Omni 30B** | 视觉+音频+语言 | NVIDIA，统一推理 |
+| **GPT-5** | 视觉+音频+语言 | 原生多模态 |
+| **Claude 4.X** | 视觉+文本 | PDF/图表/截图理解 |
+| **Gemini 2.5** | 视觉+音频+语言 | Google，长上下文 |
+| **Qwen-VL** | 视觉+语言 | 开源，中文最佳 |
+| **LLaVA-Next** | 视觉+语言 | 开源，学术友好 |
+
+## 视觉 Agent 实战
+
+```typescript
+// 用 Claude Vision 分析截图
+import { Agent } from '@anthropic-ai/sdk';
+import fs from 'fs';
+
+async function analyzeScreenshot(imagePath: string) {
+  const imageBase64 = fs.readFileSync(imagePath).toString('base64');
+
+  const agent = new Agent({
+    model: 'claude-sonnet-4-6',
+    systemPrompt: '你是 UI 审核专家，分析截图中的界面问题。',
+  });
+
+  const response = await agent.sendMessage([
+    {
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: 'image/png',
+        data: imageBase64,
+      },
+    },
+    {
+      type: 'text',
+      text: '分析这个界面的可用性问题，列出至少 3 个改进建议。',
+    },
+  ]);
+
+  return response;
+}
+
+// 批量处理
+const issues = await analyzeScreenshot('./app-screenshot.png');
+console.log(issues);
+```
+
+## Computer Use Agent
+
+2026 年最热门的 Agent 方向之一——Agent 直接操作电脑。
+
+```python
+# Claude Computer Use 概念示例
+from anthropic import Anthropic
+
+client = Anthropic()
+
+response = client.messages.create(
+    model="claude-sonnet-4-6",
+    max_tokens=1024,
+    system="你是桌面操作助手，可以截图并模拟鼠标键盘操作。",
+    tools=[{
+        "type": "computer_20250124",  # Computer Use tool
+        "name": "computer",
+        "display_width_px": 1920,
+        "display_height_px": 1080,
+    }],
+    messages=[{
+        "role": "user",
+        "content": "打开浏览器，搜索最新的 AI 新闻，截图前 5 条结果。"
+    }],
+)
+
+# Agent 自动：
+# 1. 截图查看当前桌面
+# 2. 移动鼠标到浏览器图标
+# 3. 双击打开浏览器
+# 4. 输入搜索关键词
+# 5. 截图结果
+```
+
+## 音频 Agent
+
+```python
+# 用 Whisper + Agent 处理音频
+import whisper
+
+model = whisper.load_model("large-v3")
+
+# 1. 语音转文字
+result = model.transcribe("meeting.mp3", language="zh")
+transcript = result["text"]
+
+# 2. Agent 处理文字
+from mcp_agent import Agent
+
+agent = Agent(
+    model="claude-sonnet-4-6",
+    instruction="你是会议纪要专家。从会议转录中提取：1. 主要讨论点 2. 决策 3. 待办事项。",
+)
+
+summary = await agent.send_message(f"会议转录:\n{transcript}")
+print(summary)
+```
+
+## 多模态 MCP 工具
+
+```python
+# 让 Agent 能"看到"屏幕和"听到"音频
+@mcp.tool()
+def take_screenshot() -> str:
+    """截取当前屏幕，返回 base64 编码的图片"""
+    import pyautogui
+    import base64
+    from io import BytesIO
+    
+    screenshot = pyautogui.screenshot()
+    buffer = BytesIO()
+    screenshot.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode()
+
+@mcp.tool()
+def record_audio(duration_seconds: int = 5) -> str:
+    """录制音频并转录为文本"""
+    import sounddevice as sd
+    import whisper
+    
+    # 录音
+    audio = sd.rec(int(duration_seconds * 16000), samplerate=16000, channels=1)
+    sd.wait()
+    
+    # 转录
+    result = model.transcribe(audio)
+    return result["text"]
+```
+
+## 前沿方向
+
+1. **Computer Use Agent** — Agent 操作桌面应用和浏览器
+2. **Browser Use Agent** — Agent 自动化 Web 操作
+3. **Video Understanding** — Agent 理解和总结视频内容
+4. **3D/AR Agent** — Agent 理解和生成 3D 内容
+
+## 参考
+
+- [Claude Computer Use](https://docs.anthropic.com/en/docs/agents-and-tools/computer-use) — 官方文档
+- [Browser Use](https://github.com/browser-use/browser-use) — 开源浏览器 Agent
+- [vllm-mlx](https://github.com/waybarrios/vllm-mlx) — Apple Silicon 多模态推理
+
+## 自检清单
+
+- □ 能用 Claude Vision 分析截图
+- □ 理解 Computer Use 的基本原理
+- □ 能用 Whisper + Agent 处理音频
+- □ 知道 2026 年多模态 Agent 的主要方向

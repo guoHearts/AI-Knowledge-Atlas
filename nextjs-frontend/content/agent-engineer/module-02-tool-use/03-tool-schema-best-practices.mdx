@@ -1,0 +1,189 @@
+---
+title: Tool Schema 最佳实践
+difficulty: intermediate
+estimatedMinutes: 45
+analogy: Schema 就像函数的 TypeScript 类型签名——类型越精确，IDE 提示越好，出错越少
+oneLiner: 撰写让 AI 准确理解的 Tool 描述
+tags: [Tool 设计, Schema, 最佳实践]
+---
+
+# Tool Schema 最佳实践
+
+> 💡 **Schema 是 Agent 理解工具的"说明书"** — 写的越清晰，Agent 用的越准。
+
+## JSON Schema 在 Tool 中的角色
+
+```
+Tool Schema（JSON Schema 格式）
+        │
+        ├── name         → Agent 识别"这是什么工具"
+        ├── description  → Agent 判断"什么时候该用这个工具"
+        └── parameters   → Agent 决定"该传什么参数、什么格式"
+              │
+              ├── type        → 参数数据类型
+              ├── properties  → 参数的具体字段
+              ├── required    → 哪些参数必须填
+              ├── enum        → 限制可选值
+              └── description → 每个参数的语义解释
+```
+
+## 最佳实践清单
+
+### 1. 参数命名 —— 语义化而非缩写
+
+```
+✅ meeting_title, user_email, start_date
+❌ mt, ue, sd
+```
+
+原因：LLM 对语义化参数名理解更准确。`start_date` 比 `sd` 更能让 AI 知道要填日期。
+
+### 2. 枚举优先于自由文本
+
+```typescript
+// ❌ 自由文本：Agent 可能传"紧急"、"很急"、"快"、"urgent"...
+priority: { type: 'string', description: '优先级' }
+
+// ✅ 枚举：Agent 只能在给定选项中选
+priority: {
+  type: 'string',
+  enum: ['low', 'medium', 'high', 'critical'],
+  description: '优先级：low=普通, medium=重要, high=紧急, critical=P0故障'
+}
+```
+
+### 3. 提供默认值和范围
+
+```typescript
+maxResults: {
+  type: 'integer',
+  description: '返回的最大记录数（1-100）',
+  minimum: 1,
+  maximum: 100,
+  default: 10,
+}
+```
+
+### 4. 描述中写清楚"什么时候用这个参数"
+
+```typescript
+includeArchived: {
+  type: 'boolean',
+  description: '是否包含已归档的记录。仅当用户明确说"包括已删除的"或"包括历史的"时才设为 true。默认为 false。',
+  default: false,
+}
+```
+
+### 5. 参数数量控制在 3-5 个以内
+
+```
+✅ search(query, category?, limit?)
+❌ search(query, category, limit, sort_by, sort_order, filter, include_meta, timeout, format...)
+```
+
+参数太多时，Agent 容易漏填或填错。超过 5 个参数时考虑拆分成多个 Tool。
+
+### 6. 避免嵌套过深的参数结构
+
+```typescript
+// ❌ 嵌套太深：Agent 容易填错层级
+{ filters: { date: { start: '', end: '' }, author: { name: '', dept: '' } } }
+
+// ✅ 扁平化
+{ start_date: '', end_date: '', author_name: '', author_dept: '' }
+```
+
+## 描述撰写模板
+
+```typescript
+const toolSchemaTemplate = {
+  name: '【动词_名词】',
+  description: `【做什么】。当【触发条件】时使用此工具。【限制说明】。
+
+返回格式：【JSON/文本/数组】。`,
+  parameters: {
+    type: 'object',
+    properties: {
+      param1: {
+        type: '【string/number/boolean/array】',
+        description: '【参数含义】。【可选值】。【使用建议】。',
+        enum: ['A', 'B'],    // 如果有可选值
+        default: 'A',        // 推荐设置默认值
+      },
+    },
+    required: ['param1'],    // 最少化必需参数
+  },
+};
+```
+
+## 实战示例：为 Notion 设计 Tool Schema
+
+```typescript
+// 场景：让 Agent 能操作 Notion 文档
+
+// Tool 1：搜索页面
+const searchNotionPages = {
+  name: 'search_notion_pages',
+  description: `在 Notion 工作区中搜索页面。当用户询问"关于XX的文档在哪"或"有没有XX相关的笔记"时使用。搜索结果按相关性排序，最多返回 10 条。不支持搜索已删除的页面。`,
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: '搜索关键词。支持中英文，建议使用 2-8 个字的核心词。例如搜索"Q2 OKR"而非"我要找关于第二季度目标的所有文档"。',
+      },
+      page_type: {
+        type: 'string',
+        enum: ['all', 'database', 'page', 'wiki'],
+        description: '页面类型筛选。默认搜索全部类型。',
+        default: 'all',
+      },
+    },
+    required: ['query'],
+  },
+};
+
+// Tool 2：创建页面
+const createNotionPage = {
+  name: 'create_notion_page',
+  description: `在 Notion 中创建新页面。当用户说"记一下"、"新建笔记"、"创建一个文档"时使用。支持 Markdown 格式的内容。新页面默认创建在用户的个人空间。`,
+  parameters: {
+    type: 'object',
+    properties: {
+      title: {
+        type: 'string',
+        description: '页面标题。建议不超过 60 字符。',
+      },
+      content: {
+        type: 'string',
+        description: '页面正文内容，支持 Markdown 格式。',
+      },
+      parent_database: {
+        type: 'string',
+        description: '目标数据库名称。仅当用户明确指定了数据库时才填写，否则留空即可。',
+      },
+    },
+    required: ['title'],
+  },
+};
+```
+
+**效果验证**：
+- "我的 OKR 文档在哪？" → Agent 调用 `search_notion_pages({ query: "OKR" })` ✅
+- "把刚才的想法记下来：Agent 需要更好的工具描述" → Agent 调用 `create_notion_page({ title: "Agent 工具描述改进", content: "..." })` ✅
+
+## 常见反模式
+
+| 反模式 | 问题 | 修正 |
+|--------|------|------|
+| Tool 名是 `handler` | Agent 无法判断何时使用 | 改为 `search_files` |
+| 所有参数都是 required | 降低灵活性，增加调用失败率 | 只标记真正必需的参数 |
+| description 只写"获取数据" | Agent 不知道什么数据、何时获取 | 写清数据来源、获取条件、限制 |
+| 参数描述省略 | Agent 可能传错误的参数格式 | 每个参数都写描述 |
+
+## 自检清单
+
+- □ 能按模板撰写出清晰的 Tool Schema
+- □ 理解枚举、默认值、required 的工程意义
+- □ 能识别至少 3 个常见 Schema 反模式
+- □ 知道参数数量控制在 5 个以内的原因

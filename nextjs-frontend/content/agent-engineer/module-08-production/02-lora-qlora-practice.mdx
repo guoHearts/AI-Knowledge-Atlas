@@ -1,0 +1,152 @@
+---
+title: LoRA 与 QLoRA 实战——单卡微调 70B 模型
+difficulty: advanced
+estimatedMinutes: 75
+analogy: LoRA 是在原有引擎上加一个小改装件，不改发动机本体
+oneLiner: 训练 0.1-1% 参数，单张 4090 搞定 70B
+tags: [微调, LoRA, 实战]
+---
+
+# LoRA 与 QLoRA 实战——单卡微调 70B 模型
+
+> 💡 **单张消费级显卡微调 70B 模型** — LoRA + 4-bit 量化让微调不再需要数据中心。
+
+## LoRA 关键参数
+
+| 参数 | 含义 | 建议值 |
+|------|------|--------|
+| **r** (rank) | 低秩矩阵的秩 | 8-64，越大效果越好但越慢 |
+| **alpha** | 缩放因子 | 通常 = 2×r |
+| **target_modules** | 哪些层加 LoRA | q_proj, v_proj（注意力层） |
+| **dropout** | 正则化 | 0.05-0.1 |
+
+## QLoRA 实战代码
+
+使用 Unsloth（最快最省显存）：
+
+```python
+# 安装：pip install unsloth
+from unsloth import FastLanguageModel
+from datasets import load_dataset
+from transformers import TrainingArguments
+from trl import SFTTrainer
+
+# ── 第 1 步：加载 4-bit 量化模型 ──
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name="unsloth/Meta-Llama-3.1-8B-bnb-4bit",  # 4-bit 预量化
+    max_seq_length=2048,
+    load_in_4bit=True,
+)
+
+# ── 第 2 步：添加 LoRA 适配器 ──
+model = FastLanguageModel.get_peft_model(
+    model,
+    r=16,                     # LoRA rank
+    target_modules=[          # 只训练这些层
+        "q_proj", "k_proj", "v_proj", "o_proj",
+        "gate_proj", "up_proj", "down_proj",
+    ],
+    lora_alpha=16,
+    lora_dropout=0,
+    use_gradient_checkpointing="unsloth",  # 省显存
+)
+
+# ── 第 3 步：准备训练数据 ──
+# 数据格式（Alpaca 格式）
+training_data = [
+    {
+        "instruction": "将以下中文翻译为英文",
+        "input": "人工智能正在改变世界",
+        "output": "Artificial intelligence is changing the world.",
+    },
+    # ... 至少 100-1000 条
+]
+
+def format_prompt(example):
+    return f"""### Instruction:
+{example['instruction']}
+
+### Input:
+{example['input']}
+
+### Response:
+{example['output']}"""
+
+# ── 第 4 步：训练 ──
+trainer = SFTTrainer(
+    model=model,
+    tokenizer=tokenizer,
+    train_dataset=dataset,
+    formatting_func=format_prompt,
+    args=TrainingArguments(
+        per_device_train_batch_size=2,
+        gradient_accumulation_steps=4,
+        warmup_steps=5,
+        max_steps=100,           # 小数据集不需要太多步
+        learning_rate=2e-4,
+        fp16=not model.get_memory_footprint() > 20_000_000_000,
+        logging_steps=10,
+        output_dir="outputs",
+    ),
+)
+
+trainer.train()
+
+# ── 第 5 步：保存模型 ──
+model.save_pretrained_merged("my-lora-model", tokenizer, save_method="merged_16bit")
+```
+
+## 显存需求速查
+
+| 模型大小 | Full Fine-tune | LoRA (FP16) | QLoRA (4-bit) |
+|----------|---------------|-------------|---------------|
+| 7B | 56 GB | 16 GB | 6 GB |
+| 13B | 104 GB | 28 GB | 10 GB |
+| 34B | 272 GB | 68 GB | 24 GB |
+| 70B | 560 GB | 140 GB | 48 GB (单卡 4090 可行！) |
+
+## 数据准备要点
+
+```python
+# 好的微调数据特征
+GOOD_DATA = {
+    "多样性": "覆盖各种输入变体",
+    "高质量": "人工审核过，格式一致",
+    "数量": "至少 100 条起步，1000+ 效果稳定",
+    "格式": "统一使用 Alpaca 或 ShareGPT 格式",
+}
+
+# 数据增强技巧
+# 1. 用强模型生成更多训练样本
+# 2. 改写现有数据（同义替换、句式变换）
+# 3. 反向翻译（中→英→中）
+```
+
+## 评估微调效果
+
+```python
+# 用 deepeval 或自定义评估
+test_cases = [
+    {"input": "翻译：Hello World", "expected": "你好世界"},
+    {"input": "翻译：Good morning", "expected": "早上好"},
+]
+
+for case in test_cases:
+    output = model.generate(case["input"])
+    print(f"输入: {case['input']}")
+    print(f"期望: {case['expected']}")
+    print(f"输出: {output}")
+    print("---")
+```
+
+## 参考
+
+- [Unsloth](https://github.com/unslothai/unsloth) — 2-5x 加速，免费 Colab 笔记本
+- [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory) — WebUI 操作，中文友好
+
+## 自检清单
+
+- □ 能用 Unsloth 完成 LoRA 微调（至少跑通一个 Demo）
+- □ 理解 r、alpha、target_modules 的含义和调参方法
+- □ 能准备 Alpaca 格式的训练数据
+- □ 知道不同模型大小的显存需求

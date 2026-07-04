@@ -1,0 +1,216 @@
+---
+title: Agent 间通信与状态管理
+difficulty: intermediate
+estimatedMinutes: 45
+analogy: 团队协作需要 Slack 和共享文档——Agent 之间也需要消息通道和共享状态
+oneLiner: Agent A 怎么把结果传给 Agent B？
+tags: [多Agent, 通信, 状态]
+---
+
+# Agent 间通信与状态管理
+
+> 💡 **Agent 之间怎么"说话"** — 三种通信方式 + 状态共享机制。
+
+## 三种通信方式
+
+### 方式 1：顺序传递（Chain）
+
+```
+Agent A ──结果──▶ Agent B ──结果──▶ Agent C
+```
+
+最简单，但下游只能看到直接上游的结果，丢失全局上下文。
+
+### 方式 2：共享状态（Shared State）
+
+```
+Agent A ──写──▶ ┌──────────┐ ◀──读── Agent B
+                │ 共享状态   │
+Agent C ──写──▶ └──────────┘ ◀──读── Agent D
+```
+
+所有 Agent 都能读写同一个状态对象。灵活但需要并发控制。
+
+### 方式 3：消息队列（Message Bus）
+
+```
+Agent A ──消息──▶ ┌──────────┐ ──订阅──▶ Agent B
+                  │ 消息总线   │
+Agent C ──消息──▶ └──────────┘ ──订阅──▶ Agent D
+```
+
+最解耦，适合生产级系统。Agent 之间不直接依赖。
+
+## 共享状态实现
+
+```typescript
+interface AgentState {
+  // 任务上下文
+  task: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  
+  // 各 Agent 的输出
+  outputs: Map<string, unknown>;
+  
+  // 共享知识
+  facts: Array<{ source: string; content: string; confidence: number }>;
+  
+  // 决策历史
+  decisions: Array<{ agent: string; decision: string; reason: string; timestamp: Date }>;
+  
+  // 错误日志
+  errors: Array<{ agent: string; error: string; timestamp: Date }>;
+  
+  // 版本号（乐观锁）
+  version: number;
+}
+
+class AgentStateManager {
+  private state: AgentState;
+  private subscribers: Map<string, (state: AgentState) => void> = new Map();
+
+  constructor(task: string) {
+    this.state = {
+      task,
+      status: 'pending',
+      outputs: new Map(),
+      facts: [],
+      decisions: [],
+      errors: [],
+      version: 0,
+    };
+  }
+
+  // 写操作（带版本控制）
+  update(agentName: string, updater: (state: AgentState) => void): boolean {
+    const expectedVersion = this.state.version;
+    updater(this.state);
+    this.state.version++;
+    this.notify(agentName);
+    return true;
+  }
+
+  // 读操作
+  getState(): Readonly<AgentState> {
+    return this.state;
+  }
+
+  // 订阅状态变化
+  subscribe(agentName: string, callback: (state: AgentState) => void) {
+    this.subscribers.set(agentName, callback);
+  }
+
+  private notify(updater: string) {
+    for (const [name, callback] of this.subscribers) {
+      if (name !== updater) callback(this.state);
+    }
+  }
+}
+
+// 使用示例
+const stateManager = new AgentStateManager('写一份技术报告');
+
+// Agent A (研究员) 写入研究结果
+stateManager.update('researcher', (state) => {
+  state.outputs.set('research', 'MCP 协议相关技术资料...');
+  state.facts.push({
+    source: 'researcher',
+    content: 'MCP 由 Anthropic 于 2024 年底发布',
+    confidence: 0.95,
+  });
+});
+
+// Agent B (作家) 读取状态并写入草稿
+const currentState = stateManager.getState();
+const researchData = currentState.outputs.get('research');
+
+stateManager.update('writer', (state) => {
+  state.outputs.set('draft', `# 基于研究: ${researchData}`);
+});
+```
+
+## Python LangGraph 状态管理
+
+```python
+from typing import TypedDict, Annotated
+from langgraph.graph import StateGraph
+import operator
+
+class MultiAgentState(TypedDict):
+    task: str
+    # 使用 Annotated 定义 reducer 策略
+    messages: Annotated[list, operator.add]  # 追加而非覆盖
+    findings: Annotated[list, operator.add]
+    status: str
+
+def researcher(state: MultiAgentState) -> MultiAgentState:
+    """研究员 Agent：搜索相关资料"""
+    return {
+        "findings": [{"source": "researcher", "data": "MCP 相关资料..."}],
+        "messages": [{"role": "researcher", "content": "已完成资料搜索"}],
+    }
+
+def writer(state: MultiAgentState) -> MultiAgentState:
+    """作家 Agent：基于研究发现撰写"""
+    all_findings = state["findings"]
+    return {
+        "messages": [{"role": "writer", "content": f"基于 {len(all_findings)} 条发现撰写报告"}],
+    }
+
+graph = StateGraph(MultiAgentState)
+graph.add_node("researcher", researcher)
+graph.add_node("writer", writer)
+graph.add_edge("researcher", "writer")
+graph.set_entry_point("researcher")
+
+app = graph.compile()
+result = app.invoke({"task": "写 MCP 协议报告", "messages": [], "findings": [], "status": "in_progress"})
+```
+
+## 消息格式设计
+
+```typescript
+// 统一的 Agent 间消息格式
+interface AgentMessage {
+  id: string;
+  from: string;           // 发送方 Agent
+  to: string | 'broadcast'; // 接收方（可广播）
+  type: 'request' | 'response' | 'notification' | 'error';
+  payload: {
+    action?: string;      // 请求的动作
+    data?: unknown;       // 传递的数据
+    error?: string;       // 错误信息
+    context?: {           // 上下文引用
+      taskId: string;
+      previousMessages: string[];  // 引用之前的消息 ID
+    };
+  };
+  timestamp: Date;
+}
+
+// 通信协议
+interface AgentCommunicationProtocol {
+  send(message: AgentMessage): Promise<void>;
+  receive(agentName: string): Promise<AgentMessage[]>;
+  broadcast(message: Omit<AgentMessage, 'to'>): Promise<void>;
+}
+```
+
+## 状态一致性保障
+
+```
+问题：Agent A 和 Agent B 同时修改同一数据
+
+解决方案：
+1. 乐观锁（版本号）: 适合低冲突场景
+2. 悲观锁（写前加锁）: 适合高冲突场景
+3. CRDT（无冲突数据类型）: 适合分布式
+4. 单写者原则：每个字段只有一个 Agent 能写
+```
+
+## 自检清单
+
+- □ 能实现一个基础的共享状态管理器
+- □ 理解三种通信方式的适用场景
+- □ 能设计统一的 Agent 间消息格式
+- □ 知道至少 2 种状态一致性方案

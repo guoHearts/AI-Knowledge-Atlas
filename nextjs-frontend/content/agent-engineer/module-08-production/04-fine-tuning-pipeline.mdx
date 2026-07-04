@@ -1,0 +1,147 @@
+---
+title: 微调生产线——数据→训练→评估→部署
+difficulty: advanced
+estimatedMinutes: 60
+analogy: 工业化生产不是手工作坊——从数据清洗到模型上线的标准化流水线
+oneLiner: Unsloth → TRL → vLLM 多 LoRA 部署
+tags: [微调, 流水线, 生产]
+---
+
+# 微调生产线——数据→训练→评估→部署
+
+> 💡 **微调不是一次性实验，而是可复现的生产线** — 数据版本化、训练可追溯、部署可回滚。
+
+## 完整流水线
+
+```
+第 1 阶段：数据工程
+├── 数据收集（人工标注 + LLM 生成 + 用户反馈）
+├── 数据清洗（去重、去噪、格式统一）
+├── 数据增强（改写、回译、合成）
+├── 质量审核（人工抽检 + 自动规则）
+└── 数据版本化（HuggingFace Datasets / DVC）
+
+第 2 阶段：训练
+├── 基座模型选择（根据任务和资源）
+├── 训练方法选择（SFT / DPO / GRPO）
+├── 超参数调优（LR、batch size、epochs）
+└── 训练监控（Loss 曲线、GPU 利用率）
+
+第 3 阶段：评估
+├── 自动化评估（deepeval / lm-evaluation-harness）
+├── 人工评估（A/B Test、盲评）
+├── 安全评估（红队测试）
+└── 性能基准（吞吐量、延迟）
+
+第 4 阶段：部署
+├── 模型量化（AWQ / FP8 / GPTQ）
+├── 推理引擎选择（vLLM / TensorRT-LLM）
+├── 多 LoRA 部署（一个 Base Model + 多个 LoRA）
+└── 灰度发布 + 监控
+```
+
+## 自动化评估
+
+```python
+from deepeval import evaluate
+from deepeval.metrics import (
+    AnswerRelevancyMetric,
+    FaithfulnessMetric,
+    ToxicityMetric,
+)
+from deepeval.test_case import LLMTestCase
+
+# 定义测试用例
+test_cases = [
+    LLMTestCase(
+        input="如何重置密码？",
+        actual_output="请在设置页面点击'忘记密码'，按提示操作即可。",
+        expected_output="在登录页点击'忘记密码'链接，输入邮箱后按邮件指引重置。",
+        retrieval_context=["密码重置流程：登录页 → 忘记密码 → 输邮箱 → 查邮件 → 重置"],
+    ),
+    # ... 更多测试用例
+]
+
+# 运行评估
+results = evaluate(
+    test_cases=test_cases,
+    metrics=[
+        AnswerRelevancyMetric(threshold=0.7),
+        FaithfulnessMetric(threshold=0.8),
+        ToxicityMetric(threshold=0.1),
+    ],
+)
+
+print(f"通过率: {results.pass_rate}")
+for metric in results.metrics:
+    print(f"{metric.name}: {metric.score:.2f}")
+```
+
+## 多 LoRA 部署（vLLM）
+
+```bash
+# vLLM 支持同时加载多个 LoRA 适配器
+vllm serve mistralai/Mistral-7B-v0.1 \
+  --enable-lora \
+  --lora-modules \
+    translation=./lora-translation-v1 \
+    code-review=./lora-code-review-v1 \
+    support-agent=./lora-support-v3
+```
+
+```python
+# 调用时指定 LoRA
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8000/v1", api_key="not-needed")
+
+# 使用翻译 LoRA
+response = client.chat.completions.create(
+    model="translation",  # 指定 LoRA 名称
+    messages=[{"role": "user", "content": "将以下翻译为英文：人工智能"}],
+)
+
+# 使用客服 LoRA
+response = client.chat.completions.create(
+    model="support-agent",
+    messages=[{"role": "user", "content": "登录页面打不开怎么办？"}],
+)
+```
+
+## 版本管理
+
+```yaml
+# model-registry.yaml
+models:
+  support-agent:
+    versions:
+      - version: v3
+        path: s3://models/support-agent/v3
+        base_model: Mistral-7B-v0.1
+        training_date: 2026-06-01
+        eval_score: 0.89
+        status: production
+      - version: v2
+        path: s3://models/support-agent/v2
+        base_model: Mistral-7B-v0.1
+        training_date: 2026-05-15
+        eval_score: 0.82
+        status: deprecated
+```
+
+## 参考工具
+
+| 环节 | 推荐工具 |
+|------|----------|
+| 数据管理 | HuggingFace Datasets, DVC |
+| 训练加速 | Unsloth, Axolotl |
+| 评估 | deepeval, lm-evaluation-harness |
+| 推理部署 | vLLM, TensorRT-LLM, SGLang |
+| 监控 | Langfuse, Braintrust |
+
+## 自检清单
+
+- □ 能画出微调生产的四阶段流水线
+- □ 能用 deepeval 做自动化评估
+- □ 理解多 LoRA 部署的优势
+- □ 知道模型版本管理的基本要素

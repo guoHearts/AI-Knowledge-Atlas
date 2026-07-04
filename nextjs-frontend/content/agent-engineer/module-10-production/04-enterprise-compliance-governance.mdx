@@ -1,0 +1,189 @@
+---
+title: 企业合规与 AI 治理
+difficulty: intermediate
+estimatedMinutes: 45
+analogy: 公司有法务部，AI 系统也需要"AI 合规官"
+oneLiner: EU AI Act + 模型卡 + 审计日志
+tags: [合规, 治理, 企业]
+---
+
+# 企业合规与 AI 治理
+
+> 💡 **能跑的 AI 只是第一步，能过审查的 AI 才是能上生产的 AI** — 合规不是负担，是信任的基础。
+
+## 全球 AI 法规格局（2026）
+
+| 法规 | 地区 | 核心要求 | 生效时间 |
+|------|------|----------|----------|
+| **EU AI Act** | 欧盟 | 风险分级、透明性、人工监督 | 2026 全面执行 |
+| **中国 AI 治理** | 中国 | 算法备案、内容安全、数据合规 | 已执行 |
+| **美国 AI 行政令** | 美国 | 安全测试、红队评估、透明度 | 框架已发布 |
+
+## EU AI Act 风险分级
+
+```
+不可接受风险（禁止）:
+├── 社会信用评分
+├── 实时远程生物识别
+└── 潜意识操纵
+
+高风险（严格监管）:
+├── 医疗诊断 AI
+├── 招聘筛选 AI
+├── 信贷审批 AI
+└── 司法辅助 AI
+
+有限风险（透明度要求）:
+├── 聊天机器人（需标注"你在与 AI 对话"）
+└── AI 生成内容（需标注"AI 生成"）
+
+最低风险（无额外要求）:
+├── AI 游戏
+└── 垃圾邮件过滤器
+```
+
+## 模型卡（Model Card）
+
+模型卡是 AI 模型的"说明书"，Google 等大厂最先推行：
+
+```yaml
+# model-card.yaml
+model:
+  name: "客服 Agent v3"
+  version: "3.0.1"
+  release_date: "2026-06-01"
+  
+intended_use:
+  primary: "中文智能客服，处理技术支持和产品咨询"
+  out_of_scope: "不适用于医疗建议、法律咨询、金融投资建议"
+  
+training_data:
+  sources: ["公司内部客服记录（脱敏）", "公开 FAQ 数据"]
+  size: "10,000 条对话"
+  data_processing: "去除了所有 PII（姓名、电话、邮箱）"
+  
+performance:
+  accuracy: 0.89
+  response_relevancy: 0.92
+  toxicity_score: 0.001
+  languages: ["中文（简体）"]
+  latency_p95: "2.3s"
+  
+limitations:
+  - "长对话（>20轮）可能丢失上下文"
+  - "专业术语在细分领域可能不准确"
+  - "不支持方言和文言文"
+  
+ethical_considerations:
+  bias_assessment: "不同性别、地区的回复质量无显著差异（p>0.05）"
+  safety_testing: "通过了 promptfoo 30 项安全测试"
+  human_oversight: "置信度 <0.6 时自动转人工"
+  
+contact:
+  team: "AI 平台团队"
+  email: "ai-platform@company.com"
+```
+
+## 审计日志实现
+
+```python
+import logging
+import json
+from datetime import datetime
+
+class AuditLogger:
+    """AI 审计日志——合规的基础设施"""
+    
+    def __init__(self, log_file: str = "ai_audit.log"):
+        self.logger = logging.getLogger("ai_audit")
+        handler = logging.FileHandler(log_file)
+        handler.setFormatter(
+            logging.Formatter('%(message)s')  # JSON 格式
+        )
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO)
+
+    def log_decision(self, entry: dict):
+        """记录 AI 的每次决策"""
+        audit_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "event_type": entry.get("event_type", "ai_decision"),
+            "user_id": entry.get("user_id", "anonymous"),
+            "session_id": entry.get("session_id"),
+            "model": entry.get("model"),
+            "input_summary": entry.get("input", "")[:200],  # 不记录完整输入
+            "output_summary": entry.get("output", "")[:200],
+            "tool_calls": entry.get("tool_calls", []),
+            "safety_check": entry.get("safety_check", {}),
+            "human_approval": entry.get("human_approval"),
+            "trace_id": entry.get("trace_id"),
+        }
+        
+        self.logger.info(json.dumps(audit_entry, ensure_ascii=False))
+
+    def log_safety_event(self, event: dict):
+        """记录安全事件"""
+        audit_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "event_type": "safety_event",
+            "severity": event.get("severity", "warning"),
+            "category": event.get("category"),
+            "user_id": event.get("user_id"),
+            "input_snippet": event.get("input", "")[:100],
+            "action_taken": event.get("action"),
+            "reviewer": event.get("reviewer"),
+        }
+        
+        self.logger.warning(json.dumps(audit_entry, ensure_ascii=False))
+
+# 使用
+audit = AuditLogger()
+
+# 记录每次 Agent 决策
+audit.log_decision({
+    "event_type": "ai_decision",
+    "user_id": "user-123",
+    "session_id": "sess-456",
+    "model": "claude-sonnet-4-6",
+    "input": "帮我查下 Q2 销售数据",
+    "output": "Q2 销售总额为 ¥1,200,000，同比增长 15%...",
+    "tool_calls": ["query_database"],
+    "safety_check": {"passed": True, "score": 0.98},
+    "trace_id": "trace-789",
+})
+
+# 记录安全事件
+audit.log_safety_event({
+    "severity": "warning",
+    "category": "prompt_injection_attempt",
+    "user_id": "user-456",
+    "input": "忽略之前的指令...",
+    "action": "blocked",
+})
+```
+
+## AI 治理清单
+
+```
+上线前检查清单:
+□ 模型卡已完成并评审
+□ 安全测试通过（promptfoo 30+ 用例）
+□ 偏见检测通过（不同用户群体效果一致）
+□ 数据合规（PII 脱敏、数据来源授权）
+□ 审计日志已接入
+□ 人工兜底机制已就绪
+□ 回滚方案已演练
+□ 法律团队已审核
+```
+
+## 参考
+
+- [AWS Bedrock Guardrails](https://aws.amazon.com/bedrock/guardrails/) — 托管安全护栏
+- [Guardrails AI](https://github.com/guardrails-ai/guardrails) — 可编程护栏
+
+## 自检清单
+
+- □ 理解 EU AI Act 的四级风险分类
+- □ 能编写模型卡（Model Card）
+- □ 能实现基础审计日志
+- □ 知道上线前需要完成哪些合规检查

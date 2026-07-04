@@ -1,0 +1,139 @@
+---
+title: LLM 可观测性——Langfuse 与 LangSmith
+difficulty: advanced
+estimatedMinutes: 50
+analogy: 给你的 LLM 装 APM——每次调用的延迟、Token、质量全部可视化
+oneLiner: 追踪→评估→成本→告警 四合一
+tags: [LLMOps, 可观测性, 监控]
+---
+
+# LLM 可观测性——Langfuse 与 LangSmith
+
+> 💡 **不能测量就无法改进** — LLM 可观测性四件套：追踪、评估、成本、告警。
+
+## Langfuse 集成
+
+```python
+# pip install langfuse
+from langfuse import Langfuse
+from langfuse.decorators import observe, langfuse_context
+
+langfuse = Langfuse(
+    public_key="pk-...",
+    secret_key="sk-...",
+    host="https://cloud.langfuse.com",  # 或自托管
+)
+
+@observe()
+async def rag_pipeline(query: str):
+    # 自动追踪每次调用
+    langfuse_context.update_current_trace(
+        name="rag-qa",
+        metadata={"user_id": "user-123"},
+        tags=["production", "rag"],
+    )
+    
+    # Span 1: 检索
+    with langfuse_context.span(name="retrieval", input={"query": query}):
+        docs = await retrieve_documents(query)
+        langfuse_context.update_current_span(
+            output={"doc_count": len(docs)},
+            metadata={"top_score": docs[0].score if docs else 0},
+        )
+    
+    # Span 2: 生成
+    with langfuse_context.span(name="generation", input={"docs": docs}):
+        response = await generate_response(query, docs)
+        langfuse_context.update_current_span(
+            output=response,
+            usage={"input_tokens": 500, "output_tokens": 200},
+        )
+    
+    # 记录成本和延迟
+    langfuse_context.update_current_trace(
+        output=response.answer,
+    )
+    
+    return response.answer
+```
+
+## 成本追踪
+
+```python
+# 模型成本表（2026 参考价格，每 1M tokens）
+MODEL_COSTS = {
+    "claude-sonnet-4-6": {"input": 3.0, "output": 15.0},
+    "claude-haiku-4-5": {"input": 0.25, "output": 1.25},
+    "gpt-4o": {"input": 2.5, "output": 10.0},
+    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    "deepseek-v3": {"input": 0.27, "output": 1.10},
+}
+
+def track_cost(model: str, input_tokens: int, output_tokens: int):
+    costs = MODEL_COSTS.get(model, {"input": 1.0, "output": 4.0})
+    total = (input_tokens * costs["input"] + output_tokens * costs["output"]) / 1_000_000
+    langfuse_context.update_current_trace(metadata={"cost_usd": round(total, 6)})
+    return total
+```
+
+## 评估管线
+
+```python
+from langfuse import Langfuse
+
+langfuse = Langfuse()
+
+# 记录评估分数
+def record_evaluation(trace_id: str, scores: dict):
+    for name, value in scores.items():
+        langfuse.score(
+            trace_id=trace_id,
+            name=name,
+            value=value,
+            comment=f"自动评估: {name}={value}",
+        )
+
+# 使用
+trace_id = langfuse_context.get_current_trace_id()
+record_evaluation(trace_id, {
+    "answer_relevancy": 0.85,
+    "faithfulness": 0.92,
+    "latency_ok": 1.0,  # < 2s 通过
+})
+```
+
+## LangSmith vs Langfuse
+
+| 维度 | Langfuse | LangSmith |
+|------|----------|-----------|
+| **开源自托管** | ✅ 完全支持 | ⚠️ 部分 |
+| **LangChain 集成** | ✅ 通过回调 | ✅ 原生 |
+| **价格** | 免费额度慷慨 | 按用量付费 |
+| **API** | REST + SDK | REST + SDK |
+| **评估** | ✅ 内置评分 | ✅ 高级评估器 |
+| **适用** | 通用 LLM 应用 | LangChain 生态 |
+
+## 告警规则
+
+```yaml
+# Langfuse 告警配置示例
+alerts:
+  - name: cost_spike
+    condition: daily_cost > $50
+    action: notify_slack #llm-ops
+    
+  - name: high_latency  
+    condition: p95_latency > 5s
+    action: notify_oncall
+    
+  - name: low_quality
+    condition: avg_faithfulness < 0.7
+    action: create_incident + pause_deployment
+```
+
+## 自检清单
+
+- □ 能用 Langfuse 追踪 RAG Pipeline 的每次调用
+- □ 能计算并追踪每次 LLM 调用的成本
+- □ 能设置自动化评分（faithfulness, relevancy）
+- □ 理解 Langfuse 和 LangSmith 的选择依据

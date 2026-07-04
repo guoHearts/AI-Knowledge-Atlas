@@ -14,9 +14,12 @@ env/
 
 # Node
 node_modules/
+.next/
 dist/
 .vite/
 *.tsbuildinfo
+nextjs-frontend/data/
+nextjs-frontend/dev-server*.log
 
 # IDE
 .vscode/

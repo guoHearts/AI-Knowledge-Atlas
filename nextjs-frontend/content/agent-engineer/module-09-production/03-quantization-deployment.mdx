@@ -1,0 +1,130 @@
+---
+title: 量化部署——从 AWQ 到 NVFP4
+difficulty: advanced
+estimatedMinutes: 50
+analogy: 模型减肥——INT4 是"抽脂"、FP8 是"健康饮食"、NVFP4 是"基因优化"
+oneLiner: AWQ/FP8/NVFP4 选型指南
+tags: [LLMOps, 量化, 部署]
+---
+
+# 量化部署——从 AWQ 到 NVFP4
+
+> 💡 **量化让大模型能在小硬件上跑** — 精度损失 < 2%，显存节省 50-75%。
+
+## 量化技术对比
+
+| 技术 | 精度 | 显存节省 | 速度提升 | 精度损失 | 硬件要求 |
+|------|------|----------|----------|----------|----------|
+| **FP16** | 16-bit | baseline | 1x | 0% | 任何 GPU |
+| **INT8** | 8-bit | 50% | 1.5x | <0.5% | 任何 GPU |
+| **FP8** | 8-bit | 50% | 2x | <1% | H100/B200 |
+| **AWQ** | 4-bit | 75% | 2-3x | <2% | 任何 GPU |
+| **GPTQ** | 4-bit | 75% | 2-3x | <2% | 任何 GPU |
+| **NVFP4** | 4-bit | 75% | 3-4x | <1% | B200 专属 |
+
+## vLLM + AWQ 部署
+
+```bash
+# 1. 量化模型（使用 AutoAWQ）
+pip install autoawq
+
+python -c "
+from awq import AutoAWQForCausalLM
+from transformers import AutoTokenizer
+
+model_path = 'mistralai/Mistral-7B-Instruct-v0.3'
+quant_path = 'Mistral-7B-AWQ'
+
+# 量化
+model = AutoAWQForCausalLM.from_pretrained(model_path)
+tokenizer = AutoTokenizer.from_pretrained(model_path)
+
+model.quantize(tokenizer, quant_config={
+    'zero_point': True,
+    'q_group_size': 128,
+    'w_bit': 4,
+})
+model.save_quantized(quant_path)
+"
+
+# 2. 部署量化模型
+vllm serve Mistral-7B-AWQ \
+  --quantization awq \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --max-model-len 4096
+```
+
+## 量化级别速查
+
+```
+模型大小: 7B 参数
+
+FP16:  需要 14 GB 显存  → 适合 T4/L4
+INT8:  需要 7 GB 显存   → 适合 T4
+AWQ 4-bit: 需要 4 GB 显存 → 适合 3050/3060
+
+模型大小: 70B 参数
+
+FP16:  需要 140 GB 显存 → 需要 2xA100
+AWQ 4-bit: 需要 35 GB 显存 → 单卡 A100/4090 可行
+```
+
+## NVIDIA NVFP4（前沿）
+
+2026 年 Blackwell B200 引入的新的 4-bit 浮点格式：
+
+```
+NVFP4 的优势：
+- 相比 INT4：动态范围更大（浮点 vs 定点）
+- 相比 FP8：一半显存
+- 专用硬件加速：B200 上有专门的 FP4 Tensor Core
+- 精度损失极小：通过每块独立的缩放因子保持精度
+```
+
+## 语义缓存
+
+除了模型量化，语义缓存也是降低延迟和成本的利器：
+
+```python
+# pip install semantic-cache
+from semantic_cache import SemanticCache
+
+cache = SemanticCache(
+    embedding_model="BAAI/bge-small-zh-v1.5",
+    similarity_threshold=0.92,  # 相似度 > 92% 命中缓存
+)
+
+@observe()
+async def cached_llm_call(query: str):
+    # 检查缓存
+    cached = await cache.lookup(query)
+    if cached:
+        return cached  # 延迟 ~5ms vs ~500ms
+    
+    # 未命中，调 LLM
+    response = await llm.generate(query)
+    await cache.store(query, response)
+    return response
+```
+
+**缓存命中率参考**：
+- 客服系统：60-80%（大量重复问题）
+- 代码助手：30-50%
+- 内容生成：10-20%（每次需求差异大）
+
+## 参考
+
+| 工具 | 用途 |
+|------|------|
+| [AutoAWQ](https://github.com/casper-hansen/AutoAWQ) | AWQ 量化 |
+| [AutoGPTQ](https://github.com/AutoGPTQ/AutoGPTQ) | GPTQ 量化 |
+| [llama.cpp](https://github.com/ggerganov/llama.cpp) | CPU/GPU 混合推理 + GGUF 量化 |
+| [Portkey](https://portkey.ai/) | AI Gateway + 语义缓存 |
+
+## 自检清单
+
+- □ 能用 AWQ 将 7B 模型量化为 4-bit
+- □ 理解 AWQ 和 GPTQ 的区别
+- □ 能计算不同精度下的显存需求
+- □ 知道语义缓存的适用场景和命中率预期

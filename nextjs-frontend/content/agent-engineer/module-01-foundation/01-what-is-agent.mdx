@@ -1,0 +1,86 @@
+---
+title: 什么是 Agent？Agent vs 传统应用
+difficulty: beginner
+estimatedMinutes: 45
+analogy: 一个能自己上网查资料、动手操作的实习程序员
+oneLiner: AI + 工具 + 自主决策
+tags: [Agent 基础, 概念入门]
+---
+
+# 什么是 Agent？Agent vs 传统应用
+
+> 💡 **AI + 工具 + 自主决策** — 就像一个有工具权限的实习程序员，你给目标，它自主完成。
+
+## 30 秒理解 Agent
+
+传统编程：你写出每一步指令。
+
+```python
+# 传统方式：你告诉程序每一步怎么做
+response = requests.get("https://api.weather.com/beijing")
+data = response.json()
+if data["temp"] > 30:
+    print("今天很热，建议开空调")
+else:
+    print("今天还好")
+```
+
+Agent 编程：你给目标，Agent 自己决定怎么做。
+
+```python
+# Agent 方式：你给目标，Agent 自己做决策
+agent.run("如果北京今天超过 30 度，帮我发一封提醒邮件给团队")
+# Agent 自己决定：查天气 → 判断温度 → 写邮件 → 发送
+```
+
+## Agent 的三个核心能力
+
+### 1. 推理（Reasoning）
+
+Agent 能理解你的意图并分解任务。不是简单的"if-else"判断，而是真正理解语义。
+
+**实验**：对着你手机助手说"提醒我明天下午开会"，和说"明天下午有个会别忘了提醒我"——Agent 能理解这两句话意思一样（传统程序做不到）。
+
+### 2. 工具调用（Tool Use）
+
+Agent 能像人一样使用外部工具：查 API、搜网页、读数据库、发邮件。
+
+### 3. 自主决策（Autonomy）
+
+Agent 能根据中间结果调整策略。查天气 API 挂了？它会自动尝试备用的天气网站。
+
+## Agent 不是什么
+
+- ❌ **不是聊天机器人**：聊天机器人只会回复文本，Agent 会动手做事
+- ❌ **不是自动化脚本**：脚本走固定流程，Agent 能根据情况改变策略
+- ❌ **不是万能 AI**：Agent 有明确的工具边界和能力限制
+
+## 你的第一个 Agent（10 行代码）
+
+用 Anthropic SDK 创建一个能回答问题的 Agent：
+
+```typescript
+import { Agent } from '@anthropic-ai/sdk';
+
+const myFirstAgent = new Agent({
+  model: 'claude-sonnet-4-6',
+  systemPrompt: '你是一个友好的助手，用中文回答问题。',
+});
+
+const answer = await myFirstAgent.sendMessage('什么是 Agent？用一句话解释');
+console.log(answer);
+// → Agent 是一个能自主使用工具（查资料、调API、操作文件）来完成用户目标的 AI 程序。
+```
+
+## 为什么现在学 Agent？
+
+1. **企业需求爆发**：2025-2026 年，Agent 开发工程师成为 AI 领域增长最快的岗位
+2. **工具生态成熟**：MCP 协议、Agent SDK、LangChain 等基础设施已经稳定
+3. **从玩具到生产**：Agent 正在从 Demo 走向企业核心业务
+
+## 自检清单
+
+- □ 我能用大白话向非技术人员解释 Agent 是什么
+- □ 能说出 Agent 和传统软件、聊天机器人的本质区别
+- □ 能写出 10 行代码创建第一个 Agent
+- □ 理解 Agent 的三大核心能力（推理、工具调用、自主决策）
