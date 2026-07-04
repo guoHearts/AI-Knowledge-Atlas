@@ -2,18 +2,20 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ \
+  && corepack enable \
+  && corepack prepare pnpm@10.34.0 --activate
 
-# Install dependencies
-COPY package.json package-lock.json* ./
-RUN npm install
+# Install dependencies with pnpm.
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile
 
-# Copy application
+# Copy application.
 COPY . .
 
-# Build Next.js app
-RUN npm run build
+# Build Next.js app.
+RUN pnpm build
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+CMD ["pnpm", "dev"]

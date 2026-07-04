@@ -3,8 +3,8 @@ import './globals.css';
 import { NavBar } from '@/components/layout/NavBar';
 
 export const metadata: Metadata = {
-  title: 'AI 开发者实训平台',
-  description: '从了解到上手，用知识图谱看清 AI 技术全貌，用结构化学习路径真正上手开发',
+  title: 'AI Knowledge Atlas',
+  description: '用知识图谱和结构化课程理解 AI 工程、Agent、RAG、LLMOps 与企业级 AI 平台。',
 };
 
 export default function RootLayout({

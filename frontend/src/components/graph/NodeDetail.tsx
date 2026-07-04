@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import type { NodeDetail, NodeType } from '@/types/graph';
-import { NODE_COLORS, NODE_LABELS, RELATION_LABELS, RelationType } from '@/types/graph';
+import type { GraphEdge, GraphNode, NodeDetail, NodeType, RelationType } from '@/types/graph';
+import { NODE_COLORS, NODE_EXPLAINERS, NODE_LABELS, RELATION_EXPLAINERS, RELATION_LABELS } from '@/types/graph';
 
 interface Props {
   detail: NodeDetail | null;
@@ -10,128 +10,159 @@ interface Props {
   onFocusNode: (nodeType: string, nodeId: string) => void;
 }
 
+function findNeighbor(edge: GraphEdge, nodes: GraphNode[], direction: 'outgoing' | 'incoming') {
+  const id = direction === 'outgoing' ? edge.target_id : edge.source_id;
+  return nodes.find((node) => node.id === id);
+}
+
+function RelationRow({
+  edge,
+  neighbor,
+  direction,
+  onFocusNode,
+}: {
+  edge: GraphEdge;
+  neighbor: GraphNode | undefined;
+  direction: 'outgoing' | 'incoming';
+  onFocusNode: (nodeType: string, nodeId: string) => void;
+}) {
+  const label = RELATION_LABELS[edge.relation as RelationType];
+  const targetName = neighbor?.name || (direction === 'outgoing' ? edge.target_id : edge.source_id);
+
+  return (
+    <button
+      onClick={() => neighbor && onFocusNode(neighbor.node_type, neighbor.id)}
+      className="w-full border border-cosmos-border bg-cosmos-bg/60 px-3 py-2 text-left transition-all hover:border-cosmos-text hover:bg-cosmos-surface hover:shadow-[4px_4px_0_rgba(23,32,28,0.08)]"
+    >
+      <div className="flex items-center gap-2">
+        <span className="border border-cosmos-border bg-cosmos-surface px-1.5 py-0.5 text-[10px] font-bold text-stellar-violet">
+          {label}
+        </span>
+        <span className="text-xs font-bold text-cosmos-text">{targetName}</span>
+      </div>
+      <p className="mt-1 text-[11px] leading-4 text-cosmos-dim">
+        {RELATION_EXPLAINERS[edge.relation as RelationType]}
+      </p>
+    </button>
+  );
+}
+
 export function NodeDetailPanel({ detail, onClose, onFocusNode }: Props) {
   if (!detail?.node) {
     return (
-      <div className="p-6 text-center text-cosmos-dim text-sm">
-        点击图谱节点查看详情
+      <div className="p-6 text-center text-sm text-cosmos-dim">
+        点击图谱中的节点，查看它是什么、为什么重要、和哪些概念相连。
       </div>
     );
   }
 
   const { node, incoming, outgoing, neighbor_nodes } = detail;
+  const nodeType = node.node_type as NodeType;
   const hasLearnLink = (node.metadata?.related_lessons as string[])?.length > 0;
+  const readableSummary = node.summary_zh || node.description || '这个节点还缺少解释，建议在内容管道里补充来源和摘要。';
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-cosmos-border">
-        <div className="flex items-center gap-3">
-          <span
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: NODE_COLORS[node.node_type as NodeType] }}
-          />
-          <span className="text-[10px] text-cosmos-dim bg-cosmos-bg/50 px-2 py-0.5 rounded">
-            {NODE_LABELS[node.node_type as NodeType]}
-          </span>
+    <div className="flex h-full flex-col">
+      <div className="border-b border-cosmos-border bg-cosmos-surface p-5">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: NODE_COLORS[nodeType] }} />
+            <span className="border border-cosmos-border bg-cosmos-bg px-2 py-0.5 text-[10px] font-bold text-cosmos-dim">
+              {NODE_LABELS[nodeType]}
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="关闭节点详情"
+            className="grid h-8 w-8 place-items-center border border-cosmos-border text-lg leading-none text-cosmos-dim hover:border-cosmos-text hover:text-cosmos-text"
+          >
+            ×
+          </button>
         </div>
-        <button onClick={onClose} className="text-cosmos-dim hover:text-cosmos-text text-lg leading-none">
-          ×
-        </button>
+        <h2 className="font-display text-3xl font-bold leading-tight text-cosmos-text">{node.name}</h2>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        {/* Title */}
-        <div>
-          <h2 className="text-lg font-bold text-cosmos-text">{node.name}</h2>
-          {node.description && (
-            <p className="text-sm text-cosmos-dim mt-2 leading-relaxed">{node.description}</p>
-          )}
-          {node.summary_zh && (
-            <p className="text-sm text-cosmos-dim mt-1 italic">{node.summary_zh}</p>
-          )}
-        </div>
+      <div className="flex-1 space-y-5 overflow-y-auto p-5">
+        <section>
+          <p className="border-l-4 border-stellar-blue bg-cosmos-bg px-3 py-2 text-xs font-semibold leading-5 text-cosmos-text">
+            {NODE_EXPLAINERS[nodeType]}
+          </p>
+          <p className="mt-4 text-sm leading-7 text-cosmos-dim">{readableSummary}</p>
+        </section>
 
-        {/* Learn link */}
+        <section className="grid grid-cols-3 border border-cosmos-border bg-cosmos-surface">
+          {[
+            { label: '热度', value: Math.round(node.popularity) },
+            { label: '连接到', value: outgoing.length },
+            { label: '被连接', value: incoming.length },
+          ].map((item, index) => (
+            <div key={item.label} className={`p-3 ${index > 0 ? 'border-l border-cosmos-border' : ''}`}>
+              <div className="font-display text-2xl font-bold text-cosmos-text">{item.value}</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-cosmos-dim">{item.label}</div>
+            </div>
+          ))}
+        </section>
+
         {hasLearnLink && (
           <Link
             href={`/learn/${(node.metadata?.related_lessons as string[])[0]}`}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-stellar-blue/10 text-stellar-blue text-sm font-semibold hover:bg-stellar-blue/20 transition-colors"
+            className="flex items-center justify-center border border-cosmos-text bg-cosmos-text px-4 py-2.5 text-sm font-bold text-cosmos-surface hover:bg-stellar-blue"
           >
-            📖 学习这个
+            学习这个概念
           </Link>
         )}
 
-        {/* Relations */}
         {outgoing.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold text-cosmos-dim mb-2">→ 发出关系</h4>
-            <div className="space-y-1.5">
-              {outgoing.map((edge, i) => {
-                const target = neighbor_nodes.find(n => n.id === edge.target_id);
-                return (
-                  <button
-                    key={i}
-                    onClick={() => target && onFocusNode(target.node_type, target.id)}
-                    className="flex items-center gap-2 w-full text-left text-xs px-3 py-2 rounded-lg hover:bg-white/[0.03] transition-colors"
-                  >
-                    <span className="text-[10px] text-stellar-violet bg-stellar-violet/10 px-1.5 py-0.5 rounded">
-                      {RELATION_LABELS[edge.relation as RelationType]}
-                    </span>
-                    <span className="text-cosmos-text">
-                      {target?.name || edge.target_id}
-                    </span>
-                  </button>
-                );
-              })}
+          <section>
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-cosmos-dim">它连接到什么</h3>
+            <div className="space-y-2">
+              {outgoing.map((edge, index) => (
+                <RelationRow
+                  key={`${edge.source_id}-${edge.target_id}-${edge.relation}-${index}`}
+                  edge={edge}
+                  neighbor={findNeighbor(edge, neighbor_nodes, 'outgoing')}
+                  direction="outgoing"
+                  onFocusNode={onFocusNode}
+                />
+              ))}
             </div>
-          </div>
+          </section>
         )}
 
         {incoming.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold text-cosmos-dim mb-2">← 进入关系</h4>
-            <div className="space-y-1.5">
-              {incoming.map((edge, i) => {
-                const source = neighbor_nodes.find(n => n.id === edge.source_id);
-                return (
-                  <button
-                    key={i}
-                    onClick={() => source && onFocusNode(source.node_type, source.id)}
-                    className="flex items-center gap-2 w-full text-left text-xs px-3 py-2 rounded-lg hover:bg-white/[0.03] transition-colors"
-                  >
-                    <span className="text-[10px] text-stellar-violet bg-stellar-violet/10 px-1.5 py-0.5 rounded">
-                      {RELATION_LABELS[edge.relation as RelationType]}
-                    </span>
-                    <span className="text-cosmos-text">
-                      {source?.name || edge.source_id}
-                    </span>
-                  </button>
-                );
-              })}
+          <section>
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-cosmos-dim">谁连接到它</h3>
+            <div className="space-y-2">
+              {incoming.map((edge, index) => (
+                <RelationRow
+                  key={`${edge.source_id}-${edge.target_id}-${edge.relation}-${index}`}
+                  edge={edge}
+                  neighbor={findNeighbor(edge, neighbor_nodes, 'incoming')}
+                  direction="incoming"
+                  onFocusNode={onFocusNode}
+                />
+              ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Source URLs */}
         {node.source_urls?.length > 0 && (
-          <div>
-            <h4 className="text-xs font-semibold text-cosmos-dim mb-2">📎 来源</h4>
+          <section>
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-cosmos-dim">来源</h3>
             <div className="space-y-1">
-              {node.source_urls.map((url, i) => (
+              {node.source_urls.map((url, index) => (
                 <a
-                  key={i}
+                  key={`${url}-${index}`}
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-xs text-stellar-blue hover:text-stellar-violet truncate"
+                  className="block truncate text-xs font-semibold text-stellar-blue hover:text-stellar-violet"
                 >
                   {url}
                 </a>
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
     </div>

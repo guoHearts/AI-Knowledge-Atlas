@@ -4,8 +4,6 @@ export type ProgressStatus = 'not_started' | 'in_progress' | 'completed';
 export type ExperimentStatus = 'not_started' | 'in_progress' | 'verified';
 export type PatternCategory = 'orchestration' | 'collaboration' | 'quality' | 'architecture';
 
-// ── Raw DB row types (JSON fields stored as TEXT) ──────
-
 export interface LearningTrackRow {
   id: string;
   slug: string;
@@ -15,7 +13,7 @@ export interface LearningTrackRow {
   difficulty: string;
   estimated_hours: number | null;
   prerequisites: string | null;
-  outcome_skills: string | null;       // JSON array
+  outcome_skills: string | null;
   outcome_project: string | null;
   icon: string | null;
   sort_order: number;
@@ -49,10 +47,10 @@ export interface LessonRow {
   estimated_minutes: number | null;
   analogy: string | null;
   one_liner: string | null;
-  experiment_config: string | null;     // JSON
+  experiment_config: string | null;
   design_pattern_id: string | null;
-  graph_node_ids: string | null;        // JSON array
-  tags: string | null;                  // JSON array
+  graph_node_ids: string | null;
+  tags: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -85,15 +83,13 @@ export interface DesignPatternRow {
   tradeoffs: string | null;
   when_to_use: string | null;
   when_not_to_use: string | null;
-  related_pattern_ids: string | null;   // JSON array
-  related_graph_nodes: string | null;   // JSON array
+  related_pattern_ids: string | null;
+  related_graph_nodes: string | null;
   enterprise_scenario: string | null;
   interview_questions: string | null;
   created_at: string;
   updated_at: string;
 }
-
-// ── Clean types (parsed) ────────────────────────────────
 
 export interface LearningTrack {
   id: string;
@@ -209,17 +205,16 @@ export interface UserStats {
   trackProgress: Record<string, number>;
 }
 
-// Difficulty display helpers
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  beginner: '🌱 入门',
-  intermediate: '🌿 进阶',
-  advanced: '🌳 深入',
+  beginner: '入门',
+  intermediate: '进阶',
+  advanced: '深入',
 };
 
 export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
-  beginner: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
-  intermediate: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-  advanced: 'text-red-400 bg-red-400/10 border-red-400/20',
+  beginner: 'text-stellar-emerald bg-stellar-emerald/10 border-stellar-emerald/25',
+  intermediate: 'text-stellar-amber bg-stellar-amber/10 border-stellar-amber/25',
+  advanced: 'text-stellar-rose bg-stellar-rose/10 border-stellar-rose/25',
 };
 
 export const CATEGORY_LABELS: Record<PatternCategory, string> = {
@@ -229,11 +224,13 @@ export const CATEGORY_LABELS: Record<PatternCategory, string> = {
   architecture: '架构模式',
 };
 
-// ── Transform helpers (Row → Clean type) ────────────────
-
 function safeJsonParse<T>(raw: string | null | undefined, fallback: T): T {
   if (!raw) return fallback;
-  try { return JSON.parse(raw) as T; } catch { return fallback; }
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
 }
 
 export function toTrack(row: LearningTrackRow): LearningTrack {
@@ -248,7 +245,7 @@ export function toTrack(row: LearningTrackRow): LearningTrack {
     prerequisites: row.prerequisites || '',
     outcomeSkills: safeJsonParse<string[]>(row.outcome_skills, []),
     outcomeProject: row.outcome_project || '',
-    icon: row.icon || '📚',
+    icon: row.icon || 'AI',
     sortOrder: row.sort_order,
     status: row.status as ContentStatus,
     createdAt: row.created_at,

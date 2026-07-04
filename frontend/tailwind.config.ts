@@ -9,21 +9,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Cosmic dark theme — matching the v1 knowledge graph aesthetic
-        'cosmos-bg': '#0a0e17',
-        'cosmos-surface': '#111827',
-        'cosmos-border': 'rgba(255,255,255,0.06)',
-        'cosmos-text': '#e2e8f0',
-        'cosmos-dim': '#94a3b8',
-        'stellar-blue': '#5b9cf5',
-        'stellar-violet': '#a78bfa',
-        'stellar-emerald': '#34d399',
-        'stellar-amber': '#fbbf24',
-        'stellar-rose': '#f472b6',
+        'cosmos-bg': '#eef2ed',
+        'cosmos-surface': '#fffefa',
+        'cosmos-border': 'rgba(24, 32, 28, 0.13)',
+        'cosmos-text': '#17201c',
+        'cosmos-dim': '#66736d',
+        'stellar-blue': '#2358d8',
+        'stellar-violet': '#8b3f97',
+        'stellar-emerald': '#0e8f72',
+        'stellar-amber': '#c78310',
+        'stellar-rose': '#cc4b4b',
       },
       fontFamily: {
-        display: ['Inter', 'system-ui', 'sans-serif'],
-        body: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Georgia', 'Cambria', 'serif'],
+        body: ['ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       animation: {
@@ -56,8 +55,8 @@ const config: Config = {
           '100%': { transform: 'scale(1.4)', opacity: '0' },
         },
         glow: {
-          '0%': { boxShadow: '0 0 5px rgba(91, 156, 245, 0.1)' },
-          '100%': { boxShadow: '0 0 20px rgba(91, 156, 245, 0.3)' },
+          '0%': { boxShadow: '0 0 0 rgba(35, 88, 216, 0)' },
+          '100%': { boxShadow: '0 18px 45px rgba(35, 88, 216, 0.16)' },
         },
         scaleIn: {
           '0%': { opacity: '0', transform: 'scale(0.95)' },
