@@ -18,8 +18,8 @@ node_modules/
 dist/
 .vite/
 *.tsbuildinfo
-nextjs-frontend/data/
-nextjs-frontend/dev-server*.log
+frontend/data/
+frontend/dev-server*.log
 
 # IDE
 .vscode/

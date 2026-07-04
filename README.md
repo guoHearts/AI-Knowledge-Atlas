@@ -42,7 +42,7 @@ password: ai-knowledge-graph
 
 ```bash
 # 启动服务
-docker compose up -d --build neo4j backend nextjs
+docker compose up -d --build neo4j backend frontend
 
 # 导入图谱种子数据
 docker compose exec -T backend python scripts/seed_data.py
@@ -51,7 +51,7 @@ docker compose exec -T backend python scripts/seed_data.py
 docker compose ps
 
 # 查看日志
-docker compose logs -f backend nextjs neo4j
+docker compose logs -f backend frontend neo4j
 
 # 停止服务
 docker compose down
@@ -62,7 +62,7 @@ docker compose down
 ```text
 ai-knowledge-graph/
 ├── backend/              # FastAPI + Neo4j 图谱 API 与数据管道
-├── nextjs-frontend/      # Next.js 课程平台与图谱前端
+├── frontend/             # Next.js 课程平台与图谱前端
 ├── docs/                 # 测试计划、测试报告等项目文档
 ├── docker-compose.yml    # Neo4j + Backend + Frontend 编排
 ├── Dockerfile.backend

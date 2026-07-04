@@ -9,7 +9,7 @@
 
 .DEFAULT_GOAL := help
 
-NEXTJS_DIR  := nextjs-frontend
+NEXTJS_DIR  := frontend
 BACKEND_DIR := backend
 
 # ═══════════════════════════════════════════════════════════════════════════

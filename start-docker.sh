@@ -11,7 +11,7 @@ if ! docker version >/dev/null 2>&1; then
   exit 1
 fi
 
-docker compose up -d --build neo4j backend nextjs
+docker compose up -d --build neo4j backend frontend
 
 echo "==> Waiting for backend health"
 for i in $(seq 1 60); do

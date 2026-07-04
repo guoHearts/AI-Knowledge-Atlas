@@ -18,7 +18,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
-$NEXTJS_DIR = Join-Path $ROOT "nextjs-frontend"
+$NEXTJS_DIR = Join-Path $ROOT "frontend"
 
 # 颜色
 function Write-Step($msg) { Write-Host "▶ $msg" -ForegroundColor Cyan }

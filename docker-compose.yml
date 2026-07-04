@@ -36,10 +36,9 @@ services:
     volumes:
       - ./backend:/app
 
-  # Next.js frontend
-  nextjs:
+  frontend:
     build:
-      context: ./nextjs-frontend
+      context: ./frontend
       dockerfile: ../Dockerfile.nextjs
     ports:
       - "3000:3000"
@@ -49,11 +48,11 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./nextjs-frontend:/app
+      - ./frontend:/app
       - /app/node_modules
-      - nextjs_data:/app/data
+      - frontend_data:/app/data
 
 volumes:
   neo4j_data:
   neo4j_logs:
-  nextjs_data:
+  frontend_data:

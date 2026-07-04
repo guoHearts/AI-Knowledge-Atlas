@@ -142,7 +142,7 @@ if (-not $SkipBackend) {
 if (-not $SkipFrontend) {
     Write-Step "3/3 启动 Next.js 前端..."
 
-    Set-Location "$ROOT\nextjs-frontend"
+    Set-Location "$ROOT\frontend"
 
     # 安装依赖
     if (-not (Test-Path "node_modules\.package-lock.json")) {
@@ -161,7 +161,7 @@ if (-not $SkipFrontend) {
     } else {
         Write-Step "启动前端 (http://localhost:3000)..."
         $frontendJob = Start-Job -Name "ai-kg-frontend" -ScriptBlock {
-            Set-Location $using:ROOT\nextjs-frontend
+            Set-Location $using:ROOT\frontend
             npm run dev 2>&1
         }
         Write-OK "前端已在后台启动 (Job: ai-kg-frontend)"
