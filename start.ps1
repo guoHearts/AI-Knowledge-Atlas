@@ -109,7 +109,7 @@ if (-not $SkipBackend) {
 
     # 激活并安装依赖
     Write-Step "安装 Python 依赖..."
-    & .\.venv\Scripts\python.exe -m pip install -q -r requirements.txt 2>&1
+    & .\.venv\Scripts\python.exe -m pip install -q -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-Err "Python 依赖安装失败"
         exit 1
@@ -145,15 +145,15 @@ if (-not $SkipFrontend) {
     Set-Location "$ROOT\frontend"
 
     # 安装依赖
-    if (-not (Test-Path "node_modules\.package-lock.json")) {
-        Write-Step "安装 npm 依赖 (可能需要几分钟)..."
-        npm install 2>&1 | Out-Null
+    if (-not (Test-Path "node_modules\.modules.yaml")) {
+        Write-Step "安装 pnpm 依赖 (可能需要几分钟)..."
+        pnpm install --registry=https://registry.npmmirror.com/ 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) {
-            Write-Err "npm 依赖安装失败"
+            Write-Err "pnpm 依赖安装失败"
             exit 1
         }
     } else {
-        Write-OK "npm 依赖已安装"
+        Write-OK "pnpm 依赖已安装"
     }
 
     if ($InstallOnly) {
@@ -162,7 +162,7 @@ if (-not $SkipFrontend) {
         Write-Step "启动前端 (http://localhost:3000)..."
         $frontendJob = Start-Job -Name "ai-kg-frontend" -ScriptBlock {
             Set-Location $using:ROOT\frontend
-            npm run dev 2>&1
+            pnpm dev 2>&1
         }
         Write-OK "前端已在后台启动 (Job: ai-kg-frontend)"
     }

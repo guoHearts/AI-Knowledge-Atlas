@@ -55,46 +55,69 @@ export interface NodeDetail {
 }
 
 export const NODE_COLORS: Record<NodeType, string> = {
-  Technology: '#818cf8',
-  Model: '#fbbf24',
-  Product: '#34d399',
-  AgentFramework: '#a78bfa',
-  AgentType: '#f472b6',
-  Company: '#60a5fa',
-  Paper: '#94a3b8',
-  Benchmark: '#f87171',
+  Technology: '#2358d8',
+  Model: '#c78310',
+  Product: '#0e8f72',
+  AgentFramework: '#8b3f97',
+  AgentType: '#cc4b4b',
+  Company: '#16758f',
+  Paper: '#66736d',
+  Benchmark: '#17201c',
 };
 
 export const NODE_GLOWS: Record<NodeType, string> = {
-  Technology: '#a5b4fc',
-  Model: '#fcd34d',
-  Product: '#6ee7b7',
-  AgentFramework: '#c4b5fd',
-  AgentType: '#f9a8d4',
-  Company: '#93bbfd',
-  Paper: '#cbd5e1',
-  Benchmark: '#fca5a5',
+  Technology: '#2358d8',
+  Model: '#c78310',
+  Product: '#0e8f72',
+  AgentFramework: '#8b3f97',
+  AgentType: '#cc4b4b',
+  Company: '#16758f',
+  Paper: '#66736d',
+  Benchmark: '#17201c',
 };
 
 export const NODE_LABELS: Record<NodeType, string> = {
   Technology: '技术',
   Model: '模型',
   Product: '产品',
-  AgentFramework: 'Agent框架',
-  AgentType: 'Agent类型',
+  AgentFramework: 'Agent 框架',
+  AgentType: 'Agent 类型',
   Company: '公司',
   Paper: '论文',
   Benchmark: '评测',
 };
 
+export const NODE_EXPLAINERS: Record<NodeType, string> = {
+  Technology: '方法、协议、工程能力或基础技术，例如 RAG、MCP、量化、语义缓存。',
+  Model: '可以被调用或部署的大模型与多模态模型。',
+  Product: '面向用户或开发者的 AI 产品、平台或工具。',
+  AgentFramework: '帮助构建 Agent、工作流和工具调用的开发框架。',
+  AgentType: 'Agent 的任务形态，例如代码 Agent、浏览器 Agent、多 Agent 协作。',
+  Company: '技术、模型或产品背后的组织。',
+  Paper: '支撑技术演进的研究论文，目前是需要补齐的重点。',
+  Benchmark: '衡量模型、Agent 或系统能力的评测基准。',
+};
+
 export const RELATION_LABELS: Record<RelationType, string> = {
   BASED_ON: '基于',
-  PROPOSED_BY: '提出',
+  PROPOSED_BY: '提出方',
   RELEASED: '发布',
   COMPETES_WITH: '竞争',
-  BELONGS_TO: '属于',
+  BELONGS_TO: '隶属',
   POWERS: '驱动',
-  EVALUATED_BY: '评测',
+  EVALUATED_BY: '被评测',
   CATEGORY_OF: '属于类别',
   IMPROVES: '改进',
+};
+
+export const RELATION_EXPLAINERS: Record<RelationType, string> = {
+  BASED_ON: 'A 的实现或能力依赖 B。',
+  PROPOSED_BY: 'A 由 B 首次提出或主导。',
+  RELEASED: 'A 由 B 发布。',
+  COMPETES_WITH: 'A 与 B 在同类场景中竞争。',
+  BELONGS_TO: 'A 隶属于 B 或由 B 维护。',
+  POWERS: 'A 为 B 提供核心能力。',
+  EVALUATED_BY: 'A 可以用 B 衡量效果。',
+  CATEGORY_OF: 'A 是 B 这个类别下的一个例子。',
+  IMPROVES: 'A 对 B 做了增强或替代。',
 };

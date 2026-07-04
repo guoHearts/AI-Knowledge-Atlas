@@ -38,10 +38,10 @@ help: ## Show help
 # ═══════════════════════════════════════════════════════════════════════════
 install: ## Install all dependencies
 	@echo "==> Installing frontend dependencies..."
-	cd $(NEXTJS_DIR) && npm install
+	cd $(NEXTJS_DIR) && pnpm install --registry=https://registry.npmmirror.com/
 	@echo "[OK] Frontend done"
 	@echo "==> Installing backend dependencies..."
-	cd $(BACKEND_DIR) && pip install -r requirements.txt
+	cd $(BACKEND_DIR) && pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 	@echo "[OK] Backend done"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -51,7 +51,7 @@ start: ## Start all services (Docker + Next.js dev)
 	@echo "[OK] Docker containers started"
 	@sleep 5
 	@echo "==> Starting Next.js dev server..."
-	cd $(NEXTJS_DIR) && start npm run dev
+	cd $(NEXTJS_DIR) && start pnpm dev
 	@sleep 4
 	@echo ""
 	@echo "============================================"
@@ -88,7 +88,7 @@ reseed: ## Rebuild all seed data
 # ═══════════════════════════════════════════════════════════════════════════
 build: ## Production build frontend
 	@echo "==> Building Next.js..."
-	cd $(NEXTJS_DIR) && npm run build
+	cd $(NEXTJS_DIR) && pnpm build
 	@echo "[OK] Build complete"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -124,7 +124,7 @@ logs: ## Tail backend logs
 
 # ═══════════════════════════════════════════════════════════════════════════
 dev: ## Frontend only
-	cd $(NEXTJS_DIR) && npm run dev
+	cd $(NEXTJS_DIR) && pnpm dev
 
 docker-up: ## Docker services only
 	docker compose up -d neo4j backend

@@ -65,13 +65,13 @@ AI 开发者实训平台 — PowerShell 管理命令
         Fix-Path
         Write-Step "安装前端依赖..."
         Push-Location $NEXTJS_DIR
-        npm install
+        pnpm install --registry=https://registry.npmmirror.com/
         Pop-Location
         Write-OK "前端依赖安装完成"
 
         Write-Step "安装后端依赖..."
         Push-Location (Join-Path $ROOT "backend")
-        pip install -r requirements.txt
+        pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
         Pop-Location
         Write-OK "后端依赖安装完成"
         Write-OK "所有依赖安装完毕!"
@@ -88,7 +88,7 @@ AI 开发者实训平台 — PowerShell 管理命令
         Start-Sleep -Seconds 6
         Write-Step "启动 Next.js 前端 (dev 模式)..."
         Push-Location $NEXTJS_DIR
-        Start-Process -NoNewWindow npm -ArgumentList "run","dev"
+        Start-Process -NoNewWindow pnpm -ArgumentList "dev"
         Pop-Location
 
         Start-Sleep -Seconds 5
@@ -122,7 +122,7 @@ AI 开发者实训平台 — PowerShell 管理命令
         Fix-Path
         Write-Step "启动前端开发服务器..."
         Push-Location $NEXTJS_DIR
-        npm run dev
+        pnpm dev
         Pop-Location
     }
 
@@ -157,7 +157,7 @@ AI 开发者实训平台 — PowerShell 管理命令
         Fix-Path
         Write-Step "构建 Next.js 前端..."
         Push-Location $NEXTJS_DIR
-        npm run build
+        pnpm build
         Pop-Location
         Write-OK "构建完成"
     }
