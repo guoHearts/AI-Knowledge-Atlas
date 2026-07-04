@@ -1,9 +1,11 @@
 """AI Knowledge Graph — FastAPI application entry point."""
 import os
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
+from neo4j.exceptions import ServiceUnavailable
 from config import settings
 
 
@@ -14,8 +16,15 @@ async def lifespan(app: FastAPI):
         settings.neo4j_uri,
         auth=(settings.neo4j_user, settings.neo4j_password),
     )
-    with app.state.neo4j_driver.session() as session:
-        session.run("RETURN 1")
+    for attempt in range(1, 31):
+        try:
+            with app.state.neo4j_driver.session() as session:
+                session.run("RETURN 1")
+            break
+        except ServiceUnavailable:
+            if attempt == 30:
+                raise
+            time.sleep(2)
 
     from models.schema import init_schema
     init_schema(app.state.neo4j_driver)

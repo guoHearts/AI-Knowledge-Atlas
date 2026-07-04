@@ -10,11 +10,6 @@ services:
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
-    healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u neo4j -p ${NEO4J_PASSWORD:-ai-knowledge-graph} 'RETURN 1' >/dev/null 2>&1"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
 
   backend:
     build:
@@ -31,8 +26,7 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL}
       ENABLE_SCHEDULER: ${ENABLE_SCHEDULER:-false}
     depends_on:
-      neo4j:
-        condition: service_healthy
+      - neo4j
     volumes:
       - ./backend:/app
 
