@@ -15,7 +15,7 @@ A production-ready Agent framework with human-in-the-loop approval mechanisms, c
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.12+
 - Redis (for task queuing)
 - Virtual environment (recommended)
 

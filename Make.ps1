@@ -85,7 +85,7 @@ function Set-PythonLauncher {
         return
     }
 
-    throw "Python was not found. Install Python 3.11+, set PYTHON to a Python executable, or recreate backend/.venv manually."
+    throw "Python was not found. Install Python 3.12+, set PYTHON to a Python executable, or recreate backend/.venv manually."
 }
 
 function Invoke-BasePython {

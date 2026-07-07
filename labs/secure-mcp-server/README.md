@@ -15,7 +15,7 @@ A production-ready MCP (Model Context Protocol) server with security features in
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.12+
 - Virtual environment (recommended)
 
 ### Installation

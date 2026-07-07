@@ -16,7 +16,7 @@ require_cmd() {
 }
 
 require_cmd docker "Install Docker Desktop and start it first."
-require_cmd python3 "Install Python 3.11+ first."
+require_cmd python3 "Install Python 3.12+ first."
 require_cmd node "Install Node.js 20+ first."
 require_cmd pnpm "Install pnpm or enable it with Corepack first."
 

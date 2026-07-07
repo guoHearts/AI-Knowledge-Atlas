@@ -41,7 +41,7 @@ AI Knowledge Atlas 帮助开发者理解快速变化的 AI 工程生态，把新
 ### 前置要求
 
 - Docker Desktop / Docker Compose
-- Python 3.11+
+- Python 3.12+
 - Node.js 20+
 - pnpm（版本锁定见 `frontend/package.json` 的 `packageManager` 字段）
 - **Windows 额外要求**：Visual Studio 2022 Build Tools（`better-sqlite3` 等原生模块需要 C++ 编译器）
@@ -85,31 +85,40 @@ macOS / Linux / Git Bash：
 
 ### 常用命令
 
+**方式1: 混合模式**（Neo4j Docker + 本地后端 + 本地前端，推荐开发用）
+
 ```powershell
 # Windows
-.\Make.ps1 install     # 安装前后端依赖
-.\Make.ps1 start       # 启动 Neo4j + 本地后端 + 本地前端
-.\Make.ps1 docker-up   # 只启动 Docker 依赖服务
-.\Make.ps1 seed        # 导入图谱种子数据
-.\Make.ps1 status      # 查看状态
+.\Make.ps1 start       # 一键启动全栈
 .\Make.ps1 stop        # 停止全部服务
+.\Make.ps1 status      # 查看状态
+```
+
+```bash
+# macOS / Linux / Git Bash
+./start-docker.sh      # 一键启动全栈
+```
+
+**方式2: 全 Docker 模式**（所有服务容器化）
+
+```powershell
+# Windows
+.\Make.ps1 docker-app  # 构建并启动全部 Docker 服务
 ```
 
 ```bash
 # macOS / Linux
-./start-docker.sh            # 一键启动
-docker compose up -d neo4j   # 只启动依赖服务
-# 后端
-cd backend && NEO4J_URI=bolt://localhost:7687 ENABLE_SCHEDULER=false \
-  .venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-# 前端
-cd frontend && NEXT_PUBLIC_API_URL=http://localhost:8000 pnpm dev
+make docker-app        # 构建并启动全部 Docker 服务
 ```
 
-如需把前后端也放入 Docker，显式启用 `app` profile：
+**其他常用命令：**
 
-```bash
-docker compose --profile app up -d --build neo4j backend frontend
+```powershell
+.\Make.ps1 install     # 安装前后端依赖
+.\Make.ps1 docker-up   # 只启动 Docker 依赖服务 (Neo4j)
+.\Make.ps1 backend     # 单独启动本地后端 (前景)
+.\Make.ps1 dev         # 单独启动本地前端 (前景)
+.\Make.ps1 seed        # 导入图谱种子数据
 ```
 
 ### 环境变量
@@ -136,7 +145,7 @@ LLM_MODEL=gpt-4o
 
 ```text
 AI-Knowledge-Atlas/
-├── frontend/             # Next.js 15 + React 19 课程平台与图谱前端
+├── frontend/             # Next.js 16 + React 19 AI 工程技术雷达前端
 ├── backend/              # FastAPI + Neo4j 图谱 API 与数据管道
 │   ├── api/              # 路由：graph / content / progress / chat / share
 │   ├── extractors/       # 采集器：arXiv / GitHub Trending / HN / HuggingFace / RSS
@@ -149,8 +158,8 @@ AI-Knowledge-Atlas/
 
 ## 技术栈
 
-- **后端**：Python 3.11、FastAPI、Neo4j、LangChain、APScheduler
-- **前端**：Next.js 15、React 19、TypeScript、D3.js、Tailwind CSS、MDX
+- **后端**：Python 3.12、FastAPI、Neo4j、OpenAI、APScheduler
+- **前端**：Next.js 16、React 19、TypeScript、D3.js、Tailwind CSS v4、MDX
 - **数据**：Neo4j 图数据库；SQLite（课程进度与索引）
 - **本地依赖服务**：Docker Compose
 
