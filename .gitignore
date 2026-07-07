@@ -49,6 +49,3 @@ neo4j_logs/
 frontend/.runtime/
 .playwright-mcp/
 .codex/
-
-# Claude session memory
-memory/
