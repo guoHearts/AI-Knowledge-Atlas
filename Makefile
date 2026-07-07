@@ -1,146 +1,100 @@
-# ============================================================================
-# AI Developer Training Platform — One-Click Management
-# Usage:
-#   Windows:  .\make.bat [target]
-#   Unix/Mac: make [target]
-# ============================================================================
-
-.PHONY: help install start stop restart seed test build clean status dev docker-up
+.PHONY: help install start stop restart seed reseed test build clean clean-all status dev backend docker-up logs docker-app
 
 .DEFAULT_GOAL := help
 
-NEXTJS_DIR  := frontend
+FRONTEND_DIR := frontend
 BACKEND_DIR := backend
+COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+PNPM_VERSION := 10.33.4
 
-# ═══════════════════════════════════════════════════════════════════════════
-help: ## Show help
-	@echo "============================================"
-	@echo "  AI Developer Training Platform"
-	@echo "============================================"
+check-pnpm:
+	@test "$$(pnpm --version)" = "$(PNPM_VERSION)" || (echo "pnpm $(PNPM_VERSION) is required. Run: corepack prepare pnpm@$(PNPM_VERSION) --activate" && exit 1)
+
+help:
+	@echo "AI Knowledge Atlas — 两种启动方式"
 	@echo ""
-	@echo "  make start        Start all services"
-	@echo "  make stop         Stop all services"
-	@echo "  make restart      Restart all services"
-	@echo "  make install      Install dependencies"
-	@echo "  make build        Production build"
-	@echo "  make test         Run full-stack tests"
-	@echo "  make seed         Seed Neo4j data"
-	@echo "  make reseed       Rebuild all seed data"
-	@echo "  make status       Check service status"
-	@echo "  make logs         View backend logs"
-	@echo "  make dev          Frontend dev server only"
-	@echo "  make docker-up    Docker services only"
-	@echo "  make clean        Clean build + DB"
-	@echo "  make clean-all    Deep clean"
+	@echo "  方式1: 混合模式 (前端+后端本地, Neo4j Docker)"
+	@echo "    make start       一键启动 (Neo4j Docker + 本地后端 + 本地前端)"
+	@echo "    make stop        停止所有服务"
+	@echo "    make restart     重启整栈"
 	@echo ""
-	@echo "  Quick start:  make start"
-
-# ═══════════════════════════════════════════════════════════════════════════
-install: ## Install all dependencies
-	@echo "==> Installing frontend dependencies..."
-	cd $(NEXTJS_DIR) && pnpm install --registry=https://registry.npmmirror.com/
-	@echo "[OK] Frontend done"
-	@echo "==> Installing backend dependencies..."
-	cd $(BACKEND_DIR) && pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
-	@echo "[OK] Backend done"
-
-# ═══════════════════════════════════════════════════════════════════════════
-start: ## Start all services (Docker + Next.js dev)
-	@echo "==> Starting Neo4j + FastAPI backend..."
-	docker compose up -d neo4j backend
-	@echo "[OK] Docker containers started"
-	@sleep 5
-	@echo "==> Starting Next.js dev server..."
-	cd $(NEXTJS_DIR) && start pnpm dev
-	@sleep 4
+	@echo "  方式2: 全 Docker 模式"
+	@echo "    make docker-app  构建并启动全部服务 (Neo4j + 后端 + 前端)"
 	@echo ""
-	@echo "============================================"
-	@echo "  All services running!"
-	@echo "  Frontend : http://localhost:3000"
-	@echo "  Backend  : http://localhost:8000"
-	@echo "  Neo4j    : bolt://localhost:7687"
-	@echo "============================================"
+	@echo "  单独启动/管理:"
+	@echo "    make install     安装前后端依赖"
+	@echo "    make docker-up   仅启动 Docker 依赖服务 (Neo4j)"
+	@echo "    make backend     单独启动本地后端 (前景)"
+	@echo "    make dev         单独启动本地前端 (前景)"
+	@echo "    make seed        向 Neo4j 写入种子数据"
+	@echo "    make build       构建前端"
+	@echo "    make test        检查 HTTP 端点"
+	@echo "    make status      显示 Docker 状态"
+	@echo "    make logs        查看 Docker 日志"
+	@echo "    make clean       移除前端构建产物和数据库文件"
+	@echo "    make clean-all   移除产物 + Docker volumes"
 
-stop: ## Stop all services
-	@echo "==> Stopping frontend..."
-	-taskkill /F /IM node.exe 2>nul
-	@echo "==> Stopping Docker containers..."
-	docker compose down
-	@echo "[OK] All stopped"
+install: check-pnpm
+	cd $(BACKEND_DIR) && python3 -m venv .venv && .venv/bin/python -m pip install -q -r requirements.txt
+	cd $(FRONTEND_DIR) && pnpm install
 
-restart: stop start ## Restart all services
+start:
+	./start-docker.sh
 
-# ═══════════════════════════════════════════════════════════════════════════
-seed: ## Seed Neo4j database
-	@echo "==> Seeding Neo4j..."
-	docker exec ai-knowledge-graph-backend-1 python scripts/seed_data.py
-	@echo "[OK] Neo4j seeded"
+stop:
+	$(COMPOSE) down
 
-reseed: ## Rebuild all seed data
-	@echo "==> Removing old SQLite DB..."
-	-del /Q $(NEXTJS_DIR)\data\learning.db 2>nul
-	@echo "==> Seeding Neo4j..."
-	docker exec ai-knowledge-graph-backend-1 python scripts/seed_data.py
-	@echo "==> Triggering SQLite rebuild..."
-	@curl -s http://localhost:3000/ > nul
-	@echo "[OK] All seeds rebuilt"
+restart: stop start
 
-# ═══════════════════════════════════════════════════════════════════════════
-build: ## Production build frontend
-	@echo "==> Building Next.js..."
-	cd $(NEXTJS_DIR) && pnpm build
-	@echo "[OK] Build complete"
+docker-up:
+	$(COMPOSE) up -d neo4j
 
-# ═══════════════════════════════════════════════════════════════════════════
-test: ## Run full-stack tests
-	@echo "============================================"
-	@echo "  Full-Stack Test Suite"
-	@echo "============================================"
-	@echo ""
-	@echo "--- Frontend Pages ---"
-	@curl -s -o nul -w "  Home:       HTTP %%{http_code} (%%{time_total}s)\n" http://localhost:3000/
-	@curl -s -o nul -w "  Track:      HTTP %%{http_code} (%%{time_total}s)\n" http://localhost:3000/learn/agent-engineer
-	@curl -s -o nul -w "  Graph:      HTTP %%{http_code} (%%{time_total}s)\n" http://localhost:3000/graph
-	@curl -s -o nul -w "  CMS:        HTTP %%{http_code} (%%{time_total}s)\n" http://localhost:3000/cms
-	@echo "--- Backend ---"
-	@curl -s -o nul -w "  Health:     HTTP %%{http_code}\n" http://localhost:8000/health
-	@echo "--- Database ---"
-	@echo "  Neo4j: $$(curl -s 'http://localhost:8000/graph/nodes?limit=200' 2>nul | python -c "import sys,json;print(len(json.load(sys.stdin)))" 2>nul || echo N/A) nodes"
-	@echo "  Patterns: $$(curl -s http://localhost:3000/api/design-patterns 2>nul | python -c "import sys,json;print(len(json.load(sys.stdin)))" 2>nul || echo N/A)"
-	@echo ""
-	@echo "[OK] Tests complete"
+docker-app:
+	$(COMPOSE) --profile app up -d --build neo4j backend frontend
 
-# ═══════════════════════════════════════════════════════════════════════════
-status: ## Show service status
-	@echo "--- Docker Containers ---"
-	@docker ps --filter "name=ai-knowledge-graph" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-	@echo ""
-	@echo "--- HTTP Health ---"
-	@curl -s -o nul -w "  Frontend: HTTP %%{http_code}\n" http://localhost:3000/ 2>nul || echo "  Frontend: DOWN"
-	@curl -s -o nul -w "  Backend:  HTTP %%{http_code}\n" http://localhost:8000/health 2>nul || echo "  Backend: DOWN"
+backend:
+	cd $(BACKEND_DIR) && \
+	NEO4J_URI=$${NEO4J_URI:-bolt://localhost:7687} \
+	NEO4J_USER=$${NEO4J_USER:-neo4j} \
+	NEO4J_PASSWORD=$${NEO4J_PASSWORD:-ai-knowledge-graph} \
+	ENABLE_SCHEDULER=$${ENABLE_SCHEDULER:-false} \
+	.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-logs: ## Tail backend logs
-	docker logs -f ai-knowledge-graph-backend-1
+dev: check-pnpm
+	cd $(FRONTEND_DIR) && \
+	NEXT_PUBLIC_API_URL=$${NEXT_PUBLIC_API_URL:-http://localhost:8000} \
+	DATABASE_PATH=$${DATABASE_PATH:-./data/learning.db} \
+	pnpm dev
 
-# ═══════════════════════════════════════════════════════════════════════════
-dev: ## Frontend only
-	cd $(NEXTJS_DIR) && pnpm dev
+seed:
+	cd $(BACKEND_DIR) && \
+	NEO4J_URI=$${NEO4J_URI:-bolt://localhost:7687} \
+	NEO4J_USER=$${NEO4J_USER:-neo4j} \
+	NEO4J_PASSWORD=$${NEO4J_PASSWORD:-ai-knowledge-graph} \
+	.venv/bin/python scripts/seed_data.py
 
-docker-up: ## Docker services only
-	docker compose up -d neo4j backend
-	@echo "[OK] Docker services running"
+reseed:
+	rm -f $(FRONTEND_DIR)/data/learning.db
+	$(MAKE) seed
 
-# ═══════════════════════════════════════════════════════════════════════════
-clean: ## Clean build artifacts + database
-	@echo "==> Cleaning .next..."
-	-rmdir /S /Q $(NEXTJS_DIR)\.next 2>nul
-	@echo "==> Removing SQLite DB..."
-	-del /Q $(NEXTJS_DIR)\data\learning.db 2>nul
-	@echo "[OK] Cleaned"
+build: check-pnpm
+	cd $(FRONTEND_DIR) && pnpm build
 
-clean-all: clean ## Deep clean (includes Docker volumes + node_modules)
-	@echo "==> Cleaning Docker volumes..."
-	docker compose down -v
-	@echo "==> Removing node_modules..."
-	-rmdir /S /Q $(NEXTJS_DIR)\node_modules 2>nul
-	@echo "[OK] Deep cleaned"
+test:
+	@curl -fsS http://localhost:8000/health >/dev/null && echo "[OK] Backend health"
+	@curl -fsS http://localhost:3000/ >/dev/null && echo "[OK] Frontend home"
+	@curl -fsS http://localhost:3000/graph >/dev/null && echo "[OK] Graph page"
+
+status:
+	$(COMPOSE) ps
+
+logs:
+	$(COMPOSE) logs -f neo4j
+
+clean:
+	rm -rf $(FRONTEND_DIR)/.next
+	rm -f $(FRONTEND_DIR)/data/learning.db
+
+clean-all: clean
+	$(COMPOSE) down -v
+	rm -rf $(FRONTEND_DIR)/node_modules

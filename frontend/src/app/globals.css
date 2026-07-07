@@ -1,6 +1,63 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --color-cosmos-bg: #eef2ed;
+  --color-cosmos-surface: #fffefa;
+  --color-cosmos-border: rgba(24, 32, 28, 0.13);
+  --color-cosmos-text: #17201c;
+  --color-cosmos-dim: #66736d;
+  --color-stellar-blue: #2358d8;
+  --color-stellar-violet: #8b3f97;
+  --color-stellar-emerald: #0e8f72;
+  --color-stellar-amber: #c78310;
+  --color-stellar-rose: #cc4b4b;
+
+  --font-display: Georgia, Cambria, serif;
+  --font-body: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: JetBrains Mono, Fira Code, monospace;
+
+  --animate-fade-up: fadeUp 0.5s ease-out;
+  --animate-fade-up-delay: fadeUp 0.5s ease-out 0.1s both;
+  --animate-fade-up-delay-2: fadeUp 0.5s ease-out 0.2s both;
+  --animate-fade-up-delay-3: fadeUp 0.5s ease-out 0.3s both;
+  --animate-slide-in: slideIn 0.3s ease-out;
+  --animate-slide-in-left: slideInLeft 0.4s ease-out;
+  --animate-pulse-ring: pulseRing 1.8s ease-out infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+  --animate-scale-in: scaleIn 0.3s ease-out;
+  --animate-shimmer: shimmer 2s linear infinite;
+
+  @keyframes fadeUp {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideIn {
+    0% { opacity: 0; transform: translateX(16px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideInLeft {
+    0% { opacity: 0; transform: translateX(-16px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes pulseRing {
+    0% { transform: scale(0.8); opacity: 0.6; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+  @keyframes glow {
+    0% { box-shadow: 0 0 0 rgba(35, 88, 216, 0); }
+    100% { box-shadow: 0 18px 45px rgba(35, 88, 216, 0.16); }
+  }
+  @keyframes scaleIn {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+}
 
 @layer base {
   * {

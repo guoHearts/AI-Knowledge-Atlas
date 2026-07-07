@@ -1,6 +1,7 @@
 services:
   neo4j:
     image: neo4j:5-community
+    restart: unless-stopped
     ports:
       - "7474:7474"
       - "7687:7687"
@@ -12,6 +13,8 @@ services:
       - neo4j_logs:/logs
 
   backend:
+    profiles:
+      - app
     build:
       context: ./backend
       dockerfile: ../Dockerfile.backend
@@ -22,8 +25,8 @@ services:
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-ai-knowledge-graph}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o}
-      LLM_API_KEY: ${LLM_API_KEY}
-      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
       ENABLE_SCHEDULER: ${ENABLE_SCHEDULER:-false}
     depends_on:
       - neo4j
@@ -31,13 +34,15 @@ services:
       - ./backend:/app
 
   frontend:
+    profiles:
+      - app
     build:
       context: ./frontend
       dockerfile: ../Dockerfile.nextjs
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
       DATABASE_PATH: /app/data/learning.db
     depends_on:
       - backend
