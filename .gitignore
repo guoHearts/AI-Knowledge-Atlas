@@ -43,3 +43,12 @@ neo4j_logs/
 
 # Environment
 .env
+
+# Runtime artifacts
+.runtime/
+frontend/.runtime/
+.playwright-mcp/
+.codex/
+
+# Claude session memory
+memory/

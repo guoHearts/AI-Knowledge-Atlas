@@ -38,15 +38,6 @@ const ROADMAP = [
   },
 ];
 
-const CAPABILITIES = [
-  { name: 'Agent / Tool / MCP', score: 92 },
-  { name: 'RAG / GraphRAG', score: 72 },
-  { name: 'LLMOps / Evals', score: 76 },
-  { name: '安全 / 治理 / 合规', score: 70 },
-  { name: '推理 / 微调 / 部署', score: 82 },
-  { name: '多模态 / 语音 / 编程 Agent', score: 78 },
-];
-
 const NEXT_STEPS = [
   '把图谱检索升级为 GraphRAG：实体、关系、社区摘要、Local / Global 查询。',
   '加入向量索引与混合检索：全文搜索、embedding、rerank 组成完整检索链。',
@@ -84,14 +75,15 @@ export default function HomePage() {
           <AnimatedSection>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cosmos-border bg-cosmos-surface px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-cosmos-dim">
               <span className="h-2 w-2 rounded-full bg-stellar-blue" />
-              AI Engineering Atlas
+              AI Engineering Radar
             </div>
             <h1 className="max-w-4xl font-display text-5xl font-bold leading-[0.98] tracking-tight text-cosmos-text lg:text-7xl">
-              把 AI 技术变成一张可以走的地图。
+              读懂快速变化的 AI 工程生态。
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-cosmos-dim">
-              不再把 Agent、RAG、MCP、LLMOps、安全治理和多模态当作零散名词。
-              这里用“路线 + 图谱 + 关系解释”帮你看清它们在企业级 AI 项目里的位置。
+              持续更新、来源可追溯、代码可运行的 AI 工程技术雷达。
+              发现值得关注的新模型、新框架与新工程实践，理解它们为什么重要，
+              并通过知识图谱看清 Agent、RAG、MCP、LLMOps 之间的关系。
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/graph" className="btn-primary">
@@ -166,30 +158,6 @@ export default function HomePage() {
             </StaggerItem>
           ))}
         </StaggerList>
-      </section>
-
-      <section className="border-y border-cosmos-border bg-cosmos-surface/70">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 lg:grid-cols-[0.9fr_1.1fr]">
-          <AnimatedSection>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-stellar-emerald">Enterprise Fit</p>
-            <h2 className="mt-2 font-display text-4xl font-bold text-cosmos-text">企业级能力雷达</h2>
-            <p className="mt-4 text-sm leading-6 text-cosmos-dim">
-              这不是给初学者堆概念，而是把知识按照企业项目会遇到的能力域重新排列。
-            </p>
-          </AnimatedSection>
-
-          <AnimatedSection delay={0.08} className="grid gap-4 md:grid-cols-2">
-            {CAPABILITIES.map((item) => (
-              <div key={item.name} className="border border-cosmos-border bg-cosmos-bg/70 p-4">
-                <div className="mb-3 flex items-center justify-between gap-4">
-                  <span className="text-sm font-bold text-cosmos-text">{item.name}</span>
-                  <span className="font-mono text-xs font-bold text-cosmos-dim">{item.score}</span>
-                </div>
-                <ProgressBar percent={item.score} />
-              </div>
-            ))}
-          </AnimatedSection>
-        </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-14">

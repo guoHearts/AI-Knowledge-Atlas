@@ -1,0 +1,98 @@
+id: production-agent-with-human-approval
+title: Production Agent with Human Approval
+status: verified
+difficulty: advanced
+lastVerifiedAt: 2026-07-07
+
+estimatedSetupTime: 20min
+estimatedCost: "< $1"
+requiresApiKey: false
+
+stack:
+  - Python
+  - LangChain
+  - Redis
+  - FastAPI
+  - Human-in-the-loop
+  - Task Queue
+
+features:
+  - Human approval workflow
+  - Checkpoint & rollback
+  - Task queuing system
+  - Execution history audit
+  - Interrupt & resume
+  - Approval dashboard
+
+commands:
+  install: pip install -r requirements.txt
+  run: python agent_server.py
+  dashboard: python approval_dashboard.py
+  test: python -m pytest tests/ -v
+
+sources:
+  - type: official
+    url: https://python.langchain.com/docs/langgraph
+  - type: official 
+    url: https://fastapi.tiangolo.com/
+  - type: official
+    url: https://redis.io/documentation
+
+relatedRadarItems:
+  - agent-orchestration-patterns
+  - production-agent-deployment
+  - human-ai-collaboration
+
+relatedLabs:
+  - secure-mcp-server
+  - coding-agent-sandbox
+
+ciStatus: passing
+
+# Task types supported by this agent
+taskTypes:
+  data_export:
+    description: Export data with approval workflow
+    approvalRequired: true
+    checkpoints:
+      - validation_complete
+      - export_started
+      - export_complete
+
+  system_operation:
+    description: System administrative operations
+    approvalRequired: true
+    checkpoints:
+      - operation_planned
+      - pre_execution_check
+      - operation_complete
+
+  content_generation:
+    description: AI content generation tasks
+    approvalRequired: false
+    checkpoints:
+      - prompt_validated
+      - generation_complete
+      - quality_checked
+
+# Approval workflow configuration
+approvalWorkflow:
+  timeoutHours: 24
+  escalationEnabled: true
+  notificationMethods:
+    - email
+    - webhook
+    - dashboard
+
+# Safety and security configuration
+safetyFeatures:
+  checkpoints:
+    enabled: true
+    interval: 300
+  rollback:
+    enabled: true
+    maxRollbackPoints: 10
+  interruptions:
+    softInterrupt: true
+    hardInterrupt: true
+    emergencyStop: true

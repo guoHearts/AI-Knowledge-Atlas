@@ -1,0 +1,25 @@
+name: 文档问题
+description: 报告文档中的错误、缺失或不清晰之处
+title: "[Docs] "
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: 文档位置
+      description: 文件路径或页面链接
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: 问题描述
+      description: 哪里错了、缺了、或读不懂？
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 建议
+    validations:
+      required: false

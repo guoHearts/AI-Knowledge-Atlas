@@ -1,0 +1,46 @@
+name: 内容纠错
+description: 报告技术内容中的错误、过时接口或缺失来源
+title: "[Content] "
+labels: ["content-correction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        本项目的核心是内容可信。发现错误的接口、过时的字段、缺失的来源或无法运行的示例，都欢迎报告。
+  - type: input
+    id: location
+    attributes:
+      label: 内容位置
+      description: 页面 URL、文件路径或 Radar / Lab / 课程标识
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 当前问题
+      description: 哪里不对？（如：接口不存在、字段已废弃、代码无法运行、性能声明无法验证）
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: 官方来源
+      description: 支持你判断的官方文档 / 官方 GitHub / 论文链接
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 建议修改
+    validations:
+      required: false
+  - type: dropdown
+    id: pr
+    attributes:
+      label: 是否愿意提交 PR
+      options:
+        - "愿意"
+        - "需要帮助"
+        - "暂不"
+    validations:
+      required: true

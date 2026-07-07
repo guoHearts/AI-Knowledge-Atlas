@@ -1,0 +1,51 @@
+name: Bug 报告
+description: 报告代码、页面或 Lab 的运行问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 问题描述
+      description: 发生了什么？期望的行为是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 请给出可复现的最小步骤
+      placeholder: |
+        1. 执行 ...
+        2. 打开 ...
+        3. 看到 ...
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: 受影响组件
+      options:
+        - frontend（前端）
+        - backend（后端 API）
+        - collectors（采集器）
+        - graph（知识图谱）
+        - 某个 Lab
+        - 文档
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 操作系统、Node / Python 版本、浏览器等
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      render: shell
+    validations:
+      required: false
