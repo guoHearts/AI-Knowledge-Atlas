@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import {
   listUserProgressRows,
   upsertLessonProgress,
-} from '@/features/progress/server/progressService';
+} from '@/features/progress/api/progressServerApi';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

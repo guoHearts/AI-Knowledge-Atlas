@@ -11,6 +11,7 @@ import { MiniGraph } from '@/components/learn/MiniGraph';
 import { DesignInsight } from '@/components/learn/DesignInsight';
 import { EnterpriseScenario } from '@/components/learn/EnterpriseScenario';
 import { SelfCheckList } from '@/components/learn/SelfCheckList';
+import { markLessonProgress } from '@/features/progress/api/progressApi';
 import type {
   LearningTrack, Module, Lesson, UserProgress,
 } from '@/types/learning';
@@ -38,32 +39,22 @@ export function LessonPlayerClient({
   const [showExperiment, setShowExperiment] = useState(false);
 
   const markComplete = useCallback(async () => {
-    const res = await fetch('/api/progress', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lessonId: lesson.id,
-        status: 'completed',
-      }),
-    });
-    if (res.ok) {
+    try {
+      await markLessonProgress(lesson.id, 'completed');
       setProgressState(prev => ({ ...(prev || {}), status: 'completed' } as UserProgress));
       router.refresh();
+    } catch {
+      // Keep the current UI state when the progress API is unavailable.
     }
   }, [lesson.id, router]);
 
   const markInProgress = useCallback(async () => {
     if (progressState?.status === 'not_started' || !progressState) {
-      const res = await fetch('/api/progress', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lessonId: lesson.id,
-          status: 'in_progress',
-        }),
-      });
-      if (res.ok) {
+      try {
+        await markLessonProgress(lesson.id, 'in_progress');
         setProgressState(prev => ({ ...(prev || {}), status: 'in_progress' } as UserProgress));
+      } catch {
+        // Keep reading available even if progress persistence fails.
       }
     }
   }, [lesson.id, progressState]);

@@ -1,27 +1,6 @@
-import Link from 'next/link'
+import Link from 'next/link';
 
-const LABS = [
-  {
-    id: 'secure-mcp-server',
-    title: 'Secure MCP Server',
-    status: 'Draft',
-    difficulty: 'Intermediate',
-    estimatedSetupTime: '15min',
-    summary:
-      '带 tool allowlist、参数校验、审计日志和基础输入防护的 MCP Server 标杆实验。',
-    path: 'labs/secure-mcp-server',
-  },
-  {
-    id: 'production-agent-with-human-approval',
-    title: 'Production Agent with Human Approval',
-    status: 'Draft',
-    difficulty: 'Intermediate',
-    estimatedSetupTime: '20min',
-    summary:
-      '展示 human approval、任务状态流转和生产化边界的 Agent 实验。',
-    path: 'labs/production-agent-with-human-approval',
-  },
-]
+import { LABS } from '@/features/labs/utils/labs';
 
 export default function LabsPage() {
   return (
@@ -31,11 +10,12 @@ export default function LabsPage() {
           Verified Labs
         </div>
         <h1 className="font-display text-4xl font-bold text-cosmos-text">
-          可运行实验
+          Runnable Labs
         </h1>
         <p className="mt-4 max-w-3xl text-cosmos-dim">
-          Labs 用来验证技术雷达中的关键结论。当前实验先以 Draft 状态展示，等依赖、
-          CI 和运行截图补齐后再标记为 Verified。
+          Labs verify key engineering claims from the radar and learning content.
+          Draft labs become Verified after dependencies, CI, screenshots, and
+          last-run evidence are complete.
         </p>
       </div>
 
@@ -64,5 +44,5 @@ export default function LabsPage() {
         ))}
       </div>
     </main>
-  )
+  );
 }

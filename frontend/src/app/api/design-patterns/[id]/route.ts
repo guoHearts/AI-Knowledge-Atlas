@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDesignPatternRow } from '@/features/learn/server/learningService';
+import { getDesignPatternRow } from '@/features/learn/api/learningApi';
 
 export async function GET(
   _request: Request,

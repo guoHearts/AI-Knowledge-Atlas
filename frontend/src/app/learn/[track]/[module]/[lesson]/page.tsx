@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getLessonPageData } from '@/features/learn/server/learningService';
+import { getLessonPageData } from '@/features/learn/api/learningApi';
 import { LessonPlayerClient } from '@/components/learn/LessonPlayerClient';
 
 export const dynamic = 'force-dynamic';

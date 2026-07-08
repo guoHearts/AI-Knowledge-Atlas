@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import { DifficultyBadge } from '@/components/shared/DifficultyBadge';
 import { STAGE_LABELS } from '@/lib/constants';
-import { getTrackPageData } from '@/features/learn/server/learningService';
+import { getTrackPageData } from '@/features/learn/api/learningApi';
 
 export const dynamic = 'force-dynamic';
 

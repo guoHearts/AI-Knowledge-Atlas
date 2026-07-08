@@ -79,14 +79,13 @@ app.add_middleware(
 )
 
 
-# Register API routers
-from api.graph_routes import router as graph_router
-from api.share_routes import router as share_router
-from api.chat_routes import router as chat_router
-from api.content_routes import router as content_router
-from api.progress_routes import router as progress_router
-from api.radar_routes import router as radar_router
 from modules.learning.router import router as learning_router
+from modules.chat.router import router as chat_router
+from modules.content.router import router as content_router
+from modules.graph.router import router as graph_router
+from modules.progress.router import router as progress_router
+from modules.radar.router import router as radar_router
+from modules.share.router import router as share_router
 app.include_router(graph_router)
 app.include_router(share_router)
 app.include_router(chat_router)

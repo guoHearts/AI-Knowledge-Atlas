@@ -1,7 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import type { ExperimentConfig, ExperimentTask } from '@/types/learning';
+import { useCallback, useState } from 'react';
+import {
+  saveExperimentProgress,
+  verifyExperimentProgress,
+} from '@/features/progress/api/progressApi';
+import type { ExperimentConfig } from '@/types/learning';
 
 interface Props {
   config: ExperimentConfig;
@@ -11,14 +15,13 @@ interface Props {
 export function ExperimentPanel({ config, lessonId }: Props) {
   const [code, setCode] = useState(config.template);
   const [output, setOutput] = useState('');
-  const [tasks, setTasks] = useState<ExperimentTask[]>(config.tasks.map(t => ({ ...t })));
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [running, setRunning] = useState(false);
   const [showHint, setShowHint] = useState<string | null>(null);
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
   const toggleTask = useCallback((taskId: string) => {
-    setCompletedTasks(prev => {
+    setCompletedTasks((prev) => {
       const next = new Set(prev);
       if (next.has(taskId)) next.delete(taskId);
       else next.add(taskId);
@@ -28,27 +31,20 @@ export function ExperimentPanel({ config, lessonId }: Props) {
 
   const runCode = useCallback(async () => {
     setRunning(true);
-    setOutput('> 正在执行...\n');
+    setOutput('> Saving experiment code...\n');
     try {
-      const res = await fetch('/api/progress', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lessonId,
-          experimentCode: code,
-          experimentStatus: 'in_progress',
-        }),
-      });
-      if (res.ok) {
-        setOutput(prev => prev + '> [模拟执行] 代码已保存。\n> 在 Phase 2 中此功能将连接云端沙箱实际运行。\n\n> 预期输出参考：\n> ' + config.expectedOutput);
-      } else {
-        setOutput(prev => prev + '> 保存失败，请重试。\n');
-      }
-    } catch (err) {
-      setOutput(prev => prev + `> 错误: ${err}\n`);
+      await saveExperimentProgress(lessonId, code);
+      setOutput((prev) => (
+        `${prev}> [simulated run] Code saved.\n`
+        + '> Cloud sandbox execution will be connected in a later phase.\n\n'
+        + `> Expected output:\n> ${config.expectedOutput}`
+      ));
+    } catch (error) {
+      setOutput((prev) => `${prev}> Error: ${error}\n`);
+    } finally {
+      setRunning(false);
     }
-    setRunning(false);
-  }, [code, lessonId, config.expectedOutput]);
+  }, [code, config.expectedOutput, lessonId]);
 
   const resetCode = useCallback(() => {
     setCode(config.template);
@@ -56,42 +52,37 @@ export function ExperimentPanel({ config, lessonId }: Props) {
     setCompletedTasks(new Set());
   }, [config.template]);
 
-  const verifyCompletion = useCallback(() => {
-    const allDone = config.tasks.every(t => completedTasks.has(t.id));
-    if (allDone) {
-      fetch('/api/progress', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lessonId,
-          experimentStatus: 'verified',
-        }),
-      });
-      setOutput(prev => prev + '\n> ✅ 所有任务已完成！实验验证通过。\n');
+  const verifyCompletion = useCallback(async () => {
+    const allDone = config.tasks.every((task) => completedTasks.has(task.id));
+    if (!allDone) return;
+
+    try {
+      await verifyExperimentProgress(lessonId);
+      setOutput((prev) => `${prev}\n> All tasks completed. Experiment verified.\n`);
+    } catch (error) {
+      setOutput((prev) => `${prev}\n> Verification failed: ${error}\n`);
     }
   }, [completedTasks, config.tasks, lessonId]);
 
   return (
     <div className="glass-card overflow-hidden">
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-cosmos-border flex items-center justify-between">
+      <div className="flex items-center justify-between border-b border-cosmos-border px-5 py-3">
         <div>
-          <h3 className="text-sm font-bold text-cosmos-text flex items-center gap-2">
-            🔬 {config.title}
+          <h3 className="flex items-center gap-2 text-sm font-bold text-cosmos-text">
+            Experiment: {config.title}
           </h3>
-          <p className="text-xs text-cosmos-dim mt-0.5">{config.description}</p>
+          <p className="mt-0.5 text-xs text-cosmos-dim">{config.description}</p>
         </div>
-        <span className="text-xs text-cosmos-dim">⏱️ 约 30-90 分钟</span>
+        <span className="text-xs text-cosmos-dim">30-90 min</span>
       </div>
 
       <div className="flex">
-        {/* Task checklist */}
-        <div className="w-64 shrink-0 border-r border-cosmos-border p-4 space-y-2">
-          <h4 className="text-xs font-semibold text-cosmos-dim mb-3">📋 任务清单</h4>
-          {tasks.map((task) => (
+        <div className="w-64 shrink-0 space-y-2 border-r border-cosmos-border p-4">
+          <h4 className="mb-3 text-xs font-semibold text-cosmos-dim">Tasks</h4>
+          {config.tasks.map((task) => (
             <label
               key={task.id}
-              className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+              className={`flex cursor-pointer items-start gap-2 rounded-lg p-2 transition-colors ${
                 completedTasks.has(task.id) ? 'bg-emerald-400/5' : 'hover:bg-white/[0.02]'
               }`}
             >
@@ -101,86 +92,81 @@ export function ExperimentPanel({ config, lessonId }: Props) {
                 onChange={() => toggleTask(task.id)}
                 className="mt-0.5 accent-emerald-400"
               />
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <span className={`text-xs ${completedTasks.has(task.id) ? 'text-cosmos-dim line-through' : 'text-cosmos-text'}`}>
                   {task.description}
                 </span>
                 {showHint === task.id && (
-                  <p className="text-[10px] text-stellar-blue mt-1">💡 {task.hint}</p>
+                  <p className="mt-1 text-[10px] text-stellar-blue">{task.hint}</p>
                 )}
               </div>
               <button
-                onClick={(e) => {
-                  e.preventDefault();
+                onClick={(event) => {
+                  event.preventDefault();
                   setShowHint(showHint === task.id ? null : task.id);
                 }}
-                className="text-[10px] text-cosmos-dim hover:text-stellar-blue shrink-0"
+                className="shrink-0 text-[10px] text-cosmos-dim hover:text-stellar-blue"
               >
-                提示
+                Hint
               </button>
             </label>
           ))}
-          <button onClick={verifyCompletion} className="w-full text-xs text-stellar-blue hover:text-stellar-violet mt-2">
-            验证完成状态
+          <button onClick={verifyCompletion} className="mt-2 w-full text-xs text-stellar-blue hover:text-stellar-violet">
+            Verify completion
           </button>
         </div>
 
-        {/* Code editor area */}
-        <div className="flex-1 min-w-0">
-          {/* Monaco-placeholder editor */}
+        <div className="min-w-0 flex-1">
           <div className="border-b border-cosmos-border bg-cosmos-bg">
-            <div className="flex items-center justify-between px-4 py-2 bg-cosmos-surface/50 border-b border-cosmos-border">
+            <div className="flex items-center justify-between border-b border-cosmos-border bg-cosmos-surface/50 px-4 py-2">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-red-400/50" />
-                <span className="w-3 h-3 rounded-full bg-amber-400/50" />
-                <span className="w-3 h-3 rounded-full bg-emerald-400/50" />
+                <span className="h-3 w-3 rounded-full bg-red-400/50" />
+                <span className="h-3 w-3 rounded-full bg-amber-400/50" />
+                <span className="h-3 w-3 rounded-full bg-emerald-400/50" />
               </div>
-              <span className="text-[10px] text-cosmos-dim font-mono">experiment.ts</span>
+              <span className="font-mono text-[10px] text-cosmos-dim">experiment.ts</span>
               <div />
             </div>
             <textarea
               value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="w-full h-64 bg-transparent text-xs font-mono text-cosmos-text p-4 resize-none focus:outline-none leading-relaxed"
+              onChange={(event) => setCode(event.target.value)}
+              className="h-64 w-full resize-none bg-transparent p-4 font-mono text-xs leading-relaxed text-cosmos-text focus:outline-none"
               spellCheck={false}
             />
           </div>
 
-          {/* Toolbar */}
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-cosmos-border">
+          <div className="flex items-center gap-2 border-b border-cosmos-border px-4 py-2">
             <button
               onClick={runCode}
               disabled={running}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-400/10 text-emerald-400 hover:bg-emerald-400/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition-colors hover:bg-emerald-400/20 disabled:opacity-50"
             >
-              {running ? '⏳ 执行中...' : '▶ 运行'}
+              {running ? 'Running...' : 'Run'}
             </button>
-            <button onClick={resetCode} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-cosmos-dim hover:text-cosmos-text hover:bg-white/[0.03] transition-colors">
-              ↺ 重置
+            <button onClick={resetCode} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-cosmos-dim transition-colors hover:bg-white/[0.03] hover:text-cosmos-text">
+              Reset
             </button>
             <button
               onClick={() => setShowTroubleshooting(!showTroubleshooting)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-cosmos-dim hover:text-cosmos-text hover:bg-white/[0.03] transition-colors ml-auto"
+              className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-cosmos-dim transition-colors hover:bg-white/[0.03] hover:text-cosmos-text"
             >
-              ❓ 遇到问题？
+              Troubleshooting
             </button>
           </div>
 
-          {/* Output */}
-          <div className="p-4 bg-cosmos-bg/50">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-semibold text-cosmos-dim">输出</span>
+          <div className="bg-cosmos-bg/50 p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[10px] font-semibold text-cosmos-dim">Output</span>
             </div>
-            <pre className="text-xs font-mono text-cosmos-dim leading-relaxed whitespace-pre-wrap min-h-[60px]">
-              {output || '> 点击"运行"查看结果...'}
+            <pre className="min-h-[60px] whitespace-pre-wrap font-mono text-xs leading-relaxed text-cosmos-dim">
+              {output || '> Click Run to save code and view the simulated result...'}
             </pre>
           </div>
 
-          {/* Troubleshooting */}
           {showTroubleshooting && (
-            <div className="p-4 border-t border-cosmos-border bg-amber-400/5">
-              <h4 className="text-xs font-semibold text-amber-400 mb-2">🔧 常见坑与调试指南</h4>
-              <p className="text-xs text-cosmos-dim whitespace-pre-wrap">{config.troubleshooting}</p>
+            <div className="border-t border-cosmos-border bg-amber-400/5 p-4">
+              <h4 className="mb-2 text-xs font-semibold text-amber-400">Troubleshooting</h4>
+              <p className="whitespace-pre-wrap text-xs text-cosmos-dim">{config.troubleshooting}</p>
             </div>
           )}
         </div>

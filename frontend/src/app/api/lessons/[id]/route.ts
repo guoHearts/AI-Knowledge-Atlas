@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getLessonRow } from '@/features/learn/server/learningService';
+import { getLessonRow } from '@/features/learn/api/learningApi';
 
 export async function GET(
   _request: Request,

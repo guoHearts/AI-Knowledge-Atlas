@@ -1,57 +1,18 @@
-import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
-const LABS = [
-  {
-    id: 'secure-mcp-server',
-    title: 'Secure MCP Server',
-    status: 'Draft',
-    difficulty: 'Intermediate',
-    estimatedSetupTime: '15min',
-    estimatedCost: '< $1',
-    requiresApiKey: true,
-    path: 'labs/secure-mcp-server',
-    commands: [
-      'cd labs/secure-mcp-server',
-      'python -m venv .venv',
-      'pip install -r requirements.txt',
-      'python -m pytest tests -q',
-      'python main.py',
-    ],
-    summary:
-      '带 tool allowlist、参数校验、审计日志和基础输入防护的 MCP Server 标杆实验。',
-  },
-  {
-    id: 'production-agent-with-human-approval',
-    title: 'Production Agent with Human Approval',
-    status: 'Draft',
-    difficulty: 'Intermediate',
-    estimatedSetupTime: '20min',
-    estimatedCost: '< $1',
-    requiresApiKey: true,
-    path: 'labs/production-agent-with-human-approval',
-    commands: [
-      'cd labs/production-agent-with-human-approval',
-      'python -m venv .venv',
-      'pip install -r requirements.txt',
-      'python -m pytest tests -q',
-      'python src/main.py',
-    ],
-    summary:
-      '展示 human approval、任务状态流转和生产化边界的 Agent 实验。',
-  },
-]
+import { getLabById } from '@/features/labs/utils/labs';
 
 export default async function LabDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = await params
-  const lab = LABS.find((item) => item.id === id)
+  const { id } = await params;
+  const lab = getLabById(id);
 
   if (!lab) {
-    notFound()
+    notFound();
   }
 
   return (
@@ -60,7 +21,7 @@ export default async function LabDetailPage({
         href="/labs"
         className="mb-6 inline-flex text-sm font-medium text-stellar-green hover:text-stellar-green/80"
       >
-        返回 Labs
+        Back to Labs
       </Link>
 
       <section className="rounded-lg border border-cosmos-border bg-cosmos-surface p-8">
@@ -83,23 +44,23 @@ export default async function LabDetailPage({
 
         <dl className="mt-8 grid gap-4 text-sm md:grid-cols-3">
           <div>
-            <dt className="text-cosmos-dim">仓库路径</dt>
+            <dt className="text-cosmos-dim">Repository path</dt>
             <dd className="mt-1 font-mono text-cosmos-text">{lab.path}</dd>
           </div>
           <div>
-            <dt className="text-cosmos-dim">预估成本</dt>
+            <dt className="text-cosmos-dim">Estimated cost</dt>
             <dd className="mt-1 text-cosmos-text">{lab.estimatedCost}</dd>
           </div>
           <div>
-            <dt className="text-cosmos-dim">API Key</dt>
+            <dt className="text-cosmos-dim">API key</dt>
             <dd className="mt-1 text-cosmos-text">
-              {lab.requiresApiKey ? '需要' : '不需要'}
+              {lab.requiresApiKey ? 'Required' : 'Not required'}
             </dd>
           </div>
         </dl>
 
         <div className="mt-8">
-          <h2 className="text-lg font-semibold text-cosmos-text">本地验证命令</h2>
+          <h2 className="text-lg font-semibold text-cosmos-text">Local verification</h2>
           <div className="mt-3 rounded-lg border border-cosmos-border bg-cosmos-bg p-4">
             {lab.commands.map((command) => (
               <code key={command} className="block py-1 font-mono text-sm text-cosmos-text">
@@ -108,10 +69,11 @@ export default async function LabDetailPage({
             ))}
           </div>
           <p className="mt-3 text-sm text-cosmos-dim">
-            当前页面只承接入口和运行说明。CI、截图、最后验证记录补齐后再升级为 Verified。
+            This page owns routing and rendering only. Lab metadata lives in the
+            labs feature module and can later be replaced by backend API data.
           </p>
         </div>
       </section>
     </main>
-  )
+  );
 }
