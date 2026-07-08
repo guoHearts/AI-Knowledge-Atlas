@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getLessonRow } from '@/features/learn/server/learningService';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const db = getDb();
-  const lesson = db.prepare('SELECT * FROM lessons WHERE id = ?').get(id);
+  const lesson = getLessonRow(getDb(), id);
   if (!lesson) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(lesson);
 }

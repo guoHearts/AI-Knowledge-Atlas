@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { listDesignPatternRows } from '@/features/learn/server/learningService';
 
 export async function GET() {
-  const db = getDb();
-  const patterns = db.prepare('SELECT * FROM design_patterns ORDER BY category').all();
-  return NextResponse.json(patterns);
+  return NextResponse.json(listDesignPatternRows(getDb()));
 }

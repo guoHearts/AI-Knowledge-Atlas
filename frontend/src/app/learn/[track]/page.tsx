@@ -4,9 +4,7 @@ import { getDb } from '@/lib/db';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import { DifficultyBadge } from '@/components/shared/DifficultyBadge';
 import { STAGE_LABELS } from '@/lib/constants';
-import { AnimatedSection, StaggerList, StaggerItem, HoverCard } from '@/components/shared/AnimatedSection';
-import type { LearningTrackRow, ModuleRow, LessonRow, UserProgressRow } from '@/types/learning';
-import { toTrack, toModule, toLesson, toUserProgress } from '@/types/learning';
+import { getTrackPageData } from '@/features/learn/server/learningService';
 
 export default async function TrackPage({
   params,
@@ -15,38 +13,9 @@ export default async function TrackPage({
 }) {
   const { track: slug } = await params;
 
-  const db = getDb();
-  const trackRow = db.prepare('SELECT * FROM learning_tracks WHERE slug = ? AND status = ?')
-    .get(slug, 'published') as LearningTrackRow | undefined;
-
-  if (!trackRow) notFound();
-  const track = toTrack(trackRow);
-
-  const moduleRows = db.prepare(
-    'SELECT * FROM modules WHERE track_id = ? AND status = ? ORDER BY sort_order'
-  ).all(track.id, 'published') as ModuleRow[];
-  const modules = moduleRows.map(toModule);
-
-  // Get all lessons for this track with progress
-  const allLessons: { lesson: ReturnType<typeof toLesson>; progress?: ReturnType<typeof toUserProgress> }[] = [];
-  for (const mod of modules) {
-    const lessonRows = db.prepare(
-      'SELECT * FROM lessons WHERE module_id = ? AND status = ? ORDER BY sort_order'
-    ).all(mod.id, 'published') as LessonRow[];
-
-    for (const row of lessonRows) {
-      const lesson = toLesson(row);
-      const progressRow = db.prepare(
-        'SELECT * FROM user_progress WHERE lesson_id = ? AND user_id = ?'
-      ).get(lesson.id, 'default') as UserProgressRow | undefined;
-      const progress = progressRow ? toUserProgress(progressRow) : undefined;
-      allLessons.push({ lesson, progress });
-    }
-  }
-
-  // Stats
-  const completedCount = allLessons.filter(l => l.progress?.status === 'completed').length;
-  const overallPercent = allLessons.length > 0 ? Math.round((completedCount / allLessons.length) * 100) : 0;
+  const pageData = getTrackPageData(getDb(), slug);
+  if (!pageData) notFound();
+  const { track, modules, allLessons, overallPercent } = pageData;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
