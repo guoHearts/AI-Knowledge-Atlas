@@ -218,7 +218,6 @@ export function GraphCanvas({
   return (
     <svg
       ref={svgRef}
-      className="h-full w-full"
       className="h-full w-full" style={{ background: 'linear-gradient(135deg, var(--cosmos-bg) 0%, var(--cosmos-bg) 100%)' }}
     />
   );

@@ -45,17 +45,17 @@ switch ($Command) {
         Write-Host @"
 AI Knowledge Atlas — 两种启动方式
 
-  方式1: 混合模式 (前端+后端本地, Neo4j Docker)
-    .\Make.ps1 start       一键启动 (Neo4j Docker + 本地后端 + 本地前端)
+  方式1: 混合模式 (前端+后端本地, Neo4j + PostgreSQL Docker)
+    .\Make.ps1 start       一键启动 (Neo4j + PostgreSQL Docker + 本地后端 + 本地前端)
     .\Make.ps1 stop        停止所有服务
     .\Make.ps1 restart     重启整栈
 
   方式2: 全 Docker 模式
-    .\Make.ps1 docker-app  构建并启动全部服务 (Neo4j + 后端 + 前端)
+    .\Make.ps1 docker-app  构建并启动全部服务 (Neo4j + PostgreSQL + 后端 + 前端)
 
   单独启动/管理:
     .\Make.ps1 install     安装前后端依赖
-    .\Make.ps1 docker-up   仅启动 Docker 依赖服务 (Neo4j)
+    .\Make.ps1 docker-up   仅启动 Docker 依赖服务 (Neo4j + PostgreSQL)
     .\Make.ps1 backend     单独启动本地后端 (前景)
     .\Make.ps1 dev         单独启动本地前端 (前景)
     .\Make.ps1 seed        向 Neo4j 写入种子数据

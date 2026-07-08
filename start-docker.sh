@@ -86,6 +86,9 @@ fi
 cleanup() {
   if [ -n "${BACKEND_PID:-}" ]; then kill "$BACKEND_PID" 2>/dev/null || true; fi
   if [ -n "${FRONTEND_PID:-}" ]; then kill "$FRONTEND_PID" 2>/dev/null || true; fi
+  echo ""
+  echo "==> Stopping Docker services (Neo4j + PostgreSQL)"
+  "${COMPOSE[@]}" down
 }
 trap cleanup INT TERM EXIT
 
@@ -136,6 +139,6 @@ echo "  API docs:      http://localhost:8000/docs"
 echo "  Neo4j Browser: http://localhost:7474"
 echo "  PostgreSQL:    localhost:5432"
 echo ""
-echo "Press Ctrl+C to stop local frontend/backend. Run '${COMPOSE[*]} down' to stop Neo4j."
+echo "Press Ctrl+C to stop all services (frontend, backend, Neo4j, PostgreSQL)."
 
 wait
