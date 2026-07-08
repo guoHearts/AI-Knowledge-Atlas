@@ -44,6 +44,19 @@ fi
 cd "$ROOT_DIR"
 "${COMPOSE[@]}" up -d neo4j
 
+echo "==> Waiting for Neo4j"
+for i in $(seq 1 60); do
+  if python3 -c "import socket; s=socket.create_connection(('127.0.0.1',7687),timeout=2); s.close()" 2>/dev/null; then
+    echo "[OK] Neo4j is reachable at 127.0.0.1:7687"
+    break
+  fi
+  if [ "$i" = "60" ]; then
+    echo "[ERROR] Neo4j did not become reachable at 127.0.0.1:7687."
+    exit 1
+  fi
+  sleep 2
+done
+
 echo "==> Preparing backend"
 cd "$BACKEND_DIR"
 if [ ! -x ".venv/bin/python" ]; then

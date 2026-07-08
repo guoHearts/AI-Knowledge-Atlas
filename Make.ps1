@@ -2,7 +2,10 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet("help", "install", "start", "stop", "restart", "dev", "backend", "docker-up",
                  "docker-app", "seed", "reseed", "build", "test", "status", "logs", "clean", "clean-all")]
-    [string]$Command = "help"
+    [string]$Command = "help",
+
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Remaining
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,208 +16,8 @@ $RUNTIME_DIR = Join-Path $ROOT ".runtime"
 $LOG_DIR = Join-Path $RUNTIME_DIR "logs"
 $REQUIRED_PNPM_VERSION = "10.33.4"
 
-function Write-Step($Message) { Write-Host "==> $Message" -ForegroundColor Cyan }
-function Write-OK($Message) { Write-Host "[OK] $Message" -ForegroundColor Green }
-function Write-Warn($Message) { Write-Host "[WARN] $Message" -ForegroundColor Yellow }
-
-function Resolve-PnpmCommand {
-    if ($script:PnpmCommand) {
-        return $script:PnpmCommand
-    }
-
-    $commands = @(Get-Command "pnpm.cmd" -All -ErrorAction SilentlyContinue)
-    if ($commands.Count -eq 0) {
-        $commands = @(Get-Command "pnpm" -All -ErrorAction SilentlyContinue)
-    }
-
-    if ($commands.Count -eq 0) {
-        throw "pnpm was not found. Install pnpm $REQUIRED_PNPM_VERSION or enable it with Corepack."
-    }
-
-    $foundVersions = @()
-    foreach ($cmd in $commands) {
-        try {
-            $version = (& $cmd.Source --version).Trim()
-            $foundVersions += "$($cmd.Source) => $version"
-            if ($version -eq $REQUIRED_PNPM_VERSION) {
-                $script:PnpmCommand = $cmd.Source
-                return $script:PnpmCommand
-            }
-        }
-        catch {
-            $foundVersions += "$($cmd.Source) => unavailable"
-        }
-    }
-
-    throw "pnpm version mismatch. Required $REQUIRED_PNPM_VERSION. Found: $($foundVersions -join '; ')"
-}
-
-function Assert-PnpmVersion {
-    $pnpmCommand = Resolve-PnpmCommand
-    $actualVersion = (& $pnpmCommand --version).Trim()
-    if ($actualVersion -ne $REQUIRED_PNPM_VERSION) {
-        throw "pnpm version mismatch. Required $REQUIRED_PNPM_VERSION, found $actualVersion at $pnpmCommand."
-    }
-}
-
-function Invoke-Pnpm {
-    param(
-        [Parameter(ValueFromRemainingArguments = $true)]
-        [string[]]$PnpmArgs
-    )
-
-    & (Resolve-PnpmCommand) @PnpmArgs
-}
-
-function Set-PythonLauncher {
-    if ($env:PYTHON -and (Test-Path $env:PYTHON)) {
-        $script:PythonExe = $env:PYTHON
-        $script:PythonPrefixArgs = @()
-        return
-    }
-
-    if (Get-Command "python" -ErrorAction SilentlyContinue) {
-        $script:PythonExe = "python"
-        $script:PythonPrefixArgs = @()
-        return
-    }
-
-    if (Get-Command "py" -ErrorAction SilentlyContinue) {
-        $script:PythonExe = "py"
-        $script:PythonPrefixArgs = @("-3")
-        return
-    }
-
-    throw "Python was not found. Install Python 3.12+, set PYTHON to a Python executable, or recreate backend/.venv manually."
-}
-
-function Invoke-BasePython {
-    param([string[]]$PythonArgs)
-    & $script:PythonExe @script:PythonPrefixArgs @PythonArgs
-}
-
-function Get-BackendPython {
-    $backendPython = Join-Path $BACKEND_DIR ".venv\Scripts\python.exe"
-    if (-not (Test-Path $backendPython)) {
-        throw "Backend virtual environment was not found: $backendPython. Run .\Make.ps1 install first."
-    }
-    return $backendPython
-}
-
-function Test-BackendPython {
-    $backendPython = Join-Path $BACKEND_DIR ".venv\Scripts\python.exe"
-    if (-not (Test-Path $backendPython)) {
-        return $false
-    }
-
-    & $backendPython --version *> $null
-    return $LASTEXITCODE -eq 0
-}
-
-function Use-DockerComposePlugin {
-    if (Get-Command "docker-compose" -ErrorAction SilentlyContinue) {
-        return $false
-    }
-
-    cmd /c "docker compose version >NUL 2>NUL"
-    return $LASTEXITCODE -eq 0
-}
-
-function Invoke-DockerCompose {
-    param(
-        [Parameter(ValueFromRemainingArguments = $true)]
-        [string[]]$ComposeArgs
-    )
-
-    if (Use-DockerComposePlugin) {
-        $previousErrorActionPreference = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        & docker compose @ComposeArgs
-    }
-    else {
-        $previousErrorActionPreference = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        & docker-compose @ComposeArgs
-    }
-    $exitCode = $LASTEXITCODE
-    $ErrorActionPreference = $previousErrorActionPreference
-
-    if ($exitCode -ne 0) {
-        throw "Docker Compose failed with exit code $exitCode."
-    }
-}
-
-function Use-BackendEnv {
-    $env:NEO4J_URI = if ($env:NEO4J_URI) { $env:NEO4J_URI } else { "bolt://localhost:7687" }
-    $env:NEO4J_USER = if ($env:NEO4J_USER) { $env:NEO4J_USER } else { "neo4j" }
-    $env:NEO4J_PASSWORD = if ($env:NEO4J_PASSWORD) { $env:NEO4J_PASSWORD } else { "ai-knowledge-graph" }
-    $env:ENABLE_SCHEDULER = if ($env:ENABLE_SCHEDULER) { $env:ENABLE_SCHEDULER } else { "false" }
-}
-
-function Wait-ForTcp($HostName, $Port, $Name) {
-    for ($i = 1; $i -le 60; $i++) {
-        $client = New-Object System.Net.Sockets.TcpClient
-        try {
-            $connectTask = $client.ConnectAsync($HostName, $Port)
-            if ($connectTask.Wait(1000) -and $client.Connected) {
-                Write-OK "$Name is reachable at ${HostName}:${Port}"
-                return
-            }
-        }
-        catch {
-        }
-        finally {
-            $client.Close()
-        }
-
-        Start-Sleep -Seconds 2
-    }
-
-    throw "$Name is not reachable at ${HostName}:${Port}. Start Neo4j with .\Make.ps1 docker-up first."
-}
-
-function Ensure-BackendVenv {
-    Push-Location $BACKEND_DIR
-    try {
-        if (-not (Test-BackendPython)) {
-            Set-PythonLauncher
-            Invoke-BasePython @("-m", "venv", "--clear", ".venv")
-        }
-        & (Get-BackendPython) -m pip install -q -r requirements.txt
-    }
-    finally {
-        Pop-Location
-    }
-}
-
-function Stop-RecordedProcess {
-    param([string]$PidFile)
-
-    if (-not (Test-Path $PidFile)) {
-        return
-    }
-
-    $processId = Get-Content -Path $PidFile -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($processId) {
-        Stop-ProcessTree ([int]$processId)
-    }
-
-    Remove-Item -Force $PidFile -ErrorAction SilentlyContinue
-}
-
-function Stop-ProcessTree {
-    param([int]$ProcessId)
-
-    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId=$ProcessId" -ErrorAction SilentlyContinue
-    foreach ($child in $children) {
-        Stop-ProcessTree ([int]$child.ProcessId)
-    }
-
-    $process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
-    if ($process) {
-        Stop-Process -Id $ProcessId -Force
-    }
-}
+. (Join-Path $ROOT "scripts\common.ps1")
+Normalize-ProcessPathEnvironment
 
 function Show-RecordedProcess {
     param(
@@ -271,7 +74,7 @@ AI Knowledge Atlas — 两种启动方式
     }
 
     "start" {
-        & (Join-Path $ROOT "start.ps1")
+        & (Join-Path $ROOT "start.ps1") @Remaining
     }
 
     "stop" {
@@ -326,7 +129,7 @@ AI Knowledge Atlas — 两种启动方式
     }
 
     "backend" {
-        Wait-ForTcp "localhost" 7687 "Neo4j"
+        Wait-ForTcp "127.0.0.1" 7687 "Neo4j"
         Ensure-BackendVenv
         Use-BackendEnv
         Push-Location $BACKEND_DIR

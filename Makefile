@@ -39,7 +39,7 @@ install: check-pnpm
 	cd $(FRONTEND_DIR) && pnpm install
 
 start:
-	./start-docker.sh
+	bash start-docker.sh
 
 stop:
 	$(COMPOSE) down
