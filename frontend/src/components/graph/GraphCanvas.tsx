@@ -89,7 +89,7 @@ export function GraphCanvas({
       .append('path')
       .attr('d', 'M 28 0 L 0 0 0 28')
       .attr('fill', 'none')
-      .attr('stroke', 'rgba(23, 32, 28, 0.06)')
+      .attr('stroke', 'var(--cosmos-border)')
       .attr('stroke-width', 1);
 
     svg
@@ -109,7 +109,7 @@ export function GraphCanvas({
     const link = g.append('g').selectAll<SVGLineElement, SimLink>('line')
       .data(simLinks)
       .join('line')
-      .attr('stroke', 'rgba(23, 32, 28, 0.14)')
+      .attr('stroke', 'var(--cosmos-border)')
       .attr('stroke-width', 1)
       .attr('stroke-linecap', 'round');
 
@@ -121,15 +121,15 @@ export function GraphCanvas({
     node
       .append('circle')
       .attr('r', (d) => 8 + Math.sqrt(d.popularity) * 1.2)
-      .attr('fill', '#fffefa')
-      .attr('stroke', (d) => NODE_COLORS[d.node_type] || '#66736d')
+      .attr('fill', 'var(--cosmos-surface)')
+      .attr('stroke', (d) => NODE_COLORS[d.node_type] || 'var(--cosmos-dim)')
       .attr('stroke-width', (d) => d.id === highlightNodeId ? 4 : 2)
       .attr('opacity', (d) => highlightNodeId ? (d.id === highlightNodeId ? 1 : 0.42) : 0.95);
 
     node
       .append('circle')
       .attr('r', (d) => 3.5 + Math.sqrt(d.popularity) * 0.45)
-      .attr('fill', (d) => NODE_COLORS[d.node_type] || '#66736d')
+      .attr('fill', (d) => NODE_COLORS[d.node_type] || 'var(--cosmos-dim)')
       .attr('opacity', (d) => highlightNodeId ? (d.id === highlightNodeId ? 1 : 0.55) : 0.9);
 
     node
@@ -137,12 +137,12 @@ export function GraphCanvas({
       .text((d) => d.name.length > 14 ? `${d.name.slice(0, 12)}...` : d.name)
       .attr('x', 15)
       .attr('y', 4)
-      .attr('fill', '#17201c')
+      .attr('fill', 'var(--cosmos-text)')
       .attr('font-size', '10px')
       .attr('font-weight', 700)
       .attr('font-family', 'ui-sans-serif, system-ui, sans-serif')
       .attr('paint-order', 'stroke')
-      .attr('stroke', '#fffefa')
+      .attr('stroke', 'var(--cosmos-surface)')
       .attr('stroke-width', 4)
       .attr('opacity', (d) => highlightNodeId ? (d.id === highlightNodeId ? 1 : 0.35) : 0.82);
 
@@ -219,7 +219,7 @@ export function GraphCanvas({
     <svg
       ref={svgRef}
       className="h-full w-full"
-      style={{ background: 'linear-gradient(135deg, #f8faf5 0%, #eef2ed 100%)' }}
+      className="h-full w-full" style={{ background: 'linear-gradient(135deg, var(--cosmos-bg) 0%, var(--cosmos-bg) 100%)' }}
     />
   );
 }

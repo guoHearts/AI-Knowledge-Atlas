@@ -39,6 +39,8 @@ export class ApiError extends Error {
   }
 }
 
+const DEFAULT_TIMEOUT_MS = 15_000;
+
 function isApiEnvelope<T>(value: unknown): value is ApiEnvelope<T> {
   return (
     typeof value === 'object' &&
@@ -65,13 +67,40 @@ export async function request<T>(
   url: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+
+  // Let caller override the signal; our timeout is the fallback.
+  const signal = options.signal ?? controller.signal;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      signal,
+    });
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new ApiError({
+        code: 'REQUEST_TIMEOUT',
+        message: `Request timed out after ${DEFAULT_TIMEOUT_MS}ms`,
+        status: 0,
+      });
+    }
+    throw new ApiError({
+      code: 'NETWORK_ERROR',
+      message: err instanceof Error ? err.message : 'Network request failed',
+      status: 0,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
   const body = await parseJson(response);
 
   if (isApiEnvelope<T>(body)) {

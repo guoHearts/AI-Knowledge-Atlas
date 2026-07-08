@@ -100,7 +100,7 @@ export function MiniGraph({ nodeIds }: Props) {
       circle.setAttribute('cx', String((node as any)._x));
       circle.setAttribute('cy', String((node as any)._y));
       circle.setAttribute('r', '6');
-      circle.setAttribute('fill', NODE_COLORS[node.node_type as NodeType] || '#94a3b8');
+      circle.setAttribute('fill', NODE_COLORS[node.node_type as NodeType] || 'var(--cosmos-dim)');
       circle.setAttribute('opacity', '0.8');
       circle.style.cursor = 'pointer';
       g.appendChild(circle);
@@ -109,7 +109,7 @@ export function MiniGraph({ nodeIds }: Props) {
       text.setAttribute('x', String((node as any)._x));
       text.setAttribute('y', String((node as any)._y + 16));
       text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('fill', '#94a3b8');
+      text.setAttribute('fill', 'var(--cosmos-dim)');
       text.setAttribute('font-size', '8');
       text.setAttribute('font-family', 'system-ui');
       text.textContent = node.name.length > 10 ? node.name.slice(0, 8) + '..' : node.name;

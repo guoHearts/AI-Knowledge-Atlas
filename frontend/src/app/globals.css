@@ -3,16 +3,16 @@
 @plugin '@tailwindcss/typography';
 
 @theme {
-  --color-cosmos-bg: #eef2ed;
-  --color-cosmos-surface: #fffefa;
-  --color-cosmos-border: rgba(24, 32, 28, 0.13);
-  --color-cosmos-text: #17201c;
-  --color-cosmos-dim: #66736d;
-  --color-stellar-blue: #2358d8;
-  --color-stellar-violet: #8b3f97;
-  --color-stellar-emerald: #0e8f72;
-  --color-stellar-amber: #c78310;
-  --color-stellar-rose: #cc4b4b;
+  --color-cosmos-bg: var(--cosmos-bg);
+  --color-cosmos-surface: var(--cosmos-surface);
+  --color-cosmos-border: var(--cosmos-border);
+  --color-cosmos-text: var(--cosmos-text);
+  --color-cosmos-dim: var(--cosmos-dim);
+  --color-stellar-blue: var(--stellar-blue);
+  --color-stellar-violet: var(--stellar-violet);
+  --color-stellar-emerald: var(--stellar-emerald);
+  --color-stellar-amber: var(--stellar-amber);
+  --color-stellar-rose: var(--stellar-rose);
 
   --font-display: Georgia, Cambria, serif;
   --font-body: ui-sans-serif, system-ui, sans-serif;
@@ -59,13 +59,39 @@
   }
 }
 
+:root {
+  --cosmos-bg: #eef2ed;
+  --cosmos-surface: #fffefa;
+  --cosmos-border: rgba(24, 32, 28, 0.13);
+  --cosmos-text: #17201c;
+  --cosmos-dim: #66736d;
+  --stellar-blue: #2358d8;
+  --stellar-violet: #8b3f97;
+  --stellar-emerald: #0e8f72;
+  --stellar-amber: #c78310;
+  --stellar-rose: #cc4b4b;
+}
+
+.dark {
+  --cosmos-bg: #0f1412;
+  --cosmos-surface: #1a211e;
+  --cosmos-border: rgba(225, 232, 227, 0.12);
+  --cosmos-text: #e1e8e3;
+  --cosmos-dim: #8a968f;
+  --stellar-blue: #5b8ef5;
+  --stellar-violet: #b86fc4;
+  --stellar-emerald: #3db89f;
+  --stellar-amber: #dba53d;
+  --stellar-rose: #e07373;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
   }
 
   html {
-    background: #eef2ed;
+    background: var(--cosmos-bg);
   }
 
   body {
@@ -73,16 +99,17 @@
     margin: 0;
     padding: 0;
     background:
-      linear-gradient(rgba(23, 32, 28, 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(23, 32, 28, 0.045) 1px, transparent 1px),
-      radial-gradient(circle at 18% 12%, rgba(35, 88, 216, 0.09), transparent 30%),
-      radial-gradient(circle at 84% 16%, rgba(14, 143, 114, 0.08), transparent 26%),
-      #eef2ed;
+      linear-gradient(var(--cosmos-border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--cosmos-border) 1px, transparent 1px),
+      radial-gradient(circle at 18% 12%, var(--stellar-blue), transparent 30%),
+      radial-gradient(circle at 84% 16%, var(--stellar-emerald), transparent 26%),
+      var(--cosmos-bg);
     background-size: 28px 28px, 28px 28px, auto, auto, auto;
   }
 
   ::selection {
-    background: rgba(35, 88, 216, 0.18);
+    background: var(--stellar-blue);
+    opacity: 0.18;
   }
 
   ::-webkit-scrollbar {
@@ -93,28 +120,28 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(23, 32, 28, 0.22);
+    background: var(--cosmos-border);
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(23, 32, 28, 0.34);
+    background: var(--cosmos-dim);
   }
 }
 
 @layer components {
   .glass-panel {
     @apply bg-cosmos-surface/88 backdrop-blur-xl border border-cosmos-border;
-    box-shadow: 0 18px 60px rgba(23, 32, 28, 0.08);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.06);
   }
 
   .glass-card {
     @apply bg-cosmos-surface border border-cosmos-border rounded-lg transition-all duration-300;
-    box-shadow: 0 14px 35px rgba(23, 32, 28, 0.06);
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.05);
   }
 
   .glass-card:hover {
     @apply border-cosmos-text/20;
-    box-shadow: 0 20px 48px rgba(23, 32, 28, 0.11);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.09);
   }
 
   .btn-primary {
@@ -126,7 +153,7 @@
   .btn-ghost {
     @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold
            text-cosmos-text bg-cosmos-surface/70 border border-cosmos-border
-           hover:border-cosmos-text/25 hover:bg-white transition-all duration-200;
+           hover:border-cosmos-text/25 hover:bg-white/5 transition-all duration-200;
   }
 
   .difficulty-badge {
@@ -150,7 +177,7 @@
   }
 
   .map-line {
-    background-image: linear-gradient(90deg, rgba(23, 32, 28, 0.16) 50%, transparent 0);
+    background-image: linear-gradient(90deg, var(--cosmos-border) 50%, transparent 0);
     background-size: 12px 1px;
     background-repeat: repeat-x;
     background-position: center;

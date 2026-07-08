@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
 const NAV_LINKS = [
   { href: '/', label: '路线' },
@@ -50,10 +51,7 @@ export function NavBar() {
 
         <div className="flex-1" />
 
-        <div className="hidden items-center gap-3 rounded-full border border-cosmos-border bg-cosmos-bg/70 px-3 py-1.5 text-xs font-medium text-cosmos-dim sm:flex">
-          <span className="h-2 w-2 rounded-full bg-stellar-emerald" />
-          Local workspace
-        </div>
+        <ThemeToggle />
       </nav>
     </header>
   );

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, Query
 
 from common.errors import AppError
-from common.response import error_response
+from common.response import error_response, success_response
 from modules.learning.schemas import ProgressUpsertRequest
 from modules.learning.service import LearningService
 from modules.learning.dependencies import get_learning_service
@@ -13,13 +13,13 @@ router = APIRouter(prefix="/learning", tags=["learning"])
 
 @router.get("/tracks")
 async def list_tracks(service: LearningService = Depends(get_learning_service)):
-    return service.list_tracks()
+    return success_response(service.list_tracks())
 
 
 @router.get("/tracks/{slug}")
 async def get_track(slug: str, service: LearningService = Depends(get_learning_service)):
     try:
-        return service.get_track(slug)
+        return success_response(service.get_track(slug))
     except AppError as error:
         return error_response(error)
 
@@ -27,7 +27,7 @@ async def get_track(slug: str, service: LearningService = Depends(get_learning_s
 @router.get("/modules/{module_id}")
 async def get_module(module_id: str, service: LearningService = Depends(get_learning_service)):
     try:
-        return service.get_module(module_id)
+        return success_response(service.get_module(module_id))
     except AppError as error:
         return error_response(error)
 
@@ -35,20 +35,20 @@ async def get_module(module_id: str, service: LearningService = Depends(get_lear
 @router.get("/lessons/{lesson_id}")
 async def get_lesson(lesson_id: str, service: LearningService = Depends(get_learning_service)):
     try:
-        return service.get_lesson(lesson_id)
+        return success_response(service.get_lesson(lesson_id))
     except AppError as error:
         return error_response(error)
 
 
 @router.get("/design-patterns")
 async def list_design_patterns(service: LearningService = Depends(get_learning_service)):
-    return service.list_design_patterns()
+    return success_response(service.list_design_patterns())
 
 
 @router.get("/design-patterns/{pattern_id}")
 async def get_design_pattern(pattern_id: str, service: LearningService = Depends(get_learning_service)):
     try:
-        return service.get_design_pattern(pattern_id)
+        return success_response(service.get_design_pattern(pattern_id))
     except AppError as error:
         return error_response(error)
 
@@ -58,7 +58,7 @@ async def list_progress(
     user_id: str = Query("default", alias="userId"),
     service: LearningService = Depends(get_learning_service),
 ):
-    return service.list_progress(user_id)
+    return success_response(service.list_progress(user_id))
 
 
 @router.put("/progress")
@@ -67,7 +67,7 @@ async def upsert_progress(
     service: LearningService = Depends(get_learning_service),
 ):
     try:
-        return service.upsert_progress(payload.to_repository_payload())
+        return success_response(service.upsert_progress(payload.to_repository_payload()))
     except ValueError as error:
         return error_response(AppError("VALIDATION_ERROR", str(error), status_code=422))
 
@@ -77,9 +77,9 @@ async def get_home_stats(
     user_id: str = Query("default", alias="userId"),
     service: LearningService = Depends(get_learning_service),
 ):
-    return service.get_home_stats(user_id)
+    return success_response(service.get_home_stats(user_id))
 
 
 @router.get("/cms/dashboard")
 async def get_cms_dashboard(service: LearningService = Depends(get_learning_service)):
-    return service.get_cms_dashboard()
+    return success_response(service.get_cms_dashboard())

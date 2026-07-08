@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { ThemeProvider } from 'next-themes';
 import './globals.css';
 import { NavBar } from '@/components/layout/NavBar';
 
@@ -13,10 +14,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col">
-        <NavBar />
-        <main className="flex-1">{children}</main>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <NavBar />
+          <main className="flex-1">{children}</main>
+        </ThemeProvider>
       </body>
     </html>
   );
