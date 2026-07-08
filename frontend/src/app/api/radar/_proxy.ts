@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server'
-
-const DEFAULT_BACKEND_URL = 'http://localhost:8000'
-
-function getBackendBaseUrl() {
-  return (process.env.NEXT_PUBLIC_API_URL || DEFAULT_BACKEND_URL).replace(/\/$/, '')
-}
+import { getBackendInternalUrl } from '@/lib/env'
 
 export async function proxyRadarRequest(path: string) {
   try {
-    const upstream = await fetch(`${getBackendBaseUrl()}${path}`, {
+    const upstream = await fetch(`${getBackendInternalUrl()}${path}`, {
       cache: 'no-store',
     })
     const body = await upstream.text()

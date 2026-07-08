@@ -131,6 +131,7 @@ NEO4J_USER=neo4j
 NEO4J_PASSWORD=ai-knowledge-graph
 ENABLE_SCHEDULER=false
 NEXT_PUBLIC_API_URL=http://localhost:8000
+BACKEND_INTERNAL_URL=http://localhost:8000
 ```
 
 默认关闭后端抓取调度以保证本地演示稳定。需要数据同步时：
@@ -140,6 +141,8 @@ ENABLE_SCHEDULER=true
 LLM_API_KEY=your_api_key
 LLM_MODEL=gpt-4o
 ```
+
+`NEXT_PUBLIC_API_URL` 用于浏览器可见的后端地址；`BACKEND_INTERNAL_URL` 用于 Next.js Route Handler 和 Server Component 在服务端访问后端。全 Docker 模式下，前端容器内应使用 `BACKEND_INTERNAL_URL=http://backend:8000`。
 
 ## 项目架构
 

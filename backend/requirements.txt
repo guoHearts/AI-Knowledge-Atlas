@@ -8,3 +8,4 @@ apscheduler==3.11.3
 aiohttp==3.14.1
 feedparser==6.0.12
 python-multipart==0.0.32
+pytest==9.1.1

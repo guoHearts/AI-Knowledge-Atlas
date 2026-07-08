@@ -73,7 +73,10 @@ function GraphPageInner() {
 
   useEffect(() => {
     if (focusId) {
-      handleNodeClick('Technology', focusId);
+      const timer = window.setTimeout(() => {
+        void handleNodeClick('Technology', focusId);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [focusId, handleNodeClick]);
 

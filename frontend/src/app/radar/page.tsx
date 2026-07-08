@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import RadarClient from './radar-client'
+import { RadarListView } from '@/features/radar'
 
 export default function RadarPage() {
   return (
@@ -20,7 +20,6 @@ export default function RadarPage() {
           </p>
         </div>
 
-        {/* Client Component with Data Fetching */}
         <Suspense fallback={
           <div className="space-y-6">
             <div className="bg-cosmos-surface rounded-lg p-6 border border-cosmos-border animate-pulse">
@@ -33,7 +32,7 @@ export default function RadarPage() {
             </div>
           </div>
         }>
-          <RadarClient />
+          <RadarListView />
         </Suspense>
 
         {/* Action Links */}
