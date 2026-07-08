@@ -1,0 +1,55 @@
+name: 新技术推荐
+description: 推荐一项值得进入技术雷达（Radar）的新模型 / 框架 / 论文 / 工程实践
+title: "[Radar] "
+labels: ["radar-candidate"]
+body:
+  - type: input
+    id: title
+    attributes:
+      label: 技术名称
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: 分类
+      options:
+        - Models
+        - Agents
+        - RAG
+        - MCP
+        - Evals
+        - LLMOps
+        - Multimodal
+        - Coding
+        - Security
+        - Research
+        - Infrastructure
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: 为什么值得关注
+      description: 它解决了什么问题？与已有方案相比有什么变化？对现有选型有什么影响？
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: 官方来源
+      description: 官方文档 / 官方 GitHub / 官方博客 / 论文链接
+    validations:
+      required: true
+  - type: dropdown
+    id: maturity
+    attributes:
+      label: 成熟度评估
+      options:
+        - Experimental
+        - Early Adoption
+        - Production Ready
+        - Mature
+        - Declining
+    validations:
+      required: false

@@ -5,14 +5,9 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from typing import List
 from models.repository import GraphRepository
+from modules.graph.dependencies import get_graph_repository
 
 router = APIRouter(prefix="/graph", tags=["chat"])
-
-
-def get_repo() -> GraphRepository:
-    """Dependency injection — get repository from app state."""
-    from main import app
-    return GraphRepository(app.state.neo4j_driver)
 
 
 # ── Request / Response models ─────────────────────────────
@@ -46,7 +41,7 @@ class ChatResponse(BaseModel):
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     req: ChatRequest,
-    repo: GraphRepository = Depends(get_repo),
+    repo: GraphRepository = Depends(get_graph_repository),
 ):
     """Ask a question about the AI knowledge graph in natural language.
 

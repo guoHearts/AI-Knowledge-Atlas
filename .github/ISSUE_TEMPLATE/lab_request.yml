@@ -1,0 +1,44 @@
+name: Lab 请求
+description: 请求一个新的可运行实验（Lab），或认领贡献一个 Lab
+title: "[Lab] "
+labels: ["lab-request"]
+body:
+  - type: input
+    id: title
+    attributes:
+      label: Lab 名称
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 业务目标
+      description: 这个 Lab 要展示什么工程能力？为什么它值得单独存在（而非一段代码片段）？
+    validations:
+      required: true
+  - type: textarea
+    id: stack
+    attributes:
+      label: 预期技术栈
+      description: 语言、框架、依赖（尽量给出版本）
+    validations:
+      required: false
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: 难度
+      options:
+        - beginner
+        - intermediate
+        - advanced
+    validations:
+      required: false
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: 你想
+      options:
+        - "认领并实现这个 Lab"
+        - "只是提出需求"
+    validations:
+      required: true

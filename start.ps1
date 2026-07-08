@@ -1,7 +1,5 @@
-# ============================================================
-# AI 知识图谱 — 一键启动脚本 (Windows PowerShell)
-# 启动 Neo4j + FastAPI 后端 + Next.js 前端
-# ============================================================
+# Local development launcher for AI Knowledge Atlas.
+# Starts Docker dependency services, then runs FastAPI and Next.js locally.
 
 param(
     [switch]$SkipNeo4j,
@@ -12,181 +10,217 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
+$BACKEND_DIR = Join-Path $ROOT "backend"
+$FRONTEND_DIR = Join-Path $ROOT "frontend"
+$RUNTIME_DIR = Join-Path $ROOT ".runtime"
+$LOG_DIR = Join-Path $RUNTIME_DIR "logs"
+$REQUIRED_PNPM_VERSION = "10.33.4"
 
-# ---------- 颜色输出 ----------
-function Write-Step($msg) {
-    Write-Host "`n>>> " -NoNewline -ForegroundColor Cyan
-    Write-Host $msg -ForegroundColor White
+. (Join-Path $ROOT "scripts\common.ps1")
+Normalize-ProcessPathEnvironment
+
+trap {
+    Write-Host ""
+    Write-Warn "Script stopped due to error."
+    Write-Warn "Neo4j Docker container may still be running. Stop with: docker compose down"
+    break
 }
 
-function Write-OK($msg) {
-    Write-Host "  ✔ " -NoNewline -ForegroundColor Green
-    Write-Host $msg
+function Assert-Command($Name, $InstallHint) {
+    $cmd = Get-Command $Name -ErrorAction SilentlyContinue
+    if (-not $cmd) {
+        throw "$Name was not found. $InstallHint"
+    }
 }
 
-function Write-Warn($msg) {
-    Write-Host "  ⚠ " -NoNewline -ForegroundColor Yellow
-    Write-Host $msg
+function Ensure-FrontendDeps {
+    Push-Location $FRONTEND_DIR
+    try {
+        if (-not (Test-Path "node_modules\.modules.yaml")) {
+            Write-Step "Installing frontend dependencies"
+            Invoke-Pnpm install
+        }
+        else {
+            Write-OK "Frontend dependencies already installed"
+        }
+    }
+    finally {
+        Pop-Location
+    }
 }
 
-function Write-Err($msg) {
-    Write-Host "  ✘ " -NoNewline -ForegroundColor Red
-    Write-Host $msg
+function Wait-ForHttp($Url, $Name) {
+    for ($i = 1; $i -le 60; $i++) {
+        try {
+            $null = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 3
+            Write-OK "$Name is ready"
+            return
+        }
+        catch {
+            Start-Sleep -Seconds 2
+        }
+    }
+
+    throw "$Name did not become ready: $Url"
 }
 
-# ---------- 检查前置条件 ----------
-Write-Step "检查前置条件..."
-
-$allOk = $true
-
-try { python --version 2>&1 | Out-Null; Write-OK "Python 已安装" } catch { Write-Err "未找到 Python"; $allOk = $false }
-try { node --version 2>&1 | Out-Null; Write-OK "Node.js 已安装" } catch { Write-Err "未找到 Node.js"; $allOk = $false }
-try { docker --version 2>&1 | Out-Null; Write-OK "Docker 已安装" } catch { Write-Err "未找到 Docker"; $allOk = $false }
-
-if (-not $allOk) {
-    Write-Err "请先安装缺失的前置依赖"
-    exit 1
+function Escape-ForSingleQuotedPowerShellString {
+    param([string]$Value)
+    return $Value.Replace("'", "''")
 }
 
-# ---------- 1. 启动 Neo4j ----------
+function Assert-StartedProcess {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [string]$Name,
+        [string]$LogPath
+    )
+
+    Start-Sleep -Seconds 1
+    $runningProcess = Get-Process -Id $Process.Id -ErrorAction SilentlyContinue
+    if (-not $runningProcess) {
+        throw "$Name exited immediately. Check log: $LogPath"
+    }
+}
+
+Write-Step "Checking prerequisites"
+Assert-Command "node" "Install Node.js 20+ and make sure it is on PATH."
+Assert-PnpmVersion
+Assert-Command "docker" "Install Docker Desktop and start it."
+
+New-Item -ItemType Directory -Force -Path $RUNTIME_DIR, $LOG_DIR | Out-Null
+
 if (-not $SkipNeo4j) {
-    Write-Step "1/3 启动 Neo4j 数据库..."
-
-    $neo4jName = "ai-kg-neo4j"
-    $neo4jExists = docker ps -a --filter "name=$neo4jName" --format "{{.Names}}" 2>&1
-
-    if ($neo4jExists -eq $neo4jName) {
-        $neo4jRunning = docker ps --filter "name=$neo4jName" --format "{{.Names}}" 2>&1
-        if ($neo4jRunning -eq $neo4jName) {
-            Write-OK "Neo4j 容器已在运行"
-        } else {
-            Write-Step "启动已有 Neo4j 容器..."
-            docker start $neo4jName 2>&1 | Out-Null
-            Write-OK "Neo4j 容器已启动"
-        }
-    } else {
-        Write-Step "创建 Neo4j 容器 (neo4j:5-community)..."
-        docker run -d `
-            --name $neo4jName `
-            -p 7474:7474 `
-            -p 7687:7687 `
-            -e NEO4J_AUTH="neo4j/ai-knowledge-graph" `
-            -e NEO4J_PLUGINS='["apoc"]' `
-            neo4j:5-community 2>&1 | Out-Null
-        Write-OK "Neo4j 容器已创建并启动"
+    Write-Step "Starting Docker dependency services"
+    Push-Location $ROOT
+    try {
+        Invoke-DockerCompose up -d neo4j
     }
-
-    # 等待 Neo4j 就绪
-    Write-Step "等待 Neo4j 就绪..."
-    $retries = 0
-    do {
-        Start-Sleep -Seconds 2
-        $retries++
-        $ready = docker exec $neo4jName neo4j status 2>&1
-    } while ($LASTEXITCODE -ne 0 -and $retries -lt 30)
-
-    if ($retries -ge 30) {
-        Write-Err "Neo4j 启动超时，请检查 Docker 容器状态"
-        exit 1
+    finally {
+        Pop-Location
     }
-    Write-OK "Neo4j 已就绪 (bolt://localhost:7687)"
+    Write-OK "Neo4j is running in Docker"
 }
 
-# ---------- 2. 启动后端 ----------
 if (-not $SkipBackend) {
-    Write-Step "2/3 启动 FastAPI 后端..."
-
-    Set-Location "$ROOT\backend"
-
-    # 创建虚拟环境
-    if (-not (Test-Path ".venv\Scripts\python.exe")) {
-        Write-Step "创建 Python 虚拟环境..."
-        python -m venv .venv
-        Write-OK "虚拟环境已创建"
-    } else {
-        Write-OK "虚拟环境已存在"
-    }
-
-    # 激活并安装依赖
-    Write-Step "安装 Python 依赖..."
-    & .\.venv\Scripts\python.exe -m pip install -q -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Err "Python 依赖安装失败"
-        exit 1
-    }
-    Write-OK "Python 依赖已安装"
-
-    # 检查 .env
-    if (-not (Test-Path ".env")) {
-        Copy-Item "$ROOT\.env" ".env" -ErrorAction SilentlyContinue
-        if (Test-Path ".env") {
-            Write-OK "已复制 .env 配置文件"
-        } else {
-            Write-Warn "未找到 .env 文件，使用默认配置"
-        }
-    }
-
-    if ($InstallOnly) {
-        Write-OK "依赖安装完成 (--InstallOnly)"
-    } else {
-        Write-Step "启动后端 (http://localhost:8000)..."
-        $backendJob = Start-Job -Name "ai-kg-backend" -ScriptBlock {
-            Set-Location $using:ROOT\backend
-            & .\.venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload 2>&1
-        }
-        Write-OK "后端已在后台启动 (Job: ai-kg-backend)"
-    }
+    Write-Step "Checking Neo4j connectivity"
+    Wait-ForTcp "127.0.0.1" 7687 "Neo4j"
 }
 
-# ---------- 3. 启动前端 ----------
+if (-not $SkipBackend) {
+    Ensure-BackendVenv
+}
+
 if (-not $SkipFrontend) {
-    Write-Step "3/3 启动 Next.js 前端..."
+    Ensure-FrontendDeps
+}
 
-    Set-Location "$ROOT\frontend"
+if ($InstallOnly) {
+    Write-OK "Dependencies installed. Services were not started because -InstallOnly was set."
+    exit 0
+}
 
-    # 安装依赖
-    if (-not (Test-Path "node_modules\.modules.yaml")) {
-        Write-Step "安装 pnpm 依赖 (可能需要几分钟)..."
-        pnpm install --registry=https://registry.npmmirror.com/ 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Err "pnpm 依赖安装失败"
-            exit 1
+if (-not $SkipBackend) {
+    Write-Step "Starting local FastAPI backend"
+    $backendPidFile = Join-Path $RUNTIME_DIR "backend.pid"
+    $backendOutLog = Join-Path $LOG_DIR "backend.out.log"
+    $backendErrLog = Join-Path $LOG_DIR "backend.err.log"
+    Stop-RecordedProcess $backendPidFile
+
+    $escapedBackendDir = Escape-ForSingleQuotedPowerShellString $BACKEND_DIR
+    $escapedBackendPython = Escape-ForSingleQuotedPowerShellString (Get-BackendPython)
+    $backendCommand = "& { Set-Location -LiteralPath '$escapedBackendDir'; " +
+        "`$env:NEO4J_URI = if (`$env:NEO4J_URI) { `$env:NEO4J_URI } else { 'bolt://127.0.0.1:7687' }; " +
+        "`$env:NEO4J_USER = if (`$env:NEO4J_USER) { `$env:NEO4J_USER } else { 'neo4j' }; " +
+        "`$env:NEO4J_PASSWORD = if (`$env:NEO4J_PASSWORD) { `$env:NEO4J_PASSWORD } else { 'ai-knowledge-graph' }; " +
+        "`$env:ENABLE_SCHEDULER = if (`$env:ENABLE_SCHEDULER) { `$env:ENABLE_SCHEDULER } else { 'false' }; " +
+        "& '$escapedBackendPython' -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload }"
+
+    $backendProcess = Start-Process -FilePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $backendCommand) `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $backendOutLog `
+        -RedirectStandardError $backendErrLog `
+        -PassThru
+    Set-Content -Path $backendPidFile -Value $backendProcess.Id
+    Assert-StartedProcess $backendProcess "Backend" $backendErrLog
+
+    Wait-ForHttp "http://127.0.0.1:8000/health" "Backend"
+
+    try {
+        $nodes = Invoke-RestMethod -Uri "http://127.0.0.1:8000/graph/nodes?limit=1" -TimeoutSec 10
+        if (@($nodes).Count -eq 0) {
+            Write-Step "Seeding Neo4j graph data"
+            Push-Location $BACKEND_DIR
+            try {
+                Use-BackendEnv
+                & (Get-BackendPython) scripts\seed_data.py
+            }
+            finally {
+                Pop-Location
+            }
         }
-    } else {
-        Write-OK "pnpm 依赖已安装"
     }
-
-    if ($InstallOnly) {
-        Write-OK "依赖安装完成 (--InstallOnly)"
-    } else {
-        Write-Step "启动前端 (http://localhost:3000)..."
-        $frontendJob = Start-Job -Name "ai-kg-frontend" -ScriptBlock {
-            Set-Location $using:ROOT\frontend
-            pnpm dev 2>&1
-        }
-        Write-OK "前端已在后台启动 (Job: ai-kg-frontend)"
+    catch {
+        Write-Warn "Skipping automatic seed check: $($_.Exception.Message)"
     }
 }
 
-# ---------- 完成 ----------
-if (-not $InstallOnly) {
-    Write-Host ""
-    Write-Host "============================================" -ForegroundColor Green
-    Write-Host "  项目已启动!" -ForegroundColor Green
-    Write-Host "============================================" -ForegroundColor Green
-    Write-Host "  前端:     http://localhost:3000" -ForegroundColor White
-    Write-Host "  后端 API: http://localhost:8000" -ForegroundColor White
-    Write-Host "  API 文档: http://localhost:8000/docs" -ForegroundColor White
-    Write-Host "  Neo4j:    http://localhost:7474" -ForegroundColor White
-    Write-Host "============================================" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "管理命令:" -ForegroundColor Yellow
-    Write-Host "  查看后端日志:  Receive-Job -Name ai-kg-backend" -ForegroundColor Gray
-    Write-Host "  查看前端日志:  Receive-Job -Name ai-kg-frontend" -ForegroundColor Gray
-    Write-Host "  停止后端:      Stop-Job -Name ai-kg-backend" -ForegroundColor Gray
-    Write-Host "  停止前端:      Stop-Job -Name ai-kg-frontend" -ForegroundColor Gray
-    Write-Host "  停止 Neo4j:    docker stop ai-kg-neo4j" -ForegroundColor Gray
-    Write-Host ""
+if (-not $SkipFrontend) {
+    Write-Step "Starting local Next.js frontend"
+    $frontendPidFile = Join-Path $RUNTIME_DIR "frontend.pid"
+    $frontendOutLog = Join-Path $LOG_DIR "frontend.out.log"
+    $frontendErrLog = Join-Path $LOG_DIR "frontend.err.log"
+    Stop-RecordedProcess $frontendPidFile
+
+    $escapedFrontendDir = Escape-ForSingleQuotedPowerShellString $FRONTEND_DIR
+    $escapedPnpmCommand = Escape-ForSingleQuotedPowerShellString (Resolve-PnpmCommand)
+    $frontendCommand = "& { Set-Location -LiteralPath '$escapedFrontendDir'; " +
+        "`$env:NEXT_PUBLIC_API_URL = if (`$env:NEXT_PUBLIC_API_URL) { `$env:NEXT_PUBLIC_API_URL } else { 'http://localhost:8000' }; " +
+        "`$env:DATABASE_PATH = if (`$env:DATABASE_PATH) { `$env:DATABASE_PATH } else { '.\data\learning.db' }; " +
+        "& '$escapedPnpmCommand' dev }"
+
+    $frontendProcess = Start-Process -FilePath "powershell.exe" `
+        -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $frontendCommand) `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $frontendOutLog `
+        -RedirectStandardError $frontendErrLog `
+        -PassThru
+    Set-Content -Path $frontendPidFile -Value $frontendProcess.Id
+    Assert-StartedProcess $frontendProcess "Frontend" $frontendErrLog
+
+    Wait-ForHttp "http://127.0.0.1:3000/" "Frontend"
 }
 
-Set-Location $ROOT
+Write-Host ""
+Write-Host "Local stack started:" -ForegroundColor Green
+if (-not $SkipFrontend) {
+    Write-Host "  Frontend:      http://localhost:3000"
+    Write-Host "  Knowledge map: http://localhost:3000/graph"
+}
+if (-not $SkipBackend) {
+    Write-Host "  Backend API:   http://localhost:8000"
+    Write-Host "  API docs:      http://localhost:8000/docs"
+}
+if (-not $SkipNeo4j) {
+    Write-Host "  Neo4j Browser: http://localhost:7474"
+}
+Write-Host ""
+Write-Host "Logs:"
+if (-not $SkipBackend) {
+    Write-Host "  Backend:  Get-Content .runtime\logs\backend.err.log -Wait"
+}
+if (-not $SkipFrontend) {
+    Write-Host "  Frontend: Get-Content .runtime\logs\frontend.out.log -Wait"
+}
+Write-Host ""
+Write-Host "Stop:"
+Write-Host "  .\Make.ps1 stop"
+if (-not $SkipNeo4j) {
+    if ($script:_DockerComposeCmd -eq "docker compose") {
+        Write-Host "  docker compose down"
+    }
+    else {
+        Write-Host "  docker-compose down"
+    }
+}

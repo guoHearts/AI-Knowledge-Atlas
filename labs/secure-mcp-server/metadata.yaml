@@ -1,0 +1,95 @@
+id: secure-mcp-server
+title: Secure MCP Server
+status: draft
+difficulty: intermediate
+lastVerifiedAt: 2026-07-07
+
+estimatedSetupTime: 15min
+estimatedCost: "< $1"
+requiresApiKey: true
+
+stack:
+  - Python
+  - FastAPI
+  - MCP
+  - Pydantic
+  - Security
+
+features:
+  - Tool allowlist
+  - Parameter validation
+  - Audit logging
+  - Permission boundary
+  - Prompt injection defense
+  - Error handling
+
+commands:
+  install: pip install -r requirements.txt
+  run: python main.py
+  test: python -m pytest tests/ -v
+
+sources:
+  - type: official
+    url: https://docs.anthropic.com/en/docs/agents-and-workflows/mcp
+  - type: official
+    url: https://fastapi.tiangolo.com/
+  - type: official
+    url: https://docs.pydantic.dev/
+
+relatedRadarItems:
+  - mcp-security-best-practices
+  - production-agent-deployment
+
+relatedLabs:
+  - production-agent-with-human-approval
+  - coding-agent-sandbox
+
+# ciStatus: passing  # Temporarily disabled until CI/CI is set up
+
+# Tool-specific metadata
+tools:
+  calculator:
+    description: Basic arithmetic operations
+    parameters:
+      operation:
+        type: string
+        enum: [add, subtract, multiply, divide]
+        description: Mathematical operation to perform
+      a:
+        type: number
+        description: First operand
+      b:
+        type: number
+        description: Second operand
+
+  weather:
+    description: Get weather information for a city
+    parameters:
+      city:
+        type: string
+        description: City name
+      units:
+        type: string
+        enum: [celsius, fahrenheit]
+        default: celsius
+        description: Temperature units
+
+  search:
+    description: Web search functionality
+    parameters:
+      query:
+        type: string
+        description: Search query
+      limit:
+        type: integer
+        minimum: 1
+        maximum: 10
+        default: 5
+        description: Number of results to return
+
+# Security configuration examples
+securityExamples:
+  allowedTools: [calculator, weather, search]
+  maxExecutionTime: 30
+  logLevel: INFO
+  auditLogPath: logs/audit.log

@@ -1,116 +1,96 @@
-<#
-.SYNOPSIS
-    AI 开发者实训平台 — Windows 一键管理脚本
-.DESCRIPTION
-    PowerShell 版 Makefile，支持 start/stop/test/build/seed/status 等操作
-.EXAMPLE
-    .\Make.ps1 start        # 启动全栈
-    .\Make.ps1 test         # 运行测试
-    .\Make.ps1 status       # 查看状态
-#>
-
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("help", "install", "start", "stop", "restart", "dev", "docker-up",
-                 "seed", "reseed", "build", "test", "status", "logs", "clean", "clean-all")]
-    [string]$Command = "help"
+    [ValidateSet("help", "install", "start", "stop", "restart", "dev", "backend", "docker-up",
+                 "docker-app", "seed", "reseed", "build", "test", "status", "logs", "clean", "clean-all")]
+    [string]$Command = "help",
+
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Remaining
 )
 
 $ErrorActionPreference = "Stop"
 $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
-$NEXTJS_DIR = Join-Path $ROOT "frontend"
+$BACKEND_DIR = Join-Path $ROOT "backend"
+$FRONTEND_DIR = Join-Path $ROOT "frontend"
+$RUNTIME_DIR = Join-Path $ROOT ".runtime"
+$LOG_DIR = Join-Path $RUNTIME_DIR "logs"
+$REQUIRED_PNPM_VERSION = "10.33.4"
 
-# 颜色
-function Write-Step($msg) { Write-Host "▶ $msg" -ForegroundColor Cyan }
-function Write-OK($msg) { Write-Host "✓ $msg" -ForegroundColor Green }
-function Write-Warn($msg) { Write-Host "⚠ $msg" -ForegroundColor Yellow }
-function Write-Err($msg) { Write-Host "✗ $msg" -ForegroundColor Red }
+. (Join-Path $ROOT "scripts\common.ps1")
+Normalize-ProcessPathEnvironment
 
-# PATH 修复 (nvm 切换 Node 版本后需要)
-function Fix-Path {
-    $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" +
-                [Environment]::GetEnvironmentVariable("Path", "User")
+function Show-RecordedProcess {
+    param(
+        [string]$Name,
+        [string]$PidFile
+    )
+
+    if (-not (Test-Path $PidFile)) {
+        Write-Warn "${Name}: no pid file"
+        return
+    }
+
+    $processId = Get-Content -Path $PidFile -ErrorAction SilentlyContinue | Select-Object -First 1
+    $process = if ($processId) { Get-Process -Id ([int]$processId) -ErrorAction SilentlyContinue } else { $null }
+    if ($process) {
+        Write-OK "${Name}: running (PID $processId)"
+    }
+    else {
+        Write-Warn "${Name}: pid file exists, process is not running"
+    }
 }
 
-# ═══════════════════════════════════════════════════════════════
 switch ($Command) {
     "help" {
         Write-Host @"
+AI Knowledge Atlas — 两种启动方式
 
-AI 开发者实训平台 — PowerShell 管理命令
-══════════════════════════════════════════════
+  方式1: 混合模式 (前端+后端本地, Neo4j Docker)
+    .\Make.ps1 start       一键启动 (Neo4j Docker + 本地后端 + 本地前端)
+    .\Make.ps1 stop        停止所有服务
+    .\Make.ps1 restart     重启整栈
 
-  .\Make.ps1 start        启动全栈服务
-  .\Make.ps1 stop         停止所有服务
-  .\Make.ps1 restart      重启所有服务
-  .\Make.ps1 install      安装所有依赖
-  .\Make.ps1 build        生产构建前端
-  .\Make.ps1 test         运行全栈测试
-  .\Make.ps1 seed         注入 Neo4j 种子数据
-  .\Make.ps1 reseed       重建所有种子数据
-  .\Make.ps1 status       查看服务状态
-  .\Make.ps1 logs         查看后端日志
-  .\Make.ps1 dev          仅启动前端 dev 模式
-  .\Make.ps1 docker-up    仅启动 Docker (Neo4j + Backend)
-  .\Make.ps1 clean        清理构建产物
-  .\Make.ps1 clean-all    深度清理
-  .\Make.ps1 help         显示此帮助
+  方式2: 全 Docker 模式
+    .\Make.ps1 docker-app  构建并启动全部服务 (Neo4j + 后端 + 前端)
 
-快速开始: .\Make.ps1 start
-
+  单独启动/管理:
+    .\Make.ps1 install     安装前后端依赖
+    .\Make.ps1 docker-up   仅启动 Docker 依赖服务 (Neo4j)
+    .\Make.ps1 backend     单独启动本地后端 (前景)
+    .\Make.ps1 dev         单独启动本地前端 (前景)
+    .\Make.ps1 seed        向 Neo4j 写入种子数据
+    .\Make.ps1 build       构建前端
+    .\Make.ps1 test        检查 HTTP 端点
+    .\Make.ps1 status      显示 Docker 和 HTTP 状态
+    .\Make.ps1 logs        查看本地后端/前端日志
+    .\Make.ps1 clean       移除前端构建产物和数据库文件
+    .\Make.ps1 clean-all   移除产物 + Docker volumes
 "@
     }
 
     "install" {
-        Fix-Path
-        Write-Step "安装前端依赖..."
-        Push-Location $NEXTJS_DIR
-        pnpm install --registry=https://registry.npmmirror.com/
-        Pop-Location
-        Write-OK "前端依赖安装完成"
-
-        Write-Step "安装后端依赖..."
-        Push-Location (Join-Path $ROOT "backend")
-        pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
-        Pop-Location
-        Write-OK "后端依赖安装完成"
-        Write-OK "所有依赖安装完毕!"
+        Assert-PnpmVersion
+        & (Join-Path $ROOT "start.ps1") -InstallOnly
     }
 
     "start" {
-        Fix-Path
-        Write-Step "启动 Neo4j + FastAPI 后端..."
-        Push-Location $ROOT
-        docker compose up -d neo4j backend
-        Pop-Location
-        Write-OK "后端容器已启动"
-
-        Start-Sleep -Seconds 6
-        Write-Step "启动 Next.js 前端 (dev 模式)..."
-        Push-Location $NEXTJS_DIR
-        Start-Process -NoNewWindow pnpm -ArgumentList "dev"
-        Pop-Location
-
-        Start-Sleep -Seconds 5
-        Write-Host ""
-        Write-Host "═══════════════════════════════════════" -F Green
-        Write-Host "  全栈服务已启动" -F Green
-        Write-Host "  前端: http://localhost:3000" -F Green
-        Write-Host "  后端: http://localhost:8000" -F Green
-        Write-Host "  Neo4j: bolt://localhost:7687" -F Green
-        Write-Host "═══════════════════════════════════════" -F Green
+        & (Join-Path $ROOT "start.ps1") @Remaining
     }
 
     "stop" {
-        Write-Warn "停止 Next.js 前端..."
-        Get-Process -Name "node" -ErrorAction SilentlyContinue | Stop-Process -Force
-        Start-Sleep -Seconds 2
+        Write-Warn "Stopping local frontend/backend processes"
+        Stop-RecordedProcess (Join-Path $RUNTIME_DIR "backend.pid")
+        Stop-RecordedProcess (Join-Path $RUNTIME_DIR "frontend.pid")
 
-        Write-Warn "停止 Docker 容器..."
+        Write-Warn "Stopping Docker services"
         Push-Location $ROOT
-        docker compose down
-        Pop-Location
-        Write-OK "所有服务已停止"
+        try {
+            Invoke-DockerCompose down
+        }
+        finally {
+            Pop-Location
+        }
+        Write-OK "Stopped"
     }
 
     "restart" {
@@ -118,149 +98,146 @@ AI 开发者实训平台 — PowerShell 管理命令
         & $MyInvocation.MyCommand.Path "start"
     }
 
-    "dev" {
-        Fix-Path
-        Write-Step "启动前端开发服务器..."
-        Push-Location $NEXTJS_DIR
-        pnpm dev
-        Pop-Location
+    "docker-up" {
+        Push-Location $ROOT
+        try {
+            Invoke-DockerCompose up -d neo4j
+        }
+        finally {
+            Pop-Location
+        }
+        Write-OK "Docker dependency services are running"
     }
 
-    "docker-up" {
-        Write-Step "启动 Neo4j + Backend..."
+    "docker-app" {
+        Write-Step "构建并启动全 Docker 栈 (Neo4j + Backend + Frontend)"
         Push-Location $ROOT
-        docker compose up -d neo4j backend
-        Pop-Location
-        Write-OK "Docker 服务已启动"
+        try {
+            Invoke-DockerCompose --profile app up -d --build neo4j backend frontend
+        }
+        finally {
+            Pop-Location
+        }
+        Write-OK "全 Docker 栈已启动"
+        Write-Host ""
+        Write-Host "  前端:       http://localhost:3000"
+        Write-Host "  后端 API:   http://localhost:8000"
+        Write-Host "  API 文档:   http://localhost:8000/docs"
+        Write-Host "  Neo4j:      http://localhost:7474"
+        Write-Host ""
+        Write-Host "停止: .\Make.ps1 stop"
+    }
+
+    "backend" {
+        Wait-ForTcp "127.0.0.1" 7687 "Neo4j"
+        Ensure-BackendVenv
+        Use-BackendEnv
+        Push-Location $BACKEND_DIR
+        try {
+            & (Get-BackendPython) -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+        }
+        finally {
+            Pop-Location
+        }
+    }
+
+    "dev" {
+        Assert-PnpmVersion
+        Push-Location $FRONTEND_DIR
+        try {
+            $env:NEXT_PUBLIC_API_URL = if ($env:NEXT_PUBLIC_API_URL) { $env:NEXT_PUBLIC_API_URL } else { "http://localhost:8000" }
+            $env:DATABASE_PATH = if ($env:DATABASE_PATH) { $env:DATABASE_PATH } else { ".\data\learning.db" }
+            Invoke-Pnpm dev
+        }
+        finally {
+            Pop-Location
+        }
     }
 
     "seed" {
-        Write-Step "向 Neo4j 注入种子数据..."
-        docker exec ai-knowledge-graph-backend-1 python scripts/seed_data.py
-        Write-OK "Neo4j 种子数据注入完成"
+        Ensure-BackendVenv
+        Use-BackendEnv
+        Push-Location $BACKEND_DIR
+        try {
+            & (Get-BackendPython) scripts\seed_data.py
+        }
+        finally {
+            Pop-Location
+        }
     }
 
     "reseed" {
-        Write-Warn "删除旧 SQLite 数据库..."
-        Remove-Item -Force (Join-Path $NEXTJS_DIR "data\learning.db") -ErrorAction SilentlyContinue
-
-        Write-Step "运行 Neo4j 种子..."
-        docker exec ai-knowledge-graph-backend-1 python scripts/seed_data.py
-
-        Write-Step "触发前端重建 SQLite..."
-        $null = Invoke-WebRequest "http://localhost:3000/" -UseBasicParsing -TimeoutSec 30 -ErrorAction SilentlyContinue
-
-        Write-OK "种子数据全部重建完成"
+        Remove-Item -Force (Join-Path $FRONTEND_DIR "data\learning.db") -ErrorAction SilentlyContinue
+        & $MyInvocation.MyCommand.Path "seed"
     }
 
     "build" {
-        Fix-Path
-        Write-Step "构建 Next.js 前端..."
-        Push-Location $NEXTJS_DIR
-        pnpm build
-        Pop-Location
-        Write-OK "构建完成"
+        Assert-PnpmVersion
+        Push-Location $FRONTEND_DIR
+        try {
+            Invoke-Pnpm build
+        }
+        finally {
+            Pop-Location
+        }
     }
 
     "test" {
-        Write-Step "运行全栈自动化测试..."
-        Write-Host ""
+        Write-Step "Checking local HTTP endpoints"
+        $checks = @(
+            @("Frontend", "http://localhost:3000/"),
+            @("Graph page", "http://localhost:3000/graph"),
+            @("Backend health", "http://localhost:8000/health"),
+            @("API docs", "http://localhost:8000/docs")
+        )
 
-        $pass = 0; $fail = 0
-
-        function Test($name, $script) {
+        foreach ($check in $checks) {
             try {
-                $result = & $script
-                if ($result) {
-                    Write-Host "  ✅ $name" -F Green
-                    $global:pass++
-                } else {
-                    Write-Host "  ❌ $name" -F Red
-                    $global:fail++
-                }
-            } catch {
-                Write-Host "  ❌ $name" -F Red
-                $global:fail++
+                $response = Invoke-WebRequest -Uri $check[1] -UseBasicParsing -TimeoutSec 10
+                Write-OK "$($check[0]): HTTP $($response.StatusCode)"
+            }
+            catch {
+                Write-Warn "$($check[0]): unavailable"
             }
         }
-
-        Write-Host "--- 前端页面 ---" -F Cyan
-        Test "首页 200" { (iwr "http://localhost:3000/" -UseBasic -TimeoutSec 10).StatusCode -eq 200 }
-        Test "路线详情 200" { (iwr "http://localhost:3000/learn/agent-engineer" -UseBasic -TimeoutSec 10).StatusCode -eq 200 }
-        Test "图谱页 200" { (iwr "http://localhost:3000/graph" -UseBasic -TimeoutSec 10).StatusCode -eq 200 }
-        Test "CMS 200" { (iwr "http://localhost:3000/cms" -UseBasic -TimeoutSec 10).StatusCode -eq 200 }
-
-        Write-Host "--- API 路由 ---" -F Cyan
-        Test "tracks" { (irm "http://localhost:3000/api/tracks" -TimeoutSec 10).Count -ge 1 }
-        Test "modules (10个)" { (irm "http://localhost:3000/api/tracks/agent-engineer" -TimeoutSec 10).modules.Count -eq 10 }
-        Test "design-patterns (9个)" { (irm "http://localhost:3000/api/design-patterns" -TimeoutSec 10).Count -eq 9 }
-
-        Write-Host "--- 后端 ---" -F Cyan
-        Test "health" { (irm "http://localhost:8000/health" -TimeoutSec 5).status -eq "ok" }
-        Test "graph/nodes" { (irm "http://localhost:8000/graph/nodes?limit=10" -TimeoutSec 10).Count -eq 10 }
-        Test "graph/edges" { (irm "http://localhost:8000/graph/edges?limit=10" -TimeoutSec 10).Count -eq 10 }
-
-        Write-Host "--- 种子数据 ---" -F Cyan
-        $track = irm "http://localhost:3000/api/tracks/agent-engineer" -TimeoutSec 10
-        Test "10模块" { $track.modules.Count -eq 10 }
-        Test "RAG模块存在" { ($track.modules | ForEach-Object title) -like "*RAG*" }
-
-        $total = $pass + $fail
-        Write-Host ""
-        Write-Host "═══════════════════════════════════════" -F Green
-        Write-Host "  通过: $pass / 失败: $fail (共 $total)" -F Green
-        Write-Host "═══════════════════════════════════════" -F Green
     }
 
     "status" {
-        Write-Host "--- Docker 容器 ---" -F Cyan
-        docker ps --filter "name=ai-knowledge-graph" --format "table {{.Names}}`t{{.Status}}`t{{.Ports}}"
+        Write-Host "--- Docker services ---" -ForegroundColor Cyan
+        Invoke-DockerCompose ps
 
         Write-Host ""
-        Write-Host "--- HTTP 健康 ---" -F Cyan
-        try {
-            $r = iwr "http://localhost:3000/" -UseBasic -TimeoutSec 5
-            Write-Host "  前端: $($r.StatusCode)" -F Green
-        } catch { Write-Host "  前端: 未运行" -F Red }
-
-        try {
-            $r = irm "http://localhost:8000/health" -TimeoutSec 5
-            Write-Host "  后端: $($r.status)" -F Green
-        } catch { Write-Host "  后端: 未运行" -F Red }
+        Write-Host "--- Local jobs ---" -ForegroundColor Cyan
+        Show-RecordedProcess "Backend" (Join-Path $RUNTIME_DIR "backend.pid")
+        Show-RecordedProcess "Frontend" (Join-Path $RUNTIME_DIR "frontend.pid")
 
         Write-Host ""
-        Write-Host "--- 数据库 ---" -F Cyan
-        $dbPath = Join-Path $NEXTJS_DIR "data\learning.db"
-        if (Test-Path $dbPath) {
-            $size = [math]::Round((Get-Item $dbPath).Length / 1KB, 1)
-            Fix-Path
-            $modCount = node -e "const D=require('better-sqlite3');const d=new D('$($dbPath -replace '\\','\\')');console.log(d.prepare('SELECT count(*) as c FROM modules').get().c)" 2>$null
-            Write-Host "  SQLite: ${size}KB, $($modCount.Trim()) 模块" -F Green
-        } else {
-            Write-Host "  SQLite: 未创建" -F Yellow
-        }
+        & $MyInvocation.MyCommand.Path "test"
     }
 
     "logs" {
-        docker logs -f ai-knowledge-graph-backend-1
+        Get-ChildItem -Path $LOG_DIR -Filter "*.log" -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "--- $($_.Name) ---" -ForegroundColor Cyan
+            Get-Content -Path $_.FullName -Tail 80 -ErrorAction SilentlyContinue
+        }
     }
 
     "clean" {
-        Write-Warn "清理 .next 构建产物..."
-        Remove-Item -Recurse -Force (Join-Path $NEXTJS_DIR ".next") -ErrorAction SilentlyContinue
-        Write-Warn "清理 SQLite 数据库..."
-        Remove-Item -Force (Join-Path $NEXTJS_DIR "data\learning.db") -ErrorAction SilentlyContinue
-        Write-OK "清理完成"
+        Remove-Item -Recurse -Force (Join-Path $FRONTEND_DIR ".next") -ErrorAction SilentlyContinue
+        Remove-Item -Force (Join-Path $FRONTEND_DIR "data\learning.db") -ErrorAction SilentlyContinue
+        Write-OK "Local frontend build/database artifacts removed"
     }
 
     "clean-all" {
         & $MyInvocation.MyCommand.Path "clean"
-        Write-Warn "清理 Docker volumes..."
         Push-Location $ROOT
-        docker compose down -v
-        Pop-Location
-        Write-Warn "清理 node_modules..."
-        Remove-Item -Recurse -Force (Join-Path $NEXTJS_DIR "node_modules") -ErrorAction SilentlyContinue
-        Write-OK "深度清理完成"
+        try {
+            Invoke-DockerCompose down -v
+        }
+        finally {
+            Pop-Location
+        }
+        Remove-Item -Recurse -Force (Join-Path $FRONTEND_DIR "node_modules") -ErrorAction SilentlyContinue
+        Write-OK "Local artifacts and Docker volumes removed"
     }
 }

@@ -1,0 +1,14 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+pydantic==2.9.0
+pydantic-settings==2.5.0
+redis==5.0.1
+aioredis==2.0.1
+python-dotenv==1.2.2
+structlog==24.1.0
+aiohttp==3.10.0
+celery==5.3.4
+flower==2.0.1  # Monitoring for Celery
+python-multipart==0.0.9
+jinja2==3.1.4  # For dashboard templates
+websockets==16.0  # For real-time dashboard updates

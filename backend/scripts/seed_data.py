@@ -1,5 +1,5 @@
 """Seed the knowledge graph with ~50 core AI entities and relationships.
-Run once after first setup: docker compose exec backend python scripts/seed_data.py
+Run once after first setup: python scripts/seed_data.py
 """
 
 import os
