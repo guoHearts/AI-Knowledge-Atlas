@@ -11,3 +11,7 @@ export function getBackendInternalUrl(): string {
       DEFAULT_BACKEND_URL,
   );
 }
+
+export function getPublicApiUrl(): string {
+  return trimTrailingSlash(process.env.NEXT_PUBLIC_API_URL || DEFAULT_BACKEND_URL);
+}
