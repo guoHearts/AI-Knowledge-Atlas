@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
 import * as d3 from 'd3';
-import type { GraphNode, GraphEdge, NodeType } from '@/types/graph';
-import { NODE_COLORS } from '@/types/graph';
+import type { GraphNode, GraphEdge, NodeType } from '@/features/graph/types/graph.types';
+import { NODE_COLORS } from '@/features/graph/types/graph.types';
 
 interface Props {
   nodes: GraphNode[];

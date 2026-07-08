@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useState } from 'react';
 import {
   saveExperimentProgress,
   verifyExperimentProgress,
 } from '@/features/progress/api/progressApi';
-import type { ExperimentConfig } from '@/types/learning';
+import type { ExperimentConfig } from '@/features/learn/types/learning';
 
 interface Props {
   config: ExperimentConfig;

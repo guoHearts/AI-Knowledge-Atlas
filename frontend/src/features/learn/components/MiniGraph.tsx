@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { fetchSubgraph, fetchNodeDetail } from '@/lib/api';
-import type { GraphNode, GraphEdge, NodeType } from '@/types/graph';
-import { NODE_COLORS } from '@/types/graph';
+import { getGraphNodeDetail, getGraphSubgraph } from '@/features/graph/api/graphApi';
+import type { GraphNode, GraphEdge, NodeType } from '@/features/graph/types/graph.types';
+import { NODE_COLORS } from '@/features/graph/types/graph.types';
 
 interface Props {
   nodeIds: string[];
@@ -25,7 +25,7 @@ export function MiniGraph({ nodeIds }: Props) {
       try {
         setLoading(true);
         // Try fetching subgraph first
-        const subgraph = await fetchSubgraph(nodeIds, 1);
+        const subgraph = await getGraphSubgraph(nodeIds, 1);
         if (!cancelled) {
           const uniqueNodes = dedupeById(subgraph.nodes);
           const uniqueEdges = dedupeEdges(subgraph.edges);
@@ -37,7 +37,7 @@ export function MiniGraph({ nodeIds }: Props) {
         try {
           const nodePromises = nodeIds.map(id => {
             // Guess the type from common mappings
-            return fetchNodeDetail('Technology', id).catch(() => null);
+            return getGraphNodeDetail('Technology', id).catch(() => null);
           });
           const details = await Promise.all(nodePromises);
           if (!cancelled) {

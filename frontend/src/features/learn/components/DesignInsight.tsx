@@ -1,4 +1,4 @@
-import type { Lesson } from '@/types/learning';
+﻿import type { Lesson } from '@/features/learn/types/learning';
 
 export function DesignInsight({ lesson }: { lesson: Lesson }) {
   if (!lesson.designPatternId) return null;

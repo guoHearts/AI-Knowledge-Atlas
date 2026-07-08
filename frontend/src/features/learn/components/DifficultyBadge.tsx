@@ -1,4 +1,4 @@
-import { Difficulty, DIFFICULTY_COLORS } from '@/types/learning';
+﻿import { Difficulty, DIFFICULTY_COLORS } from '@/features/learn/types/learning';
 
 const FALLBACK_LABELS: Record<Difficulty, string> = {
   beginner: 'Beginner',

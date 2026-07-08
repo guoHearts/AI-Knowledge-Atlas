@@ -1,4 +1,4 @@
-export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
+﻿export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 export type ContentStatus = 'draft' | 'published' | 'archived';
 export type ProgressStatus = 'not_started' | 'in_progress' | 'completed';
 export type ExperimentStatus = 'not_started' | 'in_progress' | 'verified';

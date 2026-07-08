@@ -2,14 +2,14 @@
 
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { NodeDetailPanel } from '@/components/graph/NodeDetail';
+import { NodeDetailPanel } from './NodeDetail';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useGraphWorkspace } from '../hooks/useGraphWorkspace';
 import { GraphLegend } from './GraphLegend';
 import { GraphRelationsBadgeList } from './GraphRelationsBadgeList';
 import { GraphToolbar } from './GraphToolbar';
 
-const GraphCanvas = dynamic(() => import('@/components/graph/GraphCanvas').then((module) => ({ default: module.GraphCanvas })), {
+const GraphCanvas = dynamic(() => import('./GraphCanvas').then((module) => ({ default: module.GraphCanvas })), {
   ssr: false,
 });
 

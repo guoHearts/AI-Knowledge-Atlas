@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { GraphNode, NodeType } from '@/types/graph';
-import { NODE_COLORS, NODE_LABELS } from '@/types/graph';
+import type { GraphNode, NodeType } from '@/features/graph/types/graph.types';
+import { NODE_COLORS, NODE_LABELS } from '@/features/graph/types/graph.types';
 
 interface Props {
   onSelectNode: (node: GraphNode) => void;

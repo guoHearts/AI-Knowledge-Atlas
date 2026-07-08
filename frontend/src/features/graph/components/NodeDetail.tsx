@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
-import type { GraphEdge, GraphNode, NodeDetail, NodeType, RelationType } from '@/types/graph';
-import { NODE_COLORS, NODE_EXPLAINERS, NODE_LABELS, RELATION_EXPLAINERS, RELATION_LABELS } from '@/types/graph';
+import type { GraphEdge, GraphNode, NodeDetail, NodeType, RelationType } from '@/features/graph/types/graph.types';
+import { NODE_COLORS, NODE_EXPLAINERS, NODE_LABELS, RELATION_EXPLAINERS, RELATION_LABELS } from '@/features/graph/types/graph.types';
 
 interface Props {
   detail: NodeDetail | null;

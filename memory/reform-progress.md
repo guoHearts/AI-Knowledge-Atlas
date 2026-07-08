@@ -48,12 +48,17 @@ metadata:
 - 首页、Labs、学习路线、全局 loading/error/not-found、图谱 loading 文案接入消息键
 - 导航栏新增语言切换按钮，使用 `locale` cookie 切换并刷新
 
+**P2 组件归位**：
+- Graph 业务组件移动到 `frontend/src/features/graph/components`
+- Learn 业务组件移动到 `frontend/src/features/learn/components`
+- Graph/Learn 业务类型移动到各自 feature `types`
+- 删除全局业务目录与旧 `lib/api.ts` 过渡导出
+
 **其他**：LF 换行统一、`.gitignore` 新增 `.pytest_cache/`、本地 PG 18 卸载
 
 ## 下一步
 
-1. **P2**：Graph/Learn 组件归位、类型文件归位
-2. **批次B**：Radar 最小闭环（后端模型+API、首页雷达屏）
+1. **批次B**：Radar 最小闭环（后端模型+API、首页雷达屏）
 
 **Why**：记录进度避免下次会话重复摸底。
 **How to apply**：新会话先读本条确认进度再动手。

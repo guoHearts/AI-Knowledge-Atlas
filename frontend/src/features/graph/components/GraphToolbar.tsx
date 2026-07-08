@@ -1,7 +1,7 @@
 'use client';
 
-import { FilterPanel } from '@/components/graph/FilterPanel';
-import { SearchBar } from '@/components/graph/SearchBar';
+import { FilterPanel } from './FilterPanel';
+import { SearchBar } from './SearchBar';
 import type { GraphNode, NodeType } from '../types/graph.types';
 
 interface GraphToolbarProps {

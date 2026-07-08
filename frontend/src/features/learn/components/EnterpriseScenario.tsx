@@ -1,4 +1,4 @@
-import type { Lesson } from '@/types/learning';
+﻿import type { Lesson } from '@/features/learn/types/learning';
 
 export function EnterpriseScenario({ lesson }: { lesson: Lesson }) {
   if (!lesson.tags.includes('实战') && !lesson.tags.includes('生产') && !lesson.tags.includes('生产级')) return null;

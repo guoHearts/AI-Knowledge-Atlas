@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ProgressBar } from '@/components/shared/ProgressBar';
-import { DifficultyBadge } from '@/components/shared/DifficultyBadge';
+import { DifficultyBadge } from '@/features/learn/components/DifficultyBadge';
 import { getLearningMetadata, getTrackPageData } from '@/features/learn/api/learningApi';
 
 export const dynamic = 'force-dynamic';

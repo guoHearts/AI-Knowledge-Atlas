@@ -10,13 +10,13 @@ import type {
   ModuleRow,
   UserProgress,
   UserProgressRow,
-} from '../../../types/learning';
+} from '../types/learning';
 import {
   toLesson,
   toModule,
   toTrack,
   toUserProgress,
-} from '../../../types/learning';
+} from '../types/learning';
 
 export type TrackRowWithModuleRows = LearningTrackRow & {
   modules: ModuleRow[];

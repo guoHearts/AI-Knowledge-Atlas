@@ -1,20 +1,20 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DifficultyBadge } from '@/components/shared/DifficultyBadge';
+import { DifficultyBadge } from '@/features/learn/components/DifficultyBadge';
 import { AnalogyCard } from '@/components/shared/AnalogyCard';
-import { ExperimentPanel } from '@/components/learn/ExperimentPanel';
-import { MiniGraph } from '@/components/learn/MiniGraph';
-import { DesignInsight } from '@/components/learn/DesignInsight';
-import { EnterpriseScenario } from '@/components/learn/EnterpriseScenario';
-import { SelfCheckList } from '@/components/learn/SelfCheckList';
+import { ExperimentPanel } from './ExperimentPanel';
+import { MiniGraph } from './MiniGraph';
+import { DesignInsight } from './DesignInsight';
+import { EnterpriseScenario } from './EnterpriseScenario';
+import { SelfCheckList } from './SelfCheckList';
 import { markLessonProgress } from '@/features/progress/api/progressApi';
 import type {
   LearningTrack, Module, Lesson, UserProgress,
-} from '@/types/learning';
+} from '@/features/learn/types/learning';
 
 interface Props {
   track: LearningTrack;

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getLessonPageData } from '@/features/learn/api/learningApi';
-import { LessonPlayerClient } from '@/components/learn/LessonPlayerClient';
+import { LessonPlayerClient } from '@/features/learn/components/LessonPlayerClient';
 
 export const dynamic = 'force-dynamic';
 

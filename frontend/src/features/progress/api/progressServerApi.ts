@@ -1,6 +1,6 @@
 import { getBackendInternalUrl } from '../../../lib/env';
 import { request } from '../../../lib/request';
-import type { UserProgressRow } from '../../../types/learning';
+import type { UserProgressRow } from '../../learn/types/learning';
 
 export type ProgressUpsertInput = {
   lessonId: string;

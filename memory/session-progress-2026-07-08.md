@@ -47,6 +47,14 @@ metadata:
 - 导航、主题按钮、首页、Labs、学习路线、全局 loading/error/not-found、图谱 loading 文案接入消息文件
 - 新增 `LocaleToggle`，通过 `locale` cookie 在 `zh-CN` / `en-US` 间切换并刷新页面
 
+### P2 组件归位
+- `components/graph/*` → `features/graph/components/*`
+- `components/learn/*` → `features/learn/components/*`
+- `types/graph.ts` → `features/graph/types/graph.types.ts`
+- `types/learning.ts` → `features/learn/types/learning.ts`
+- `DifficultyBadge` 从 shared 归入 Learn feature，避免 shared 依赖业务类型
+- 删除空的全局业务目录 `components/graph`、`components/learn`、`types` 和过渡用 `lib/api.ts`
+
 ## 提交
 
 - `3a46ad6` feat: 后端统一响应 + 前端错误处理 + 亮暗双主题 + 学习种子数据
@@ -54,5 +62,4 @@ metadata:
 
 ## 下一步
 
-1. P2 组件归位
-2. 批次B Radar 最小闭环
+1. 批次B Radar 最小闭环

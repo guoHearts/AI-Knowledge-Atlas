@@ -43,6 +43,7 @@ metadata:
 | 学习种子数据 | ✅ |
 | 前端硬编码数据迁后端 | ✅ |
 | i18n 默认中文 + 语言切换 | ✅ |
+| P2 组件归位 | ✅ |
 
 ## 工程基础
 
@@ -56,10 +57,10 @@ metadata:
 - 测试集中 src/test/ ✅
 - 首页/Labs/学习元数据由后端 learning catalog 接口提供 ✅
 - next-intl 默认中文 + cookie 语言切换 ✅
+- Graph/Learn 业务组件与类型归入 feature 目录 ✅
 
 ## 下一优先
 
-1. P2 组件归位
-2. 批次B Radar 最小闭环
+1. 批次B Radar 最小闭环
 
 **How to apply**：完成任务后更新本文档。

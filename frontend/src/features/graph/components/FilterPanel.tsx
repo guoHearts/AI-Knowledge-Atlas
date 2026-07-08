@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
-import type { NodeType } from '@/types/graph';
-import { NODE_COLORS, NODE_EXPLAINERS, NODE_LABELS } from '@/types/graph';
+import type { NodeType } from '@/features/graph/types/graph.types';
+import { NODE_COLORS, NODE_EXPLAINERS, NODE_LABELS } from '@/features/graph/types/graph.types';
 
 const NODE_TYPES: NodeType[] = [
   'Technology',
