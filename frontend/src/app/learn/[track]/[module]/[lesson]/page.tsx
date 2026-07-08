@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
-import { getDb } from '@/lib/db';
 import { getLessonPageData } from '@/features/learn/server/learningService';
 import { LessonPlayerClient } from '@/components/learn/LessonPlayerClient';
+
+export const dynamic = 'force-dynamic';
 
 export default async function LessonPage({
   params,
@@ -10,7 +11,7 @@ export default async function LessonPage({
 }) {
   const { track: trackSlug, module: moduleId, lesson: lessonSlug } = await params;
 
-  const pageData = getLessonPageData(getDb(), { trackSlug, moduleId, lessonSlug });
+  const pageData = await getLessonPageData({ trackSlug, moduleId, lessonSlug });
   if (!pageData) notFound();
   const { track, module: mod, lesson, progress, navigation } = pageData;
 

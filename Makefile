@@ -47,7 +47,7 @@ stop:
 restart: stop start
 
 docker-up:
-	$(COMPOSE) up -d neo4j
+	$(COMPOSE) up -d neo4j postgres
 
 docker-app:
 	$(COMPOSE) --profile app up -d --build neo4j backend frontend
@@ -57,13 +57,13 @@ backend:
 	NEO4J_URI=$${NEO4J_URI:-bolt://localhost:7687} \
 	NEO4J_USER=$${NEO4J_USER:-neo4j} \
 	NEO4J_PASSWORD=$${NEO4J_PASSWORD:-ai-knowledge-graph} \
+	DATABASE_URL=$${DATABASE_URL:-postgresql://app:app_password@localhost:5432/ai_knowledge_atlas} \
 	ENABLE_SCHEDULER=$${ENABLE_SCHEDULER:-false} \
 	.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 dev: check-pnpm
 	cd $(FRONTEND_DIR) && \
 	NEXT_PUBLIC_API_URL=$${NEXT_PUBLIC_API_URL:-http://localhost:8000} \
-	DATABASE_PATH=$${DATABASE_PATH:-./data/learning.db} \
 	pnpm dev
 
 seed:
@@ -74,8 +74,7 @@ seed:
 	.venv/bin/python scripts/seed_data.py
 
 reseed:
-	rm -f $(FRONTEND_DIR)/data/learning.db
-	$(MAKE) seed
+	cd $(BACKEND_DIR) && DATABASE_URL=$${DATABASE_URL:-postgresql://app:app_password@localhost:5432/ai_knowledge_atlas} .venv/bin/python scripts/migrate_sqlite_learning_to_postgres.py
 
 build: check-pnpm
 	cd $(FRONTEND_DIR) && pnpm build
@@ -93,7 +92,6 @@ logs:
 
 clean:
 	rm -rf $(FRONTEND_DIR)/.next
-	rm -f $(FRONTEND_DIR)/data/learning.db
 
 clean-all: clean
 	$(COMPOSE) down -v

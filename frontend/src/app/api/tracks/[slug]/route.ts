@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
 import { getTrackRowWithModuleRows } from '@/features/learn/server/learningService';
 
 export async function GET(
@@ -7,7 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const track = getTrackRowWithModuleRows(getDb(), slug);
+  const track = await getTrackRowWithModuleRows(slug);
   if (!track) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(track);
 }

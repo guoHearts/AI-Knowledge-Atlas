@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getDb } from '@/lib/db';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import { DifficultyBadge } from '@/components/shared/DifficultyBadge';
 import { STAGE_LABELS } from '@/lib/constants';
 import { getTrackPageData } from '@/features/learn/server/learningService';
+
+export const dynamic = 'force-dynamic';
 
 export default async function TrackPage({
   params,
@@ -13,7 +14,7 @@ export default async function TrackPage({
 }) {
   const { track: slug } = await params;
 
-  const pageData = getTrackPageData(getDb(), slug);
+  const pageData = await getTrackPageData(slug);
   if (!pageData) notFound();
   const { track, modules, allLessons, overallPercent } = pageData;
 

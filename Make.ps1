@@ -101,7 +101,7 @@ AI Knowledge Atlas — 两种启动方式
     "docker-up" {
         Push-Location $ROOT
         try {
-            Invoke-DockerCompose up -d neo4j
+            Invoke-DockerCompose up -d neo4j postgres
         }
         finally {
             Pop-Location
@@ -146,7 +146,6 @@ AI Knowledge Atlas — 两种启动方式
         Push-Location $FRONTEND_DIR
         try {
             $env:NEXT_PUBLIC_API_URL = if ($env:NEXT_PUBLIC_API_URL) { $env:NEXT_PUBLIC_API_URL } else { "http://localhost:8000" }
-            $env:DATABASE_PATH = if ($env:DATABASE_PATH) { $env:DATABASE_PATH } else { ".\data\learning.db" }
             Invoke-Pnpm dev
         }
         finally {
@@ -167,8 +166,16 @@ AI Knowledge Atlas — 两种启动方式
     }
 
     "reseed" {
-        Remove-Item -Force (Join-Path $FRONTEND_DIR "data\learning.db") -ErrorAction SilentlyContinue
-        & $MyInvocation.MyCommand.Path "seed"
+        Push-Location $BACKEND_DIR
+        try {
+            if (-not $env:DATABASE_URL) {
+                $env:DATABASE_URL = "postgresql://app:app_password@localhost:5432/ai_knowledge_atlas"
+            }
+            & ".\.venv\Scripts\python.exe" "scripts\migrate_sqlite_learning_to_postgres.py"
+        }
+        finally {
+            Pop-Location
+        }
     }
 
     "build" {
@@ -224,8 +231,7 @@ AI Knowledge Atlas — 两种启动方式
 
     "clean" {
         Remove-Item -Recurse -Force (Join-Path $FRONTEND_DIR ".next") -ErrorAction SilentlyContinue
-        Remove-Item -Force (Join-Path $FRONTEND_DIR "data\learning.db") -ErrorAction SilentlyContinue
-        Write-OK "Local frontend build/database artifacts removed"
+        Write-OK "Local frontend build artifacts removed"
     }
 
     "clean-all" {

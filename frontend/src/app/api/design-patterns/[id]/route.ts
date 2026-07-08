@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
 import { getDesignPatternRow } from '@/features/learn/server/learningService';
 
 export async function GET(
@@ -7,7 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const pattern = getDesignPatternRow(getDb(), id);
+  const pattern = await getDesignPatternRow(id);
   if (!pattern) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(pattern);
 }

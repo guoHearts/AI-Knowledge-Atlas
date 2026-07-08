@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
 import {
   listUserProgressRows,
   upsertLessonProgress,
@@ -8,7 +7,7 @@ import {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId') || 'default';
-  return NextResponse.json(listUserProgressRows(getDb(), userId));
+  return NextResponse.json(await listUserProgressRows(userId));
 }
 
 export async function PUT(request: Request) {
@@ -16,7 +15,7 @@ export async function PUT(request: Request) {
   const { lessonId, status, experimentCode, experimentStatus } = body;
   const userId = body.userId || 'default';
 
-  return NextResponse.json(upsertLessonProgress(getDb(), {
+  return NextResponse.json(await upsertLessonProgress({
     lessonId,
     userId,
     status,

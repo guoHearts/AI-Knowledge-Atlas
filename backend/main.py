@@ -86,12 +86,14 @@ from api.chat_routes import router as chat_router
 from api.content_routes import router as content_router
 from api.progress_routes import router as progress_router
 from api.radar_routes import router as radar_router
+from modules.learning.router import router as learning_router
 app.include_router(graph_router)
 app.include_router(share_router)
 app.include_router(chat_router)
 app.include_router(content_router)
 app.include_router(progress_router)
 app.include_router(radar_router)
+app.include_router(learning_router)
 
 
 @app.get("/health")

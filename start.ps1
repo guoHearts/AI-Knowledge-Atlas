@@ -94,17 +94,19 @@ if (-not $SkipNeo4j) {
     Write-Step "Starting Docker dependency services"
     Push-Location $ROOT
     try {
-        Invoke-DockerCompose up -d neo4j
+        Invoke-DockerCompose up -d neo4j postgres
     }
     finally {
         Pop-Location
     }
-    Write-OK "Neo4j is running in Docker"
+    Write-OK "Neo4j and PostgreSQL are running in Docker"
 }
 
 if (-not $SkipBackend) {
     Write-Step "Checking Neo4j connectivity"
     Wait-ForTcp "127.0.0.1" 7687 "Neo4j"
+    Write-Step "Checking PostgreSQL connectivity"
+    Wait-ForTcp "127.0.0.1" 5432 "PostgreSQL"
 }
 
 if (-not $SkipBackend) {
@@ -133,6 +135,7 @@ if (-not $SkipBackend) {
         "`$env:NEO4J_URI = if (`$env:NEO4J_URI) { `$env:NEO4J_URI } else { 'bolt://127.0.0.1:7687' }; " +
         "`$env:NEO4J_USER = if (`$env:NEO4J_USER) { `$env:NEO4J_USER } else { 'neo4j' }; " +
         "`$env:NEO4J_PASSWORD = if (`$env:NEO4J_PASSWORD) { `$env:NEO4J_PASSWORD } else { 'ai-knowledge-graph' }; " +
+        "`$env:DATABASE_URL = if (`$env:DATABASE_URL) { `$env:DATABASE_URL } else { 'postgresql://app:app_password@127.0.0.1:5432/ai_knowledge_atlas' }; " +
         "`$env:ENABLE_SCHEDULER = if (`$env:ENABLE_SCHEDULER) { `$env:ENABLE_SCHEDULER } else { 'false' }; " +
         "& '$escapedBackendPython' -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload }"
 
@@ -177,7 +180,6 @@ if (-not $SkipFrontend) {
     $escapedPnpmCommand = Escape-ForSingleQuotedPowerShellString (Resolve-PnpmCommand)
     $frontendCommand = "& { Set-Location -LiteralPath '$escapedFrontendDir'; " +
         "`$env:NEXT_PUBLIC_API_URL = if (`$env:NEXT_PUBLIC_API_URL) { `$env:NEXT_PUBLIC_API_URL } else { 'http://localhost:8000' }; " +
-        "`$env:DATABASE_PATH = if (`$env:DATABASE_PATH) { `$env:DATABASE_PATH } else { '.\data\learning.db' }; " +
         "& '$escapedPnpmCommand' dev }"
 
     $frontendProcess = Start-Process -FilePath "powershell.exe" `
@@ -204,6 +206,7 @@ if (-not $SkipBackend) {
 }
 if (-not $SkipNeo4j) {
     Write-Host "  Neo4j Browser: http://localhost:7474"
+    Write-Host "  PostgreSQL:    localhost:5432"
 }
 Write-Host ""
 Write-Host "Logs:"

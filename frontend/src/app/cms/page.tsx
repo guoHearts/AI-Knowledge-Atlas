@@ -1,17 +1,10 @@
 import Link from 'next/link';
-import { getDb } from '@/lib/db';
-import type { LearningTrack } from '@/types/learning';
+import { getCmsDashboardData } from '@/features/cms/server/cmsService';
 
-export default function CMSPage() {
-  const db = getDb();
-  const tracks = db.prepare('SELECT * FROM learning_tracks ORDER BY sort_order').all() as LearningTrack[];
+export const dynamic = 'force-dynamic';
 
-  const lessonCount = db.prepare(
-    "SELECT COUNT(*) as cnt FROM lessons WHERE status = 'published'"
-  ).get() as { cnt: number };
-  const draftCount = db.prepare(
-    "SELECT COUNT(*) as cnt FROM lessons WHERE status = 'draft'"
-  ).get() as { cnt: number };
+export default async function CMSPage() {
+  const { stats, tracks } = await getCmsDashboardData();
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -21,10 +14,10 @@ export default function CMSPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
         {[
-          { label: '实训路线', value: tracks.length, icon: '🗺️' },
-          { label: '已发布课时', value: lessonCount.cnt, icon: '📝' },
-          { label: '草稿', value: draftCount.cnt, icon: '📄' },
-          { label: '设计模式', value: 7, icon: '🧩' },
+          { label: '实训路线', value: stats.trackCount, icon: '🗺️' },
+          { label: '已发布课时', value: stats.publishedLessonCount, icon: '📝' },
+          { label: '草稿', value: stats.draftLessonCount, icon: '📄' },
+          { label: '设计模式', value: stats.designPatternCount, icon: '🧩' },
         ].map(stat => (
           <div key={stat.label} className="glass-card p-4 flex items-center gap-4">
             <span className="text-2xl">{stat.icon}</span>
@@ -59,17 +52,7 @@ export default function CMSPage() {
       <div className="glass-card p-6">
         <h2 className="text-lg font-bold text-cosmos-text mb-4">路线概览</h2>
         <div className="space-y-3">
-          {tracks.map(track => {
-            const counts = db.prepare(`
-              SELECT
-                COUNT(DISTINCT m.id) as modules,
-                COUNT(DISTINCT l.id) as lessons
-              FROM modules m
-              LEFT JOIN lessons l ON l.module_id = m.id
-              WHERE m.track_id = ?
-            `).get(track.id) as { modules: number; lessons: number };
-
-            return (
+          {tracks.map(track => (
               <div key={track.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-center gap-3">
                   <span className="text-xl">{track.icon || '📚'}</span>
@@ -85,8 +68,8 @@ export default function CMSPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-cosmos-dim">
-                  <span>{counts.modules} 模块</span>
-                  <span>{counts.lessons} 课时</span>
+                  <span>{track.moduleCount} 模块</span>
+                  <span>{track.lessonCount} 课时</span>
                   <Link
                     href={`/cms/editor/${track.slug}`}
                     className="text-stellar-blue hover:text-stellar-violet"
@@ -95,8 +78,7 @@ export default function CMSPage() {
                   </Link>
                 </div>
               </div>
-            );
-          })}
+          ))}
         </div>
       </div>
     </div>

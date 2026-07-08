@@ -1,4 +1,5 @@
-import type Database from 'better-sqlite3';
+import { getBackendInternalUrl } from '../../../lib/env';
+import { ApiError, request } from '../../../lib/request';
 import type {
   LearningTrack,
   DesignPatternRow,
@@ -16,8 +17,6 @@ import {
   toTrack,
   toUserProgress,
 } from '../../../types/learning';
-
-type LearningDatabase = Pick<Database.Database, 'prepare'>;
 
 export type TrackRowWithModuleRows = LearningTrackRow & {
   modules: ModuleRow[];
@@ -56,92 +55,87 @@ export type LessonPageData = {
   };
 };
 
-export function listPublishedTrackRows(db: LearningDatabase): LearningTrackRow[] {
-  return db.prepare(
-    "SELECT * FROM learning_tracks WHERE status = 'published' ORDER BY sort_order",
-  ).all() as LearningTrackRow[];
+function learningUrl(path: string): string {
+  return `${getBackendInternalUrl()}/learning${path}`;
+}
+
+async function requestOrNull<T>(url: string): Promise<T | null> {
+  try {
+    return await request<T>(url);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+export function listPublishedTrackRows(): Promise<LearningTrackRow[]> {
+  return request<LearningTrackRow[]>(learningUrl('/tracks'));
 }
 
 export function getTrackRowWithModuleRows(
-  db: LearningDatabase,
   slug: string,
-): TrackRowWithModuleRows | null {
-  const track = db.prepare('SELECT * FROM learning_tracks WHERE slug = ?')
-    .get(slug) as LearningTrackRow | undefined;
-  if (!track) return null;
-
-  const modules = db.prepare(
-    'SELECT * FROM modules WHERE track_id = ? ORDER BY sort_order',
-  ).all(track.id) as ModuleRow[];
-
-  return { ...track, modules };
+): Promise<TrackRowWithModuleRows | null> {
+  return requestOrNull<TrackRowWithModuleRows>(
+    learningUrl(`/tracks/${encodeURIComponent(slug)}`),
+  );
 }
 
 export function getModuleRowWithLessonRows(
-  db: LearningDatabase,
   id: string,
-): ModuleRowWithLessonRows | null {
-  const moduleRow = db.prepare('SELECT * FROM modules WHERE id = ?')
-    .get(id) as ModuleRow | undefined;
-  if (!moduleRow) return null;
-
-  const lessons = db.prepare(
-    "SELECT * FROM lessons WHERE module_id = ? AND status = 'published' ORDER BY sort_order",
-  ).all(id) as LessonRow[];
-
-  return { ...moduleRow, lessons };
+): Promise<ModuleRowWithLessonRows | null> {
+  return requestOrNull<ModuleRowWithLessonRows>(
+    learningUrl(`/modules/${encodeURIComponent(id)}`),
+  );
 }
 
-export function getLessonRow(db: LearningDatabase, id: string): LessonRow | null {
-  return db.prepare('SELECT * FROM lessons WHERE id = ?')
-    .get(id) as LessonRow | undefined || null;
+export function getLessonRow(id: string): Promise<LessonRow | null> {
+  return requestOrNull<LessonRow>(
+    learningUrl(`/lessons/${encodeURIComponent(id)}`),
+  );
 }
 
-export function listDesignPatternRows(db: LearningDatabase): DesignPatternRow[] {
-  return db.prepare('SELECT * FROM design_patterns ORDER BY category')
-    .all() as DesignPatternRow[];
+export function listDesignPatternRows(): Promise<DesignPatternRow[]> {
+  return request<DesignPatternRow[]>(learningUrl('/design-patterns'));
 }
 
-export function getDesignPatternRow(
-  db: LearningDatabase,
-  id: string,
-): DesignPatternRow | null {
-  return db.prepare('SELECT * FROM design_patterns WHERE id = ? OR name = ?')
-    .get(id, id) as DesignPatternRow | undefined || null;
+export function getDesignPatternRow(id: string): Promise<DesignPatternRow | null> {
+  return requestOrNull<DesignPatternRow>(
+    learningUrl(`/design-patterns/${encodeURIComponent(id)}`),
+  );
 }
 
-export function getTrackPageData(
-  db: LearningDatabase,
+export async function getTrackPageData(
   slug: string,
   userId = 'default',
-): TrackPageData | null {
-  const trackRow = db.prepare(
-    'SELECT * FROM learning_tracks WHERE slug = ? AND status = ?',
-  ).get(slug, 'published') as LearningTrackRow | undefined;
-  if (!trackRow) return null;
+): Promise<TrackPageData | null> {
+  const trackRow = await getTrackRowWithModuleRows(slug);
+  if (!trackRow || trackRow.status !== 'published') return null;
 
   const track = toTrack(trackRow);
-  const moduleRows = db.prepare(
-    'SELECT * FROM modules WHERE track_id = ? AND status = ? ORDER BY sort_order',
-  ).all(track.id, 'published') as ModuleRow[];
+  const moduleRows = trackRow.modules.filter((moduleRow) => moduleRow.status === 'published');
   const modules = moduleRows.map(toModule);
+  const progressRows = await request<UserProgressRow[]>(
+    learningUrl(`/progress?${new URLSearchParams({ userId }).toString()}`),
+  );
+  const progressByLessonId = new Map(
+    progressRows.map((row) => [row.lesson_id, toUserProgress(row)]),
+  );
 
-  const allLessons = modules.flatMap((moduleRow) => {
-    const lessonRows = db.prepare(
-      'SELECT * FROM lessons WHERE module_id = ? AND status = ? ORDER BY sort_order',
-    ).all(moduleRow.id, 'published') as LessonRow[];
+  const moduleWithLessons = await Promise.all(
+    modules.map((moduleRow) => getModuleRowWithLessonRows(moduleRow.id)),
+  );
+  const allLessons = moduleWithLessons.flatMap((moduleData) => {
+    if (!moduleData) return [];
 
-    return lessonRows.map((lessonRow) => {
-      const lesson = toLesson(lessonRow);
-      const progressRow = db.prepare(
-        'SELECT * FROM user_progress WHERE lesson_id = ? AND user_id = ?',
-      ).get(lesson.id, userId) as UserProgressRow | undefined;
-
-      return {
-        lesson,
-        progress: progressRow ? toUserProgress(progressRow) : undefined,
-      };
-    });
+    return moduleData.lessons
+      .filter((lessonRow) => lessonRow.status === 'published')
+      .map((lessonRow) => {
+        const lesson = toLesson(lessonRow);
+        return {
+          lesson,
+          progress: progressByLessonId.get(lesson.id),
+        };
+      });
   });
 
   const completedCount = allLessons.filter((item) => item.progress?.status === 'completed').length;
@@ -158,62 +152,51 @@ export function getTrackPageData(
   };
 }
 
-export function getLessonPageData(
-  db: LearningDatabase,
-  params: {
-    trackSlug: string;
-    moduleId: string;
-    lessonSlug: string;
-    userId?: string;
-  },
-): LessonPageData | null {
+export async function getLessonPageData(params: {
+  trackSlug: string;
+  moduleId: string;
+  lessonSlug: string;
+  userId?: string;
+}): Promise<LessonPageData | null> {
   const userId = params.userId || 'default';
-  const trackRow = db.prepare('SELECT * FROM learning_tracks WHERE slug = ?')
-    .get(params.trackSlug) as LearningTrackRow | undefined;
+  const trackRow = await getTrackRowWithModuleRows(params.trackSlug);
   if (!trackRow) return null;
   const track = toTrack(trackRow);
 
-  const moduleRow = db.prepare('SELECT * FROM modules WHERE id = ? AND track_id = ?')
-    .get(params.moduleId, track.id) as ModuleRow | undefined;
-  if (!moduleRow) return null;
+  const moduleRow = await getModuleRowWithLessonRows(params.moduleId);
+  if (!moduleRow || moduleRow.track_id !== track.id) return null;
   const moduleData = toModule(moduleRow);
 
-  const lessonRow = db.prepare('SELECT * FROM lessons WHERE slug = ? AND module_id = ?')
-    .get(params.lessonSlug, params.moduleId) as LessonRow | undefined;
-  if (!lessonRow) return null;
-  const lesson = toLesson(lessonRow);
+  const lessons = moduleRow.lessons
+    .filter((lessonRow) => lessonRow.status === 'published')
+    .map(toLesson);
+  const lesson = lessons.find((item) => item.slug === params.lessonSlug);
+  if (!lesson) return null;
 
-  const progressRow = db.prepare('SELECT * FROM user_progress WHERE lesson_id = ? AND user_id = ?')
-    .get(lesson.id, userId) as UserProgressRow | undefined;
+  const progressRows = await request<UserProgressRow[]>(
+    learningUrl(`/progress?${new URLSearchParams({ userId }).toString()}`),
+  );
+  const progressRow = progressRows.find((item) => item.lesson_id === lesson.id);
   const progress = progressRow ? toUserProgress(progressRow) : undefined;
 
-  const allModuleLessonRows = db.prepare(
-    'SELECT * FROM lessons WHERE module_id = ? ORDER BY sort_order',
-  ).all(params.moduleId) as LessonRow[];
-  const allModuleLessons = allModuleLessonRows.map(toLesson);
-  const currentLessonIndex = allModuleLessons.findIndex((item) => item.id === lesson.id);
-  const prevLesson = currentLessonIndex > 0 ? allModuleLessons[currentLessonIndex - 1] : null;
-  const nextLesson = currentLessonIndex < allModuleLessons.length - 1
-    ? allModuleLessons[currentLessonIndex + 1]
+  const currentLessonIndex = lessons.findIndex((item) => item.id === lesson.id);
+  const prevLesson = currentLessonIndex > 0 ? lessons[currentLessonIndex - 1] : null;
+  const nextLesson = currentLessonIndex < lessons.length - 1
+    ? lessons[currentLessonIndex + 1]
     : null;
 
-  const allModuleRows = db.prepare(
-    'SELECT * FROM modules WHERE track_id = ? ORDER BY sort_order',
-  ).all(track.id) as ModuleRow[];
-  const allModules = allModuleRows.map(toModule);
+  const allModules = trackRow.modules
+    .filter((item) => item.status === 'published')
+    .map(toModule);
   const currentModuleIndex = allModules.findIndex((item) => item.id === params.moduleId);
-
-  const prevModuleLastLessonRow = currentModuleIndex > 0
-    ? db.prepare('SELECT * FROM lessons WHERE module_id = ? ORDER BY sort_order DESC LIMIT 1')
-      .get(allModules[currentModuleIndex - 1].id) as LessonRow | undefined
-    : undefined;
-  const prevModuleLastLesson = prevModuleLastLessonRow ? toLesson(prevModuleLastLessonRow) : null;
-
-  const nextModuleFirstLessonRow = currentModuleIndex < allModules.length - 1
-    ? db.prepare('SELECT * FROM lessons WHERE module_id = ? ORDER BY sort_order ASC LIMIT 1')
-      .get(allModules[currentModuleIndex + 1].id) as LessonRow | undefined
-    : undefined;
-  const nextModuleFirstLesson = nextModuleFirstLessonRow ? toLesson(nextModuleFirstLessonRow) : null;
+  const prevModuleLastLesson = await getAdjacentModuleLesson(
+    allModules[currentModuleIndex - 1],
+    'last',
+  );
+  const nextModuleFirstLesson = await getAdjacentModuleLesson(
+    allModules[currentModuleIndex + 1],
+    'first',
+  );
 
   return {
     track,
@@ -225,18 +208,32 @@ export function getLessonPageData(
         ? { title: prevLesson.title, href: `/learn/${params.trackSlug}/${params.moduleId}/${prevLesson.slug}` }
         : prevModuleLastLesson
           ? {
-              title: prevModuleLastLesson.title,
-              href: `/learn/${params.trackSlug}/${allModules[currentModuleIndex - 1].id}/${prevModuleLastLesson.slug}`,
+              title: prevModuleLastLesson.lesson.title,
+              href: `/learn/${params.trackSlug}/${prevModuleLastLesson.moduleId}/${prevModuleLastLesson.lesson.slug}`,
             }
           : null,
       next: nextLesson
         ? { title: nextLesson.title, href: `/learn/${params.trackSlug}/${params.moduleId}/${nextLesson.slug}` }
         : nextModuleFirstLesson
           ? {
-              title: nextModuleFirstLesson.title,
-              href: `/learn/${params.trackSlug}/${allModules[currentModuleIndex + 1].id}/${nextModuleFirstLesson.slug}`,
+              title: nextModuleFirstLesson.lesson.title,
+              href: `/learn/${params.trackSlug}/${nextModuleFirstLesson.moduleId}/${nextModuleFirstLesson.lesson.slug}`,
             }
           : null,
     },
   };
+}
+
+async function getAdjacentModuleLesson(
+  moduleData: Module | undefined,
+  edge: 'first' | 'last',
+): Promise<{ moduleId: string; lesson: Lesson } | null> {
+  if (!moduleData) return null;
+
+  const moduleRow = await getModuleRowWithLessonRows(moduleData.id);
+  const lessons = (moduleRow?.lessons || [])
+    .filter((lessonRow) => lessonRow.status === 'published')
+    .map(toLesson);
+  const lesson = edge === 'first' ? lessons[0] : lessons[lessons.length - 1];
+  return lesson ? { moduleId: moduleData.id, lesson } : null;
 }

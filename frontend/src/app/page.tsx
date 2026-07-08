@@ -1,72 +1,13 @@
 import Link from 'next/link';
-import { getDb } from '@/lib/db';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import { AnimatedSection, StaggerItem, StaggerList } from '@/components/shared/AnimatedSection';
+import { NEXT_STEPS, ROADMAP } from '@/features/home/data/homeContent';
+import { getHomeStats } from '@/features/home/server/homeService';
 
-const ROADMAP = [
-  {
-    layer: '01',
-    title: 'Agent 基础层',
-    eyebrow: 'Concepts',
-    description: '先看懂 Agent、工具调用、MCP、设计模式和多 Agent 协作。',
-    modules: '模块 1-5',
-    accent: 'bg-stellar-blue',
-  },
-  {
-    layer: '02',
-    title: '生产工程层',
-    eyebrow: 'Production',
-    description: '补齐可观测性、错误处理、安全防护、RAG、微调和推理优化。',
-    modules: '模块 6-10',
-    accent: 'bg-stellar-emerald',
-  },
-  {
-    layer: '03',
-    title: '平台治理层',
-    eyebrow: 'Platform',
-    description: '用 Agents SDK、LangGraph、MCP 治理、评测流水线把 Demo 变成系统。',
-    modules: '模块 11',
-    accent: 'bg-stellar-violet',
-  },
-  {
-    layer: '04',
-    title: '产品形态层',
-    eyebrow: 'Product',
-    description: '进入实时语音、多模态文档、编程 Agent、合成数据与蒸馏。',
-    modules: '模块 12',
-    accent: 'bg-stellar-rose',
-  },
-];
+export const dynamic = 'force-dynamic';
 
-const NEXT_STEPS = [
-  '把图谱检索升级为 GraphRAG：实体、关系、社区摘要、Local / Global 查询。',
-  '加入向量索引与混合检索：全文搜索、embedding、rerank 组成完整检索链。',
-  '为 Agent 增加运行态：session、checkpoint、人工审批、任务恢复。',
-  '建立评测闭环：测试集、打分器、回归门禁、trace 观测。',
-  '增加可信度字段：来源、发布时间、置信度、最后验证时间。',
-];
-
-export default function HomePage() {
-  const db = getDb();
-
-  const stats = db.prepare(`
-    SELECT
-      COUNT(DISTINCT m.id) as totalModules,
-      COUNT(DISTINCT l.id) as totalLessons,
-      COUNT(DISTINCT CASE WHEN up.status = 'completed' THEN l.id END) as completedLessons
-    FROM modules m
-    LEFT JOIN lessons l ON l.module_id = m.id AND l.status = 'published'
-    LEFT JOIN user_progress up ON up.lesson_id = l.id AND up.user_id = 'default'
-    WHERE m.status = 'published'
-  `).get() as { totalModules: number; totalLessons: number; completedLessons: number };
-
-  const patternStats = db.prepare(`
-    SELECT COUNT(*) as totalPatterns FROM design_patterns
-  `).get() as { totalPatterns: number };
-
-  const completionRate = stats.totalLessons > 0
-    ? Math.round((stats.completedLessons / stats.totalLessons) * 100)
-    : 0;
+export default async function HomePage() {
+  const stats = await getHomeStats();
 
   return (
     <div>
@@ -100,7 +41,7 @@ export default function HomePage() {
               {[
                 { label: '模块', value: stats.totalModules },
                 { label: '课时', value: stats.totalLessons },
-                { label: '模式', value: patternStats.totalPatterns },
+                { label: '模式', value: stats.totalPatterns },
               ].map((item) => (
                 <div key={item.label} className="border border-cosmos-border bg-cosmos-surface p-5 shadow-sm">
                   <div className="font-display text-4xl font-bold text-cosmos-text">{item.value}</div>
@@ -112,14 +53,14 @@ export default function HomePage() {
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <div className="text-sm font-semibold text-cosmos-dim">当前完成度</div>
-                  <div className="mt-1 font-display text-5xl font-bold text-cosmos-text">{completionRate}%</div>
+                  <div className="mt-1 font-display text-5xl font-bold text-cosmos-text">{stats.completionRate}%</div>
                 </div>
                 <div className="max-w-[190px] text-right text-xs leading-5 text-cosmos-dim">
                   用完成度记录学习进展，用图谱记录概念之间的理解路径。
                 </div>
               </div>
               <div className="mt-5">
-                <ProgressBar percent={completionRate} size="md" />
+                <ProgressBar percent={stats.completionRate} size="md" />
               </div>
             </div>
           </AnimatedSection>
