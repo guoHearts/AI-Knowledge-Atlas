@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "AI Knowledge Atlas",
+    "description": "用知识图谱和结构化课程理解 AI 工程、Agent、RAG、LLMOps 与企业级 AI 平台。"
+  },
+  "nav": {
+    "route": "路线",
+    "graph": "图谱",
+    "content": "内容"
+  },
+  "theme": {
+    "toggle": "切换主题",
+    "toLight": "切换到亮色模式",
+    "toDark": "切换到暗色模式"
+  },
+  "locale": {
+    "toggle": "切换语言",
+    "current": "中文",
+    "next": "EN"
+  },
+  "common": {
+    "loading": "加载中...",
+    "backHome": "返回首页",
+    "exploreGraph": "探索图谱"
+  },
+  "error": {
+    "badge": "页面出错",
+    "title": "页面加载异常",
+    "description": "请稍后重试。如问题持续出现，请联系维护者。",
+    "retry": "重试"
+  },
+  "notFound": {
+    "title": "页面不存在",
+    "description": "你访问的页面可能已被移动、删除或尚未创建。"
+  },
+  "home": {
+    "stats": {
+      "modules": "模块",
+      "lessons": "课时",
+      "patterns": "模式",
+      "completion": "完成度",
+      "description": "学习进度由后端学习服务持久化。"
+    },
+    "hero": {
+      "eyebrow": "AI 工程雷达",
+      "description": "用可运行实验、知识图谱上下文和结构化学习路线追踪快速变化的 AI 工程主题。",
+      "exploreGraph": "探索图谱",
+      "startLearning": "开始学习"
+    },
+    "roadmap": {
+      "eyebrow": "路线图",
+      "title": "学习地图",
+      "description": "从核心概念到生产工程、平台治理，再到可产品化的 Agent 系统。",
+      "modules": "{count} 个模块"
+    },
+    "nextWork": {
+      "eyebrow": "下一步建设",
+      "title": "近期工作",
+      "validate": "在图谱中验证"
+    }
+  },
+  "labs": {
+    "badge": "已验证实验",
+    "title": "可运行实验",
+    "description": "实验用于验证雷达和学习内容中的关键工程判断。Draft 实验会在依赖、CI、截图和最近运行证据完整后升级为 Verified。",
+    "back": "返回实验列表",
+    "repositoryPath": "仓库路径",
+    "estimatedCost": "预计成本",
+    "apiKey": "API Key",
+    "apiKeyRequired": "需要",
+    "apiKeyNotRequired": "不需要",
+    "localVerification": "本地验证",
+    "metadataNote": "此页面只负责路由和渲染。实验元数据由后端学习服务提供。"
+  },
+  "learn": {
+    "backToTracks": "返回路线列表",
+    "hours": "{hours} 小时",
+    "lessonCount": "{count} 课时",
+    "moduleCount": "{count} 模块",
+    "stage": "Stage {stage} · {title}",
+    "completedCount": "{completed}/{total} 完成",
+    "hasExperiment": "含实验",
+    "outcomeTitle": "学完你将能够",
+    "graduationProject": "毕业项目",
+    "lessonFallback": "内容正在编写中..."
+  },
+  "graph": {
+    "loadingGraph": "正在加载知识图谱...",
+    "loadingCanvas": "正在加载图谱画布...",
+    "viewNodeDetail": "查看节点详情",
+    "miniGraphLoadFailed": "无法加载关联图谱",
+    "miniGraphEmpty": "暂无关联节点"
+  }
+}

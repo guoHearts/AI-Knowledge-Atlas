@@ -3,6 +3,7 @@
 from typing import Any, Protocol
 
 from common.errors import AppError
+from modules.learning import catalog
 
 
 class LearningRepositoryProtocol(Protocol):
@@ -51,6 +52,27 @@ class LearningService:
 
     def get_cms_dashboard(self) -> dict[str, Any]:
         return self.repository.get_cms_dashboard()
+
+    def get_home_content(self) -> dict[str, Any]:
+        return {
+            "roadmap": catalog.ROADMAP,
+            "nextSteps": catalog.NEXT_STEPS,
+        }
+
+    def get_metadata(self) -> dict[str, Any]:
+        return {
+            "stageLabels": catalog.STAGE_LABELS,
+            "analogies": catalog.ANALOGIES,
+            "difficultyLabels": catalog.DIFFICULTY_LABELS,
+            "categoryLabels": catalog.CATEGORY_LABELS,
+        }
+
+    def list_labs(self) -> list[dict[str, Any]]:
+        return catalog.LABS
+
+    def get_lab(self, lab_id: str) -> dict[str, Any]:
+        lab = next((item for item in catalog.LABS if item["id"] == lab_id), None)
+        return self._required(lab, "lab", lab_id)
 
     def _required(self, value: dict[str, Any] | None, resource: str, identifier: str) -> dict[str, Any]:
         if value is None:

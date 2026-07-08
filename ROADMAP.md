@@ -25,6 +25,8 @@
 - [x] 内容可信度标准文档
 - [x] 重写 README 与项目定位
 - [x] 首页移除无法解释的能力评分
+- [x] 首页 / 学习元数据 / Labs 静态数组迁移到后端 learning catalog
+- [x] 默认中文 i18n 与导航栏语言切换
 - [ ] 内容状态字段落地到数据层（radar_items / sources / content_verifications）
 - [ ] 第一个 Verified Lab（Secure MCP Server）
 - [ ] 第一期 AI Engineering Radar

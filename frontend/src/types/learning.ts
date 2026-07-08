@@ -205,23 +205,10 @@ export interface UserStats {
   trackProgress: Record<string, number>;
 }
 
-export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  beginner: '入门',
-  intermediate: '进阶',
-  advanced: '深入',
-};
-
 export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   beginner: 'text-stellar-emerald bg-stellar-emerald/10 border-stellar-emerald/25',
   intermediate: 'text-stellar-amber bg-stellar-amber/10 border-stellar-amber/25',
   advanced: 'text-stellar-rose bg-stellar-rose/10 border-stellar-rose/25',
-};
-
-export const CATEGORY_LABELS: Record<PatternCategory, string> = {
-  orchestration: '基础编排',
-  collaboration: '协作模式',
-  quality: '质量保障',
-  architecture: '架构模式',
 };
 
 function safeJsonParse<T>(raw: string | null | undefined, fallback: T): T {

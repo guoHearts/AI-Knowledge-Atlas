@@ -41,6 +41,8 @@ metadata:
 | 前端错误处理（全局边界 + request 加固） | ✅ |
 | 亮暗双主题 | ✅ |
 | 学习种子数据 | ✅ |
+| 前端硬编码数据迁后端 | ✅ |
+| i18n 默认中文 + 语言切换 | ✅ |
 
 ## 工程基础
 
@@ -52,12 +54,12 @@ metadata:
 - LF 统一 ✅
 - feature 目录对齐架构规范 ✅
 - 测试集中 src/test/ ✅
+- 首页/Labs/学习元数据由后端 learning catalog 接口提供 ✅
+- next-intl 默认中文 + cookie 语言切换 ✅
 
 ## 下一优先
 
-1. 前端硬编码数据迁后端（4 个静态数组）
-2. i18n 默认中文（next-intl）
-3. P2 组件归位
-4. 批次B Radar 最小闭环
+1. P2 组件归位
+2. 批次B Radar 最小闭环
 
 **How to apply**：完成任务后更新本文档。

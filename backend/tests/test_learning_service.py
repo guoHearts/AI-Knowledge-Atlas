@@ -67,6 +67,10 @@ def test_learning_service_delegates_read_models():
     assert service.get_lesson("lesson-1")["slug"] == "protocol"
     assert service.list_design_patterns()[0]["name"] == "router"
     assert service.get_home_stats("default")["completionRate"] == 100
+    assert service.get_home_content()["roadmap"][0]["layer"] == "01"
+    assert service.get_metadata()["difficultyLabels"]["beginner"] == "入门"
+    assert service.list_labs()[0]["id"] == "secure-mcp-server"
+    assert service.get_lab("secure-mcp-server")["estimatedSetupTime"] == "15min"
     assert service.get_cms_dashboard()["stats"]["trackCount"] == 1
 
 

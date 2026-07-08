@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   getLessonPageData,
+  getLearningMetadata,
   getLessonRow,
   getTrackPageData,
   getTrackRowWithModuleRows,
@@ -141,6 +142,28 @@ test('listPublishedTrackRows and detail helpers proxy backend learning endpoints
     assert.equal(tracks[0].slug, 'agent-engineer');
     assert.equal(track?.modules[0].id, 'module-1');
     assert.equal(lesson?.slug, 'protocol');
+  } finally {
+    mock.restore();
+  }
+});
+
+test('getLearningMetadata reads backend-owned labels', async () => {
+  const mock = installFetchMock({
+    'http://backend.test/learning/metadata': {
+      body: {
+        stageLabels: { 1: { title: '感知', goal: '亲手触摸 AI，建立体感' } },
+        analogies: {},
+        difficultyLabels: { beginner: '入门' },
+        categoryLabels: { orchestration: '基础编排' },
+      },
+    },
+  });
+
+  try {
+    const metadata = await getLearningMetadata();
+
+    assert.equal(metadata.stageLabels['1'].title, '感知');
+    assert.equal(metadata.difficultyLabels.beginner, '入门');
   } finally {
     mock.restore();
   }

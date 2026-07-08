@@ -36,14 +36,24 @@ metadata:
 
 **种子数据**：`docker/postgres/init/002_learning_seed.sql`——1 路线 12 模块 49 课程
 
+**前端硬编码迁后端**：
+- 后端新增 learning catalog：roadmap/nextSteps、stageLabels/analogies、difficultyLabels/categoryLabels、Labs
+- 新增 `/learning/home/content`、`/learning/metadata`、`/learning/labs`、`/learning/labs/{lab_id}`
+- 首页、学习路线页、Labs 列表/详情改为 feature API 读取
+- 删除 `frontend/src/features/home/utils/homeContent.ts`
+
+**i18n 默认中文 + 语言切换**：
+- `next-intl` 接入 App Router，默认 `zh-CN`
+- 新增 `zh-CN`/`en-US` 消息文件
+- 首页、Labs、学习路线、全局 loading/error/not-found、图谱 loading 文案接入消息键
+- 导航栏新增语言切换按钮，使用 `locale` cookie 切换并刷新
+
 **其他**：LF 换行统一、`.gitignore` 新增 `.pytest_cache/`、本地 PG 18 卸载
 
 ## 下一步
 
-1. **前端硬编码迁后端**：`homeContent.ts` ROADMAP/NEXT_STEPS、`constants.ts` STAGE_LABELS/ANALOGIES、`labs/utils/labs.ts` LABS、`types/learning.ts` DIFFICULTY_LABELS/CATEGORY_LABELS
-2. **i18n 默认中文**：`next-intl`，提取 27 文件的硬编码字符串
-3. **P2**：Graph/Learn 组件归位、类型文件归位
-4. **批次B**：Radar 最小闭环（后端模型+API、首页雷达屏）
+1. **P2**：Graph/Learn 组件归位、类型文件归位
+2. **批次B**：Radar 最小闭环（后端模型+API、首页雷达屏）
 
 **Why**：记录进度避免下次会话重复摸底。
 **How to apply**：新会话先读本条确认进度再动手。

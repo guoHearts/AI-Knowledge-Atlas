@@ -80,6 +80,29 @@ async def get_home_stats(
     return success_response(service.get_home_stats(user_id))
 
 
+@router.get("/home/content")
+async def get_home_content(service: LearningService = Depends(get_learning_service)):
+    return success_response(service.get_home_content())
+
+
+@router.get("/metadata")
+async def get_metadata(service: LearningService = Depends(get_learning_service)):
+    return success_response(service.get_metadata())
+
+
+@router.get("/labs")
+async def list_labs(service: LearningService = Depends(get_learning_service)):
+    return success_response(service.list_labs())
+
+
+@router.get("/labs/{lab_id}")
+async def get_lab(lab_id: str, service: LearningService = Depends(get_learning_service)):
+    try:
+        return success_response(service.get_lab(lab_id))
+    except AppError as error:
+        return error_response(error)
+
+
 @router.get("/cms/dashboard")
 async def get_cms_dashboard(service: LearningService = Depends(get_learning_service)):
     return success_response(service.get_cms_dashboard())

@@ -1,0 +1,94 @@
+{
+  "metadata": {
+    "title": "AI Knowledge Atlas",
+    "description": "Understand AI engineering, agents, RAG, LLMOps, and enterprise AI platforms through knowledge graphs and structured courses."
+  },
+  "nav": {
+    "route": "Routes",
+    "graph": "Graph",
+    "content": "Content"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "toLight": "Switch to light mode",
+    "toDark": "Switch to dark mode"
+  },
+  "locale": {
+    "toggle": "Switch language",
+    "current": "English",
+    "next": "中文"
+  },
+  "common": {
+    "loading": "Loading...",
+    "backHome": "Back home",
+    "exploreGraph": "Explore graph"
+  },
+  "error": {
+    "badge": "Page error",
+    "title": "Page failed to load",
+    "description": "Try again later. If the problem persists, contact the maintainer.",
+    "retry": "Retry"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page may have been moved, deleted, or not created yet."
+  },
+  "home": {
+    "stats": {
+      "modules": "Modules",
+      "lessons": "Lessons",
+      "patterns": "Patterns",
+      "completion": "Completion",
+      "description": "Learning progress is persisted by the backend learning service."
+    },
+    "hero": {
+      "eyebrow": "AI Engineering Radar",
+      "description": "Track fast-moving AI engineering topics with runnable labs, knowledge graph context, and structured learning paths.",
+      "exploreGraph": "Explore graph",
+      "startLearning": "Start learning"
+    },
+    "roadmap": {
+      "eyebrow": "Roadmap",
+      "title": "Learning Map",
+      "description": "A layered path from concepts to production engineering, platform governance, and product-ready agent systems.",
+      "modules": "{count} modules"
+    },
+    "nextWork": {
+      "eyebrow": "Next Build",
+      "title": "Next Work",
+      "validate": "Validate in graph"
+    }
+  },
+  "labs": {
+    "badge": "Verified Labs",
+    "title": "Runnable Labs",
+    "description": "Labs verify key engineering claims from the radar and learning content. Draft labs become Verified after dependencies, CI, screenshots, and last-run evidence are complete.",
+    "back": "Back to Labs",
+    "repositoryPath": "Repository path",
+    "estimatedCost": "Estimated cost",
+    "apiKey": "API key",
+    "apiKeyRequired": "Required",
+    "apiKeyNotRequired": "Not required",
+    "localVerification": "Local verification",
+    "metadataNote": "This page owns routing and rendering only. Lab metadata is provided by the backend learning service."
+  },
+  "learn": {
+    "backToTracks": "Back to route list",
+    "hours": "{hours} hours",
+    "lessonCount": "{count} lessons",
+    "moduleCount": "{count} modules",
+    "stage": "Stage {stage} · {title}",
+    "completedCount": "{completed}/{total} completed",
+    "hasExperiment": "Has experiment",
+    "outcomeTitle": "After this track you can",
+    "graduationProject": "Graduation project",
+    "lessonFallback": "Content is being written..."
+  },
+  "graph": {
+    "loadingGraph": "Loading knowledge graph...",
+    "loadingCanvas": "Loading graph canvas...",
+    "viewNodeDetail": "View node details",
+    "miniGraphLoadFailed": "Failed to load related graph",
+    "miniGraphEmpty": "No related nodes"
+  }
+}

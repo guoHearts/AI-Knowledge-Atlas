@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { GraphWorkspaceView } from '@/features/graph';
 
@@ -13,8 +14,10 @@ function GraphPageInner() {
 }
 
 export default function GraphPage() {
+  const t = useTranslations('graph');
+
   return (
-    <Suspense fallback={<LoadingSpinner text="正在加载知识图谱..." />}>
+    <Suspense fallback={<LoadingSpinner text={t('loadingGraph')} />}>
       <GraphPageInner />
     </Suspense>
   );

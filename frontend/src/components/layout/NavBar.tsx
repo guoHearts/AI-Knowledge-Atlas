@@ -2,16 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { LocaleToggle } from '@/components/shared/LocaleToggle';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
-const NAV_LINKS = [
-  { href: '/', label: '路线' },
-  { href: '/graph', label: '图谱' },
-  { href: '/cms', label: '内容' },
+const NAV_LINKS: { href: string; labelKey: 'route' | 'graph' | 'content' }[] = [
+  { href: '/', labelKey: 'route' },
+  { href: '/graph', labelKey: 'graph' },
+  { href: '/cms', labelKey: 'content' },
 ];
 
 export function NavBar() {
   const pathname = usePathname();
+  const t = useTranslations('nav');
 
   return (
     <header className="sticky top-0 z-50 border-b border-cosmos-border bg-cosmos-surface/92 backdrop-blur-xl">
@@ -43,7 +46,7 @@ export function NavBar() {
                     : 'text-cosmos-dim hover:text-cosmos-text'
                 }`}
               >
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             );
           })}
@@ -51,6 +54,7 @@ export function NavBar() {
 
         <div className="flex-1" />
 
+        <LocaleToggle />
         <ThemeToggle />
       </nav>
     </header>

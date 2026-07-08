@@ -55,6 +55,18 @@ export type LessonPageData = {
   };
 };
 
+export type StageLabel = {
+  title: string;
+  goal: string;
+};
+
+export type LearningMetadata = {
+  stageLabels: Record<string, StageLabel>;
+  analogies: Record<string, { analogy: string; oneLiner: string }>;
+  difficultyLabels: Record<string, string>;
+  categoryLabels: Record<string, string>;
+};
+
 function learningUrl(path: string): string {
   return `${getBackendInternalUrl()}/learning${path}`;
 }
@@ -102,6 +114,10 @@ export function getDesignPatternRow(id: string): Promise<DesignPatternRow | null
   return requestOrNull<DesignPatternRow>(
     learningUrl(`/design-patterns/${encodeURIComponent(id)}`),
   );
+}
+
+export function getLearningMetadata(): Promise<LearningMetadata> {
+  return request<LearningMetadata>(learningUrl('/metadata'));
 }
 
 export async function getTrackPageData(

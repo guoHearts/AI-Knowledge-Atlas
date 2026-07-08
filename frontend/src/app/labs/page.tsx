@@ -1,26 +1,30 @@
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 
-import { LABS } from '@/features/labs/utils/labs';
+import { listLabs } from '@/features/labs/api/labsApi';
 
-export default function LabsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function LabsPage() {
+  const t = await getTranslations('labs');
+  const labs = await listLabs();
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
       <div className="mb-10">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cosmos-border bg-cosmos-surface px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-cosmos-dim">
-          Verified Labs
+          {t('badge')}
         </div>
         <h1 className="font-display text-4xl font-bold text-cosmos-text">
-          Runnable Labs
+          {t('title')}
         </h1>
         <p className="mt-4 max-w-3xl text-cosmos-dim">
-          Labs verify key engineering claims from the radar and learning content.
-          Draft labs become Verified after dependencies, CI, screenshots, and
-          last-run evidence are complete.
+          {t('description')}
         </p>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
-        {LABS.map((lab) => (
+        {labs.map((lab) => (
           <Link
             key={lab.id}
             href={`/labs/${lab.id}`}

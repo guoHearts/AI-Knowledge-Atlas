@@ -1,4 +1,4 @@
-export function LoadingSpinner({ text = '加载中...' }: { text?: string }) {
+export function LoadingSpinner({ text }: { text: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20">
       <div className="relative mb-4 h-14 w-14 rounded-full border border-cosmos-border bg-cosmos-surface shadow-sm">

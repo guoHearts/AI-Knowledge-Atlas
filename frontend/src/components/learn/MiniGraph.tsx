@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { fetchSubgraph, fetchNodeDetail } from '@/lib/api';
 import type { GraphNode, GraphEdge, NodeType } from '@/types/graph';
 import { NODE_COLORS } from '@/types/graph';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function MiniGraph({ nodeIds }: Props) {
+  const t = useTranslations('graph');
   const svgRef = useRef<SVGSVGElement>(null);
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [links, setLinks] = useState<GraphEdge[]>([]);
@@ -47,14 +49,14 @@ export function MiniGraph({ nodeIds }: Props) {
             setLinks([]);
           }
         } catch (fallbackErr) {
-          if (!cancelled) setError('无法加载关联图谱');
+          if (!cancelled) setError(t('miniGraphLoadFailed'));
         }
       }
       if (!cancelled) setLoading(false);
     }
     load();
     return () => { cancelled = true; };
-  }, [nodeIds]);
+  }, [nodeIds, t]);
 
   // Simple D3-like force layout (no D3 dependency for mini graph)
   useEffect(() => {
@@ -124,13 +126,13 @@ export function MiniGraph({ nodeIds }: Props) {
   }, [nodes, links]);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-[150px] text-xs text-cosmos-dim">加载中...</div>;
+    return <div className="flex items-center justify-center h-[150px] text-xs text-cosmos-dim">{t('loadingGraph')}</div>;
   }
   if (error) {
     return <div className="flex items-center justify-center h-[150px] text-xs text-cosmos-dim">{error}</div>;
   }
   if (nodes.length === 0) {
-    return <div className="flex items-center justify-center h-[150px] text-xs text-cosmos-dim">暂无关联节点</div>;
+    return <div className="flex items-center justify-center h-[150px] text-xs text-cosmos-dim">{t('miniGraphEmpty')}</div>;
   }
 
   return (
