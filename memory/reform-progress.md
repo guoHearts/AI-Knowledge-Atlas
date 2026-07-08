@@ -60,6 +60,8 @@ metadata:
 - Radar 详情显示状态与关联路径，支持跳转到 Lab、Graph 或 Learn
 - 首页新增 Radar 摘要区和进入完整 Radar 的入口
 - 后端 service/test 增加最小可信度校验，防止缺少来源、验证日期、状态或下游路径的条目发布
+- 已提交：`e46ad5d feat: publish first radar loop`
+- 已验证：前端 typecheck/test/build、后端 pytest、Playwright 首页与 Radar 详情烟测
 
 **其他**：LF 换行统一、`.gitignore` 新增 `.pytest_cache/`、本地 PG 18 卸载
 

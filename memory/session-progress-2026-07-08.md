@@ -66,6 +66,17 @@ metadata:
 
 - `3a46ad6` feat: 后端统一响应 + 前端错误处理 + 亮暗双主题 + 学习种子数据
 - `4d3abab` refactor: 收敛 feature 目录对齐架构规范 + 测试集中
+- `382fe21` refactor: colocate graph and learn frontend modules
+- `e46ad5d` feat: publish first radar loop
+
+## 验证记录
+
+批次B Radar 最小闭环完成后已验证：
+- `pnpm.cmd --dir frontend typecheck`
+- `pnpm.cmd --dir frontend test`
+- `python -m pytest tests -q`
+- `pnpm.cmd --dir frontend build`
+- Playwright 烟测：首页 Radar 摘要、Radar 详情关联路径、控制台无 error
 
 ## 下一步
 

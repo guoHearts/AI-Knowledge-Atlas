@@ -64,6 +64,11 @@ metadata:
 
 1. 批次C 第一个高质量 Verified Lab（Secure MCP Server）
 
+## 最新提交与验证
+
+- 最新提交：`e46ad5d feat: publish first radar loop`
+- 验证通过：前端 typecheck、前端单测、后端 pytest、Next.js build、Playwright 首页/Radar 详情烟测
+
 ## 下一步判定（对照 docs）
 
 依据：
