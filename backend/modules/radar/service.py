@@ -15,9 +15,11 @@ class RadarService:
 
     def list_items(self, category: str | None = None) -> list[RadarItem]:
         items = self.repository.list_items()
+        for item in items:
+            self._validate_item(item)
         if category:
             items = [item for item in items if item.category == category]
-        return sorted(items, key=lambda item: item.created_at, reverse=True)
+        return sorted(items, key=lambda item: item.published_at, reverse=True)
 
     def get_item(self, item_id: str) -> RadarItem:
         item = self.repository.get_item(item_id)
@@ -45,7 +47,30 @@ class RadarService:
         items = self.list_items()
         return WeeklyRadar(
             week=week_number,
-            period=WeeklyRadarPeriod(start="2026-07-01", end="2026-07-07"),
+            period=WeeklyRadarPeriod(start="2026-07-08", end="2026-07-14"),
             items=items,
-            summary="This week focuses on Agent frameworks and MCP security patterns, representing key trends in production AI engineering.",
+            summary="This issue focuses on production agent patterns, MCP security boundaries, hybrid RAG baselines, and evaluation gates.",
         )
+
+    def _validate_item(self, item: RadarItem) -> None:
+        missing: list[str] = []
+        if item.status not in {"Verified", "Draft", "Stale", "Deprecated"}:
+            missing.append("valid status")
+        if not item.last_verified_at:
+            missing.append("last_verified_at")
+        if not item.published_at:
+            missing.append("published_at")
+        if not item.sources:
+            missing.append("sources")
+        if not any(source.type == "official" for source in item.sources):
+            missing.append("official source")
+        if not (item.related_lab_ids or item.related_node_ids or item.related_learning_paths):
+            missing.append("related path")
+
+        if missing:
+            raise AppError(
+                code="RADAR_ITEM_INVALID",
+                message="Radar item is missing required trust metadata",
+                status_code=500,
+                details={"itemId": item.id, "missing": missing},
+            )

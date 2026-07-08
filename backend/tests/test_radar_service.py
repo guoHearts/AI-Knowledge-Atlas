@@ -10,9 +10,11 @@ def test_list_items_returns_newest_first():
     items = service.list_items()
 
     assert [item.id for item in items] == [
-        "openai-agents-sdk-2026-07",
-        "mcp-security-best-practices-2026-07",
-        "vector-databases-hybrid-search-2026-07",
+        "openai-agents-sdk-production-patterns-2026-07",
+        "mcp-security-boundary-2026-07",
+        "langgraph-stateful-agent-workflows-2026-07",
+        "hybrid-rag-baseline-2026-07",
+        "llm-evals-regression-gates-2026-07",
     ]
 
 
@@ -22,8 +24,23 @@ def test_list_items_filters_by_category():
     items = service.list_items(category="mcp")
 
     assert len(items) == 1
-    assert items[0].id == "mcp-security-best-practices-2026-07"
+    assert items[0].id == "mcp-security-boundary-2026-07"
     assert items[0].category == "mcp"
+
+
+def test_radar_items_have_trust_metadata_and_downstream_paths():
+    service = RadarService()
+
+    items = service.list_items()
+
+    assert len(items) >= 3
+    for item in items:
+        assert item.status in {"Verified", "Draft", "Stale", "Deprecated"}
+        assert item.published_at
+        assert item.last_verified_at
+        assert item.sources
+        assert any(source.type == "official" for source in item.sources)
+        assert item.related_lab_ids or item.related_node_ids or item.related_learning_paths
 
 
 def test_get_item_raises_business_error_for_missing_item():

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { RadarItem } from '../types/radar.types';
-import { getCategoryColor, getMaturityColor } from './RadarItemCard';
+import { getCategoryColor, getMaturityColor, getStatusColor } from './RadarItemCard';
 
 function formatCategory(category: string) {
   return category.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -19,6 +19,9 @@ export function RadarItemDetailView({ item }: RadarItemDetailViewProps) {
         </span>
         <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getMaturityColor(item.maturity)}`}>
           {item.maturity}
+        </span>
+        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(item.status)}`}>
+          {item.status}
         </span>
         {item.has_lab && (
           <span className="px-3 py-1 rounded-full text-sm font-medium bg-stellar-green text-white">
@@ -119,12 +122,60 @@ export function RadarItemDetailView({ item }: RadarItemDetailViewProps) {
           </section>
         )}
 
+        {(item.related_node_ids.length > 0 || item.related_learning_paths.length > 0) && (
+          <section>
+            <h2 className="text-xl font-semibold text-cosmos-text mb-3">关联路径</h2>
+            <div className="grid gap-3 md:grid-cols-2">
+              {item.related_node_ids.length > 0 && (
+                <div className="rounded-lg border border-cosmos-border bg-cosmos-bg p-4">
+                  <h3 className="mb-2 text-sm font-medium text-cosmos-text">图谱节点</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {item.related_node_ids.map((nodeId) => (
+                      <Link
+                        key={nodeId}
+                        href={`/graph?focus=${encodeURIComponent(nodeId)}`}
+                        className="rounded border border-cosmos-border px-2 py-1 text-xs text-cosmos-dim transition-colors hover:text-cosmos-text"
+                      >
+                        {nodeId}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {item.related_learning_paths.length > 0 && (
+                <div className="rounded-lg border border-cosmos-border bg-cosmos-bg p-4">
+                  <h3 className="mb-2 text-sm font-medium text-cosmos-text">学习路线</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {item.related_learning_paths.map((path) => (
+                      <Link
+                        key={path}
+                        href={path}
+                        className="rounded border border-cosmos-border px-2 py-1 text-xs text-cosmos-dim transition-colors hover:text-cosmos-text"
+                      >
+                        {path}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         <section className="pt-6 border-t border-cosmos-border">
           <h2 className="text-lg font-semibold text-cosmos-text mb-3">元数据</h2>
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-cosmos-dim">ID:</span>
               <code className="ml-2 text-cosmos-text font-mono">{item.id}</code>
+            </div>
+            <div>
+              <span className="text-cosmos-dim">发布时间:</span>
+              <span className="ml-2 text-cosmos-text">{new Date(item.published_at).toLocaleDateString('zh-CN')}</span>
+            </div>
+            <div>
+              <span className="text-cosmos-dim">状态:</span>
+              <span className="ml-2 text-cosmos-text">{item.status}</span>
             </div>
             <div>
               <span className="text-cosmos-dim">创建时间:</span>

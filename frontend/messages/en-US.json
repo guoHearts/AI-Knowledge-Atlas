@@ -45,7 +45,14 @@
       "eyebrow": "AI Engineering Radar",
       "description": "Track fast-moving AI engineering topics with runnable labs, knowledge graph context, and structured learning paths.",
       "exploreGraph": "Explore graph",
+      "viewRadar": "View radar",
       "startLearning": "Start learning"
+    },
+    "radar": {
+      "eyebrow": "Current Radar",
+      "title": "AI engineering changes worth attention",
+      "viewAll": "View full radar",
+      "verifiedAt": "Last verified"
     },
     "roadmap": {
       "eyebrow": "Roadmap",

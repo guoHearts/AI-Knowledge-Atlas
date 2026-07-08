@@ -55,6 +55,13 @@ metadata:
 - `DifficultyBadge` 从 shared 归入 Learn feature，避免 shared 依赖业务类型
 - 删除空的全局业务目录 `components/graph`、`components/learn`、`types` 和过渡用 `lib/api.ts`
 
+### 批次B Radar 最小闭环
+- 后端 Radar sample/demo 数据升级为 5 条正式 AI Engineering Radar 条目
+- Radar 条目补齐 `status`、`published_at`、`last_verified_at`、官方来源、推荐/不推荐场景
+- Radar service 增加最小内容校验，测试覆盖来源、验证日期、状态和下游路径
+- 首页新增 Radar 摘要区与完整 Radar 入口
+- Radar 详情展示状态与关联路径，可跳转 Lab、Graph 或 Learn
+
 ## 提交
 
 - `3a46ad6` feat: 后端统一响应 + 前端错误处理 + 亮暗双主题 + 学习种子数据
@@ -62,4 +69,17 @@ metadata:
 
 ## 下一步
 
-1. 批次B Radar 最小闭环
+1. 批次C 第一个标杆 Lab（Secure MCP Server）
+
+## Docs 对照结论
+
+已读 `docs/AI-Knowledge-Atlas-项目战略与发展路线.md`、`docs/AI-Knowledge-Atlas-改造方案.md`、Radar spec/plan 和架构迁移评估。
+
+批次B Radar 最小闭环已完成。
+
+下一步明确为：**批次C 第一个标杆 Lab**。
+
+优先做：
+- 选择 Secure MCP Server 作为第一个 Verified Lab
+- 固定依赖版本、运行命令、预期输出和测试
+- Lab 关联 Radar MCP 条目、Graph 节点和 Learn 路径

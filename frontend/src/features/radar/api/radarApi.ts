@@ -32,6 +32,16 @@ export function listRadarItems(
   );
 }
 
+export function listRadarItemsFromBackend(params: { category?: string } = {}) {
+  const searchParams = new URLSearchParams();
+  if (params.category) searchParams.set('category', params.category);
+  const query = searchParams.toString();
+
+  return request<RadarItemsData>(
+    `${getRadarServerBaseUrl()}/radar/items${query ? `?${query}` : ''}`,
+  );
+}
+
 export function getRadarItem(id: string, options: RadarRequestOptions = {}) {
   return request<RadarItem>(
     buildUrl(`/api/radar/items/${encodeURIComponent(id)}`, options),

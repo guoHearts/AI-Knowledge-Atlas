@@ -45,7 +45,14 @@
       "eyebrow": "AI 工程雷达",
       "description": "用可运行实验、知识图谱上下文和结构化学习路线追踪快速变化的 AI 工程主题。",
       "exploreGraph": "探索图谱",
+      "viewRadar": "查看技术雷达",
       "startLearning": "开始学习"
+    },
+    "radar": {
+      "eyebrow": "本期 Radar",
+      "title": "值得关注的 AI 工程变化",
+      "viewAll": "查看完整雷达",
+      "verifiedAt": "最后验证"
     },
     "roadmap": {
       "eyebrow": "路线图",

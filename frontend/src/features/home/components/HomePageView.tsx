@@ -3,14 +3,16 @@ import { getTranslations } from 'next-intl/server';
 
 import { AnimatedSection, StaggerItem, StaggerList } from '@/components/shared/AnimatedSection';
 import { ProgressBar } from '@/components/shared/ProgressBar';
+import type { RadarItem } from '@/features/radar/types/radar.types';
 import type { HomeContent, HomeStats } from '../api/homeApi';
 
 interface HomePageViewProps {
   stats: HomeStats;
   content: HomeContent;
+  radarItems: RadarItem[];
 }
 
-export async function HomePageView({ stats, content }: HomePageViewProps) {
+export async function HomePageView({ stats, content, radarItems }: HomePageViewProps) {
   const t = await getTranslations('home');
   const statItems = [
     { label: t('stats.modules'), value: stats.totalModules },
@@ -36,6 +38,9 @@ export async function HomePageView({ stats, content }: HomePageViewProps) {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/graph" className="btn-primary">
                 {t('hero.exploreGraph')}
+              </Link>
+              <Link href="/radar" className="btn-ghost">
+                {t('hero.viewRadar')}
               </Link>
               <Link href="/learn/agent-engineer" className="btn-ghost">
                 {t('hero.startLearning')}
@@ -67,6 +72,48 @@ export async function HomePageView({ stats, content }: HomePageViewProps) {
               </div>
             </div>
           </AnimatedSection>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-14">
+        <AnimatedSection>
+          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-stellar-emerald">{t('radar.eyebrow')}</p>
+              <h2 className="mt-2 font-display text-4xl font-bold text-cosmos-text">{t('radar.title')}</h2>
+            </div>
+            <Link href="/radar" className="btn-ghost w-fit">
+              {t('radar.viewAll')}
+            </Link>
+          </div>
+        </AnimatedSection>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          {radarItems.map((item) => (
+            <Link
+              key={item.id}
+              href={`/radar/${item.id}`}
+              className="group flex min-h-[260px] flex-col border border-cosmos-border bg-cosmos-surface p-5 transition-all hover:-translate-y-1 hover:border-cosmos-text/30 hover:shadow-xl"
+            >
+              <div className="mb-4 flex flex-wrap gap-2">
+                <span className="rounded border border-cosmos-border bg-cosmos-bg px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-cosmos-dim">
+                  {item.category}
+                </span>
+                <span className="rounded border border-stellar-green/30 bg-stellar-green/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stellar-green">
+                  {item.status}
+                </span>
+              </div>
+              <h3 className="text-lg font-bold leading-snug text-cosmos-text group-hover:text-stellar-blue">
+                {item.title}
+              </h3>
+              <p className="mt-3 line-clamp-4 text-sm leading-6 text-cosmos-dim">
+                {item.summary}
+              </p>
+              <div className="mt-auto pt-5 text-xs text-cosmos-dim">
+                {t('radar.verifiedAt')} {new Date(item.last_verified_at).toLocaleDateString('zh-CN')}
+              </div>
+            </Link>
+          ))}
         </div>
       </section>
 

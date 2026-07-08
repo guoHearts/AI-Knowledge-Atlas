@@ -8,6 +8,7 @@ export interface RadarItem {
   id: string;
   title: string;
   category: string;
+  status: string;
   maturity: string;
   summary: string;
   why_it_matters: string;
@@ -16,6 +17,10 @@ export interface RadarItem {
   has_lab: boolean;
   lab_id: string | null;
   sources: RadarSource[];
+  related_lab_ids: string[];
+  related_node_ids: string[];
+  related_learning_paths: string[];
+  published_at: string;
   created_at: string;
   updated_at: string;
   last_verified_at: string;
