@@ -20,17 +20,23 @@ class SecurityManager:
         return len(input_data) <= settings.security.max_input_length
     
     def detect_prompt_injection(self, input_data: str) -> Optional[str]:
-        """Detect potential prompt injection attempts - simplified version."""
-        # For demo purposes, we'll keep this simple and avoid false positives
-        blocked_commands = ["rm -rf", "DROP TABLE", "DELETE FROM", "sudo", "sudo rm"]
-        
+        """Detect obvious malicious input patterns."""
         input_lower = input_data.lower()
-        
-        # Only check for very obvious dangerous patterns
-        for cmd in blocked_commands:
-            if cmd.lower() in input_lower and len(input_lower.split()) > 3:
-                # Only flag if it looks like a command with multiple words
-                return f"Potential dangerous command detected: {cmd}"
+
+        sql_patterns = ["drop table"]
+        for pattern in sql_patterns:
+            if pattern in input_lower:
+                return f"Potential SQL injection detected: {pattern.upper()}"
+
+        command_patterns = ["rm -rf", "sudo rm", "sudo"]
+        for pattern in command_patterns:
+            if pattern in input_lower:
+                return f"Potential command injection detected: {pattern}"
+
+        prompt_patterns = ["delete from"]
+        for pattern in prompt_patterns:
+            if pattern in input_lower:
+                return f"Potential prompt injection detected: {pattern}"
         
         return None
     
@@ -60,9 +66,14 @@ class AuditLogger:
     """Handles audit logging for all tool executions."""
     
     def __init__(self):
-        import structlog
-        
-        self.logger = structlog.get_logger()
+        try:
+            import structlog
+        except ModuleNotFoundError:
+            self.logger = logging.getLogger("secure_mcp.audit")
+            self.structured_logging = False
+        else:
+            self.logger = structlog.get_logger()
+            self.structured_logging = True
         
         # Ensure log directory exists
         import os
@@ -104,7 +115,10 @@ class AuditLogger:
         if error_message:
             log_data["error_message"] = error_message
         
-        self.logger.info(
-            "Tool execution",
-            **log_data
-        )
+        if self.structured_logging:
+            self.logger.info(
+                "Tool execution",
+                **log_data
+            )
+        else:
+            self.logger.info("Tool execution %s", log_data)
