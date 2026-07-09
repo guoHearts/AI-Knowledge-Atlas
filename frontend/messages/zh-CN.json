@@ -6,7 +6,9 @@
   "nav": {
     "route": "路线",
     "graph": "图谱",
-    "content": "内容"
+    "content": "内容",
+    "radar": "雷达",
+    "compare": "选型"
   },
   "theme": {
     "toggle": "切换主题",
@@ -97,5 +99,13 @@
     "viewNodeDetail": "查看节点详情",
     "miniGraphLoadFailed": "无法加载关联图谱",
     "miniGraphEmpty": "暂无关联节点"
+  },
+  "compare": {
+    "badge": "技术选型",
+    "title": "技术选型地图",
+    "description": "面向真实场景的技术对比：给出一句话结论、功能矩阵、适用与不适用场景、成本和决策树，并关联可运行实验。",
+    "back": "返回选型列表",
+    "viewRadar": "查看技术雷达",
+    "browseLabs": "浏览可运行实验"
   }
 }

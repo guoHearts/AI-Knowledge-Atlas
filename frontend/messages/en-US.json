@@ -6,7 +6,9 @@
   "nav": {
     "route": "Routes",
     "graph": "Graph",
-    "content": "Content"
+    "content": "Content",
+    "radar": "Radar",
+    "compare": "Compare"
   },
   "theme": {
     "toggle": "Toggle theme",
@@ -97,5 +99,13 @@
     "viewNodeDetail": "View node details",
     "miniGraphLoadFailed": "Failed to load related graph",
     "miniGraphEmpty": "No related nodes"
+  },
+  "compare": {
+    "badge": "Compare",
+    "title": "Technology Selection Map",
+    "description": "Scenario-driven technology comparisons: a one-line conclusion, capability matrix, when to use and when not to, cost, and a decision tree — each linked to a runnable lab.",
+    "back": "Back to comparisons",
+    "viewRadar": "View the radar",
+    "browseLabs": "Browse runnable labs"
   }
 }

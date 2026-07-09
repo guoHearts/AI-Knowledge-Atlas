@@ -6,8 +6,10 @@ import { useTranslations } from 'next-intl';
 import { LocaleToggle } from '@/components/shared/LocaleToggle';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 
-const NAV_LINKS: { href: string; labelKey: 'route' | 'graph' | 'content' }[] = [
+const NAV_LINKS: { href: string; labelKey: 'route' | 'radar' | 'compare' | 'graph' | 'content' }[] = [
   { href: '/', labelKey: 'route' },
+  { href: '/radar', labelKey: 'radar' },
+  { href: '/compare', labelKey: 'compare' },
   { href: '/graph', labelKey: 'graph' },
   { href: '/cms', labelKey: 'content' },
 ];

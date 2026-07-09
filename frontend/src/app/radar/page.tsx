@@ -37,8 +37,8 @@ export default function RadarPage() {
 
         {/* Action Links */}
         <div className="mt-12 flex flex-wrap gap-4 justify-center">
-          <Link 
-            href="/docs/tech-comparisons" 
+          <Link
+            href="/compare"
             className="inline-block bg-stellar-green hover:bg-stellar-green/90 text-white px-6 py-3 rounded-lg font-medium transition-colors"
           >
             浏览技术选型地图
