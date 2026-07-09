@@ -82,11 +82,15 @@ def test_verified_secure_mcp_lab_exposes_trust_evidence():
     assert lab["status"] == "Verified"
     assert lab["lastVerifiedAt"] == "2026-07-09"
     assert lab["packages"] == [
-        {"name": "fastapi", "version": "0.104.1"},
-        {"name": "uvicorn", "version": "0.24.0"},
-        {"name": "pydantic", "version": "2.5.0"},
-        {"name": "pytest", "version": "7.4.3"},
-        {"name": "httpx", "version": "0.25.2"},
+        {"name": "fastapi", "version": "0.115.0"},
+        {"name": "uvicorn", "version": "0.30.0"},
+        {"name": "pydantic", "version": "2.9.0"},
+        {"name": "pydantic-settings", "version": "2.5.0"},
+        {"name": "python-dotenv", "version": "1.2.2"},
+        {"name": "structlog", "version": "24.1.0"},
+        {"name": "slowapi", "version": "0.1.9"},
+        {"name": "pyyaml", "version": "6.0.1"},
+        {"name": "requests", "version": "2.31.0"},
     ]
     assert any(source["type"] == "official" for source in lab["sources"])
     assert any("pytest" in output for output in lab["expectedOutputs"])

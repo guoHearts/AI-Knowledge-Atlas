@@ -17,7 +17,7 @@ const labs = [
     commands: ['python main.py'],
     summary: 'Secure MCP lab',
     lastVerifiedAt: '2026-07-09',
-    packages: [{ name: 'fastapi', version: '0.104.1' }],
+    packages: [{ name: 'fastapi', version: '0.115.0' }],
     expectedOutputs: ['pytest reports all Secure MCP Server tests passing.'],
     sources: [
       {
