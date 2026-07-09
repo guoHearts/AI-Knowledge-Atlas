@@ -89,11 +89,16 @@ def collect_compare_items(
 ) -> list[ContentItem]:
     """Collect Compare items from tech-comparison Markdown frontmatter.
 
-    Files without a leading frontmatter block are skipped.
+    Files without a leading frontmatter block are skipped. The section index
+    (README.md) is not an article, so it is excluded from article-level checks —
+    mirroring how the labs collector reads each lab's metadata rather than the
+    directory listing.
     """
     compare_dir = Path(compare_dir)
     items: list[ContentItem] = []
     for md_path in sorted(compare_dir.glob("*.md")):
+        if md_path.name.lower() == "readme.md":
+            continue
         frontmatter = _read_frontmatter(md_path)
         if not frontmatter:
             continue

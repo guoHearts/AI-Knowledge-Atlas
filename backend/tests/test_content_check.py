@@ -1,6 +1,7 @@
 from datetime import date
 
 from content_check.checker import STALE_AFTER_DAYS, evaluate
+from content_check.cli import format_report, main, run
 from content_check.collectors import (
     collect_compare_items,
     collect_lab_items,
@@ -164,3 +165,46 @@ def test_collect_compare_items_reads_frontmatter(tmp_path):
     fm = next(item for item in items if item.id == "with-fm")
     assert fm.kind == "compare"
     assert fm.last_verified == date(2026, 7, 7)
+
+
+# --- cli / exit codes ---------------------------------------------------------
+
+
+def test_run_on_real_repo_today_has_no_error_findings():
+    findings, exit_code = run(today=date(2026, 7, 9))
+
+    errors = [f for f in findings if f.severity == SEVERITY_ERROR]
+    assert errors == [], f"unexpected error findings: {[f.rule for f in errors]}"
+    assert exit_code == 0
+    known_rules = {
+        "missing-status",
+        "missing-verification-date",
+        "missing-official-source",
+        "ci-failed-but-verified",
+        "missing-lab-path",
+        "stale-needs-review",
+    }
+    assert all(f.rule in known_rules for f in findings)
+
+
+def test_run_in_far_future_flags_stale_and_strict_fails():
+    future = date(2027, 1, 1)
+    findings, exit_code = run(today=future)
+    assert any(f.rule == "stale-needs-review" for f in findings)
+    # needs-review alone does not fail CI unless --strict.
+    assert exit_code == 0
+
+    _, strict_code = run(today=future, strict=True)
+    assert strict_code == 1
+
+
+def test_main_strict_far_future_returns_1():
+    assert main(["--today", "2027-01-01", "--strict"]) == 1
+
+
+def test_main_today_returns_0():
+    assert main(["--today", "2026-07-09"]) == 0
+
+
+def test_format_report_handles_empty_findings():
+    assert "passed" in format_report([]).lower()
