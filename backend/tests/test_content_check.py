@@ -1,6 +1,11 @@
 from datetime import date
 
 from content_check.checker import STALE_AFTER_DAYS, evaluate
+from content_check.collectors import (
+    collect_compare_items,
+    collect_lab_items,
+    collect_radar_items,
+)
 from content_check.models import (
     SEVERITY_ERROR,
     SEVERITY_NEEDS_REVIEW,
@@ -84,3 +89,78 @@ def test_draft_item_is_exempt_from_stale_rule():
     old_draft = _item(status="Draft", last_verified=date(2025, 1, 1))
     findings = evaluate([old_draft], today=TODAY)
     assert "stale-needs-review" not in _rules(findings)
+
+
+# --- collectors ---------------------------------------------------------------
+
+
+def test_collect_radar_items_maps_official_source():
+    items = collect_radar_items()
+
+    assert len(items) >= 5
+    assert all(item.kind == "radar" for item in items)
+    mcp = next(item for item in items if item.id == "mcp-security-boundary-2026-07")
+    assert mcp.has_official_source is True
+    assert mcp.last_verified is not None
+
+
+def test_collect_lab_items_parses_metadata_and_path(tmp_path):
+    labs_dir = tmp_path / "labs"
+    good = labs_dir / "good-lab"
+    good.mkdir(parents=True)
+    (good / "metadata.yaml").write_text(
+        "id: good-lab\n"
+        "status: verified\n"
+        "lastVerifiedAt: 2026-07-09\n"
+        "path: labs/good-lab\n"
+        "sources:\n"
+        "  - type: official\n"
+        "    url: https://example.com\n"
+        "ciStatus: passing\n",
+        encoding="utf-8",
+    )
+    broken = labs_dir / "broken-lab"
+    broken.mkdir()
+    (broken / "metadata.yaml").write_text(
+        "id: broken-lab\n"
+        "status: verified\n"
+        "lastVerifiedAt: 2026-07-09\n"
+        "path: labs/does-not-exist\n"
+        "sources:\n"
+        "  - type: community\n"
+        "    url: https://example.com\n",
+        encoding="utf-8",
+    )
+
+    items = {item.id: item for item in collect_lab_items(labs_dir, repo_root=tmp_path)}
+
+    assert items["good-lab"].kind == "lab"
+    assert items["good-lab"].status == "verified" or items["good-lab"].status == "Verified"
+    assert items["good-lab"].has_official_source is True
+    assert items["good-lab"].path_exists is True
+    assert items["broken-lab"].has_official_source is False
+    assert items["broken-lab"].path_exists is False
+
+
+def test_collect_compare_items_reads_frontmatter(tmp_path):
+    (tmp_path / "with-fm.md").write_text(
+        "---\n"
+        "title: Sample\n"
+        "status: verified\n"
+        "lastVerifiedAt: 2026-07-07\n"
+        "sources:\n"
+        "  - type: official-doc\n"
+        "    url: https://example.com\n"
+        "---\n\n# Body\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "no-fm.md").write_text("# No frontmatter here\n", encoding="utf-8")
+
+    items = collect_compare_items(tmp_path)
+
+    ids = {item.id for item in items}
+    assert "with-fm" in ids
+    assert "no-fm" not in ids
+    fm = next(item for item in items if item.id == "with-fm")
+    assert fm.kind == "compare"
+    assert fm.last_verified == date(2026, 7, 7)
