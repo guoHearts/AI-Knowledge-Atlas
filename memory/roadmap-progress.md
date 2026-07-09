@@ -19,7 +19,7 @@ metadata:
 | 1 | 全量审查 Verified 内容 | ⬜ | |
 | 2 | 修复或降级错误/过时内容 | ⬜ | |
 | 3 | 重写 README 第一屏 | ✅ | 已完成 |
-| 4 | 建立统一内容元数据与校验脚本 | 🔧 | Radar 已有最小元数据校验 |
+| 4 | 建立统一内容元数据与校验脚本 | ✅ | content_check 统一校验 Radar/Labs/Compare 过期与元数据 |
 | 5 | 完成第一个高质量 Verified Lab | ✅ | Secure MCP Server 已完成内容闭环 |
 | 6 | 发布第一期 Radar | ✅ | 5 条正式条目 + 首页入口 + 下游关联 |
 | 7 | 完成一篇技术选型文章 | ⬜ | |
@@ -34,7 +34,7 @@ metadata:
 | 全量检查 Verified 内容 | ⬜ |
 | 降级不合规内容 | ⬜ |
 | 统一 Frontmatter | ⬜ |
-| 增加内容验证脚本 | ⬜ |
+| 增加内容验证脚本 | ✅ |
 | 修复 README | ✅ |
 | LICENSE/CONTRIBUTING/SECURITY/ROADMAP/Issue 模板 | ✅ |
 | 后端统一 API 响应 | ✅ |
@@ -62,13 +62,22 @@ metadata:
 
 ## 下一优先
 
-1. 技术选型（Compare）栏目或内容过期检测
+1. 技术选型（Compare）栏目：与 Secure MCP Lab 对应的 MCP vs Function Calling vs REST 选型文章（§19 第 7 项）
+2. 把 content-check 接入 GitHub Actions（content-validate.yml），并在 CI 用 `--strict` 或定时任务暴露 needs-review
 
 ## 最新提交与验证
 
 - 最新提交：`e46ad5d feat: publish first radar loop`
 - 验证通过：前端 typecheck、前端单测、后端 pytest、Next.js build、Playwright 首页/Radar 详情烟测
 - Secure MCP Server 已完成首个 Verified Lab 内容闭环：后端元数据、详情页验证证据、README、metadata.yaml、Radar/Graph/Learn 关联。
+
+## 2026-07-09 内容过期检测（批次E 起步）
+
+- 新增 `backend/content_check`（models/checker/collectors/cli）+ `tests/test_content_check.py`，统一扫描 Radar/Labs/Compare 的可信度元数据。
+- 规则：90 天未验证→needs-review；缺状态/验证日期/官方来源/Lab 路径、ciStatus 失败但仍 Verified→error。`today` 可注入以保证测试确定性。
+- 接线：`make content-check`、`.\Make.ps1 content-check`、`scripts/check-content.ps1`；文档写入 `docs/content-standards.md#自动过期检测`。
+- 真实 today 全部通过（exit 0）；发现并修正 Compare 索引 README 误判（索引不作为文章参与校验）。
+- 验证通过：`cd backend && python -m pytest tests -q`（含新增 content_check 用例）、`python -m content_check.cli` exit 0。
 
 ## 下一步判定（对照 docs）
 

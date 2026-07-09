@@ -25,6 +25,40 @@
 Lab CI 失败         → 移除 Verified
 ```
 
+## 自动过期检测
+
+`backend/content_check` 提供一个静态校验脚本，统一扫描三类可信内容——Radar 条目、Labs 的
+`metadata.yaml`、Compare（`docs/tech-comparisons/*.md`）的 Frontmatter——并按上述规则给出结论。
+
+运行方式（任选其一）：
+
+```bash
+make content-check                      # 以今天为基准
+make content-check ARGS="--strict"      # needs-review 也判失败
+
+# Windows PowerShell
+.\Make.ps1 content-check
+.\scripts\check-content.ps1 --today 2026-07-09
+```
+
+当前已实现的检查：
+
+| 规则 | 触发条件 | 级别 |
+|---|---|---|
+| `stale-needs-review` | `Verified` 且距 `lastVerifiedAt` 超过 90 天 | needs-review |
+| `missing-status` | 状态不在 `Verified/Stale/Draft/Deprecated` | error |
+| `missing-verification-date` | `Verified` 但缺少可解析的验证日期 | error |
+| `missing-official-source` | `Verified` 但没有官方来源（`type` 以 `official` 开头） | error |
+| `ci-failed-but-verified` | `Verified` 但 `ciStatus` 为 failing/failed | error |
+| `missing-lab-path` | Lab 的 `path` 在磁盘上不存在 | error |
+
+退出码：存在任一 error 即返回 `1`；`--strict` 下 needs-review 也返回 `1`；否则 `0`。
+脚本**只检测、不改写**内容——`Stale`/`Deprecated` 的自动落状态是后续批次的工作。
+`依赖主版本升级 → Stale` 与 `官方 API 废弃 → Deprecated` 依赖外部版本/接口信息，暂不在静态脚本范围内。
+
+Draft/Deprecated 内容豁免 90 天过期规则，但仍会校验状态与必填元数据。Compare 的 `README.md`
+是栏目索引而非文章，不参与文章级校验。
+
 ## 必填元数据
 
 所有技术内容必须标注：

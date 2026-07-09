@@ -1,4 +1,4 @@
-.PHONY: help install start stop restart seed reseed test build clean clean-all status dev backend docker-up logs docker-app
+.PHONY: help install start stop restart seed reseed test build clean clean-all status dev backend docker-up logs docker-app content-check
 
 .DEFAULT_GOAL := help
 
@@ -32,6 +32,7 @@ help:
 	@echo "    make seed        向 Neo4j 写入种子数据"
 	@echo "    make build       构建前端"
 	@echo "    make test        检查 HTTP 端点"
+	@echo "    make content-check  检测内容过期与元数据合规 (Radar/Labs/Compare)"
 	@echo "    make status      显示 Docker 状态"
 	@echo "    make logs        查看 Docker 日志"
 	@echo "    make clean       移除前端构建产物和数据库文件"
@@ -86,6 +87,11 @@ test:
 	@curl -fsS http://localhost:8000/health >/dev/null && echo "[OK] Backend health"
 	@curl -fsS http://localhost:3000/ >/dev/null && echo "[OK] Frontend home"
 	@curl -fsS http://localhost:3000/graph >/dev/null && echo "[OK] Graph page"
+
+content-check:
+	cd $(BACKEND_DIR) && \
+	CHECK_PY=$$([ -x "$(VENV_PYTHON)" ] && echo "$(VENV_PYTHON)" || echo "$(PYTHON)") && \
+	$$CHECK_PY -m content_check.cli $(ARGS)
 
 status:
 	$(COMPOSE) ps

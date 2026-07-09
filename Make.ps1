@@ -1,7 +1,8 @@
 param(
     [Parameter(Position = 0)]
     [ValidateSet("help", "install", "start", "stop", "restart", "dev", "backend", "docker-up",
-                 "docker-app", "seed", "reseed", "build", "test", "status", "logs", "clean", "clean-all")]
+                 "docker-app", "seed", "reseed", "build", "test", "content-check", "status", "logs",
+                 "clean", "clean-all")]
     [string]$Command = "help",
 
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -61,6 +62,7 @@ AI Knowledge Atlas — 两种启动方式
     .\Make.ps1 seed        向 Neo4j 写入种子数据
     .\Make.ps1 build       构建前端
     .\Make.ps1 test        检查 HTTP 端点
+    .\Make.ps1 content-check  检测内容过期与元数据合规 (Radar/Labs/Compare)
     .\Make.ps1 status      显示 Docker 和 HTTP 状态
     .\Make.ps1 logs        查看本地后端/前端日志
     .\Make.ps1 clean       移除前端构建产物和数据库文件
@@ -207,6 +209,11 @@ AI Knowledge Atlas — 两种启动方式
                 Write-Warn "$($check[0]): unavailable"
             }
         }
+    }
+
+    "content-check" {
+        & (Join-Path $ROOT "scripts\check-content.ps1") @Remaining
+        exit $LASTEXITCODE
     }
 
     "status" {
