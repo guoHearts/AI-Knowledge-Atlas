@@ -85,6 +85,7 @@ from modules.content.router import router as content_router
 from modules.graph.router import router as graph_router
 from modules.progress.router import router as progress_router
 from modules.radar.router import router as radar_router
+from modules.compare.router import router as compare_router
 from modules.share.router import router as share_router
 app.include_router(graph_router)
 app.include_router(share_router)
@@ -92,6 +93,7 @@ app.include_router(chat_router)
 app.include_router(content_router)
 app.include_router(progress_router)
 app.include_router(radar_router)
+app.include_router(compare_router)
 app.include_router(learning_router)
 
 
