@@ -115,12 +115,20 @@ LABS: list[dict[str, Any]] = [
     {
         "id": "secure-mcp-server",
         "title": "Secure MCP Server",
-        "status": "Draft",
+        "status": "Verified",
         "difficulty": "Intermediate",
         "estimatedSetupTime": "15min",
         "estimatedCost": "< $1",
         "requiresApiKey": True,
         "path": "labs/secure-mcp-server",
+        "lastVerifiedAt": "2026-07-09",
+        "packages": [
+            {"name": "fastapi", "version": "0.104.1"},
+            {"name": "uvicorn", "version": "0.24.0"},
+            {"name": "pydantic", "version": "2.5.0"},
+            {"name": "pytest", "version": "7.4.3"},
+            {"name": "httpx", "version": "0.25.2"},
+        ],
         "commands": [
             "cd labs/secure-mcp-server",
             "python -m venv .venv",
@@ -128,7 +136,67 @@ LABS: list[dict[str, Any]] = [
             "python -m pytest tests -q",
             "python main.py",
         ],
-        "summary": "MCP Server baseline lab with tool allowlist, parameter validation, audit logs, and basic input protection.",
+        "expectedOutputs": [
+            "pytest reports all Secure MCP Server tests passing.",
+            "GET /mcp/health returns status=healthy when the server is running.",
+            "Unauthorized tools are rejected before execution.",
+            "Invalid parameters return validation errors instead of reaching tool logic.",
+        ],
+        "sources": [
+            {
+                "type": "official",
+                "title": "Model Context Protocol specification",
+                "url": "https://modelcontextprotocol.io/specification",
+            },
+            {
+                "type": "official",
+                "title": "FastAPI documentation",
+                "url": "https://fastapi.tiangolo.com/",
+            },
+            {
+                "type": "official",
+                "title": "Pydantic documentation",
+                "url": "https://docs.pydantic.dev/",
+            },
+        ],
+        "failureModes": [
+            {
+                "title": "Missing API key",
+                "resolution": "Copy .env.example to .env and set API_KEY before starting the server.",
+            },
+            {
+                "title": "Port 8000 already in use",
+                "resolution": "Stop the existing process or change the local port before running python main.py.",
+            },
+            {
+                "title": "Tool rejected by allowlist",
+                "resolution": "Confirm ALLOWED_TOOLS contains only the intended tool names.",
+            },
+        ],
+        "securityNotes": [
+            "The tool allowlist blocks unknown tool names before parameter handling.",
+            "Pydantic validation rejects invalid tool parameters before execution.",
+            "Audit logs record tool calls for review, but they are not a substitute for centralized production logging.",
+            "Prompt injection checks are a defense layer, not a complete security boundary.",
+        ],
+        "knownLimitations": [
+            "The lab uses a simple API key for local verification and does not include production identity management.",
+            "Rate limiting is documented but not implemented in the runnable sample.",
+            "The audit log is local file output and is not wired to a SIEM or tracing platform.",
+        ],
+        "relatedRadarItemIds": ["mcp-security-boundary-2026-07"],
+        "relatedNodeIds": ["MCP", "Tool Allowlist", "Prompt Injection"],
+        "relatedLearningPaths": [
+            {
+                "title": "MCP protocol principles",
+                "href": "/learn/agent-engineer/module-03-mcp/01-mcp-protocol-principles",
+            },
+            {
+                "title": "Build MCP Server",
+                "href": "/learn/agent-engineer/module-03-mcp/02-build-mcp-server",
+            },
+        ],
+        "summary": "Verified MCP Server baseline lab with tool allowlist, parameter validation, audit logs, and documented security boundaries.",
     },
     {
         "id": "production-agent-with-human-approval",

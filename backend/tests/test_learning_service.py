@@ -74,6 +74,30 @@ def test_learning_service_delegates_read_models():
     assert service.get_cms_dashboard()["stats"]["trackCount"] == 1
 
 
+def test_verified_secure_mcp_lab_exposes_trust_evidence():
+    service = LearningService(FakeLearningRepository())
+
+    lab = service.get_lab("secure-mcp-server")
+
+    assert lab["status"] == "Verified"
+    assert lab["lastVerifiedAt"] == "2026-07-09"
+    assert lab["packages"] == [
+        {"name": "fastapi", "version": "0.104.1"},
+        {"name": "uvicorn", "version": "0.24.0"},
+        {"name": "pydantic", "version": "2.5.0"},
+        {"name": "pytest", "version": "7.4.3"},
+        {"name": "httpx", "version": "0.25.2"},
+    ]
+    assert any(source["type"] == "official" for source in lab["sources"])
+    assert any("pytest" in output for output in lab["expectedOutputs"])
+    assert any(mode["title"] == "Missing API key" for mode in lab["failureModes"])
+    assert any("allowlist" in note.lower() for note in lab["securityNotes"])
+    assert any("rate limiting" in limitation.lower() for limitation in lab["knownLimitations"])
+    assert lab["relatedRadarItemIds"] == ["mcp-security-boundary-2026-07"]
+    assert "MCP" in lab["relatedNodeIds"]
+    assert lab["relatedLearningPaths"][0]["href"].startswith("/learn/")
+
+
 def test_learning_service_raises_app_error_for_missing_records():
     service = LearningService(FakeLearningRepository())
 
