@@ -46,7 +46,7 @@ export default async function LabDetailPage({
         </h1>
         <p className="mt-4 leading-7 text-cosmos-dim">{lab.summary}</p>
 
-        <dl className="mt-8 grid gap-4 text-sm md:grid-cols-3">
+        <dl className="mt-8 grid gap-4 text-sm md:grid-cols-4">
           <div>
             <dt className="text-cosmos-dim">{t('repositoryPath')}</dt>
             <dd className="mt-1 font-mono text-cosmos-text">{lab.path}</dd>
@@ -61,6 +61,12 @@ export default async function LabDetailPage({
               {lab.requiresApiKey ? t('apiKeyRequired') : t('apiKeyNotRequired')}
             </dd>
           </div>
+          {lab.lastVerifiedAt && (
+            <div>
+              <dt className="text-cosmos-dim">Last verified</dt>
+              <dd className="mt-1 text-cosmos-text">{lab.lastVerifiedAt}</dd>
+            </div>
+          )}
         </dl>
 
         <div className="mt-8">
@@ -76,6 +82,122 @@ export default async function LabDetailPage({
             {t('metadataNote')}
           </p>
         </div>
+
+        {lab.expectedOutputs?.length ? (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-cosmos-text">Expected outputs</h2>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-cosmos-dim">
+              {lab.expectedOutputs.map((output) => (
+                <li key={output}>- {output}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {lab.packages?.length ? (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-cosmos-text">Pinned packages</h2>
+            <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
+              {lab.packages.map((pkg) => (
+                <div
+                  key={pkg.name}
+                  className="rounded border border-cosmos-border px-3 py-2 font-mono text-cosmos-text"
+                >
+                  {pkg.name}@{pkg.version}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {lab.sources?.length ? (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-cosmos-text">Official sources</h2>
+            <ul className="mt-3 space-y-2 text-sm leading-6">
+              {lab.sources.map((source) => (
+                <li key={source.url}>
+                  <a href={source.url} className="text-stellar-green hover:text-stellar-green/80">
+                    {source.title}
+                  </a>
+                  <span className="ml-2 text-cosmos-dim">({source.type})</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {lab.failureModes?.length ? (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-cosmos-text">Common failure modes</h2>
+            <div className="mt-3 space-y-3">
+              {lab.failureModes.map((mode) => (
+                <div key={mode.title} className="rounded border border-cosmos-border p-3">
+                  <p className="font-medium text-cosmos-text">{mode.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-cosmos-dim">{mode.resolution}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {lab.securityNotes?.length ? (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-cosmos-text">Security notes</h2>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-cosmos-dim">
+              {lab.securityNotes.map((note) => (
+                <li key={note}>- {note}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {lab.knownLimitations?.length ? (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-cosmos-text">Known limitations</h2>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-cosmos-dim">
+              {lab.knownLimitations.map((limitation) => (
+                <li key={limitation}>- {limitation}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {lab.relatedRadarItemIds?.length ||
+        lab.relatedNodeIds?.length ||
+        lab.relatedLearningPaths?.length ? (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold text-cosmos-text">Related paths</h2>
+            <div className="mt-3 grid gap-3 text-sm md:grid-cols-3">
+              {lab.relatedRadarItemIds?.map((radarId) => (
+                <Link
+                  key={radarId}
+                  href={`/radar/${radarId}`}
+                  className="rounded border border-cosmos-border px-3 py-2 text-stellar-green hover:text-stellar-green/80"
+                >
+                  Radar: {radarId}
+                </Link>
+              ))}
+              {lab.relatedNodeIds?.map((nodeId) => (
+                <Link
+                  key={nodeId}
+                  href={`/graph?node=${encodeURIComponent(nodeId)}`}
+                  className="rounded border border-cosmos-border px-3 py-2 text-stellar-green hover:text-stellar-green/80"
+                >
+                  Graph: {nodeId}
+                </Link>
+              ))}
+              {lab.relatedLearningPaths?.map((path) => (
+                <Link
+                  key={path.href}
+                  href={path.href}
+                  className="rounded border border-cosmos-border px-3 py-2 text-stellar-green hover:text-stellar-green/80"
+                >
+                  Learn: {path.title}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );
