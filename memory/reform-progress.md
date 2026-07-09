@@ -14,7 +14,7 @@ metadata:
 - 批次A 定位与治理 —— ✅ 已完成（2026-07-07）
 - 批次B Radar 最小闭环 —— ✅ 已完成（2026-07-08）
 - 批次C 第一个标杆 Lab —— ✅ 已完成（2026-07-09）
-- 批次D Compare + 图谱决策化 —— 待做
+- 批次D Compare + 图谱决策化 —— 🔧 进行中（Compare 栏目 + 首篇 MCP 选型已落地；图谱决策化待做）
 - 批次E CI/CD + 校验脚本 —— 🔧 进行中（content_check 内容过期/元数据校验脚本已落地，GitHub Actions 接入待做）
 
 ## 2026-07-08 本轮完成
@@ -68,7 +68,8 @@ metadata:
 ## 下一步
 
 1. **批次C**：第一个标杆 Lab（Secure MCP Server）已完成内容闭环。
-2. **批次E 起步（2026-07-09）**：内容过期检测脚本 `backend/content_check` 已落地（扫描 Radar/Labs/Compare，90 天未验证→needs-review，缺来源/日期/状态/Lab 路径→error；`make content-check` / `scripts/check-content.ps1`）。下一步：接入 GitHub Actions content-validate.yml，或转入批次D Compare 栏目。
+2. **批次E 起步（2026-07-09）**：内容过期检测脚本 `backend/content_check` 已落地（扫描 Radar/Labs/Compare，90 天未验证→needs-review，缺来源/日期/状态/Lab 路径→error；`make content-check` / `scripts/check-content.ps1`）。
+3. **批次D 起步（2026-07-09）**：Compare 栏目落地——`backend/modules/compare`（镜像 radar）+ 首篇《MCP vs Function Calling vs REST》Verified 文章 + `features/compare`/`app/compare`/代理路由 + 导航入口 + 修复 Radar 死链。下一步：Lab→Compare 反向链接、GitHub Actions 接入，或图谱决策化。
 
 ## 2026-07-08 docs 对照后的下一步判定
 

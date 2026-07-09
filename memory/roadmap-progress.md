@@ -22,9 +22,9 @@ metadata:
 | 4 | 建立统一内容元数据与校验脚本 | ✅ | content_check 统一校验 Radar/Labs/Compare 过期与元数据 |
 | 5 | 完成第一个高质量 Verified Lab | ✅ | Secure MCP Server 已完成内容闭环 |
 | 6 | 发布第一期 Radar | ✅ | 5 条正式条目 + 首页入口 + 下游关联 |
-| 7 | 完成一篇技术选型文章 | ⬜ | |
+| 7 | 完成一篇技术选型文章 | ✅ | Compare 栏目 + 首篇 MCP vs Function Calling vs REST |
 | 8 | 重构首页核心入口 | ✅ | HomePageView 组件化 + getHomeStats API |
-| 9 | 打通模块关联 | 🔧 | Radar 已关联 Lab/Graph/Learn，Compare 待补 |
+| 9 | 打通模块关联 | 🔧 | Radar/Compare 已关联 Lab/Graph/Learn；Lab→Compare 反向链接待补 |
 | 10 | 发布 v0.1.0 | ⬜ | |
 
 ## 阶段 0 交付物
@@ -62,8 +62,17 @@ metadata:
 
 ## 下一优先
 
-1. 技术选型（Compare）栏目：与 Secure MCP Lab 对应的 MCP vs Function Calling vs REST 选型文章（§19 第 7 项）
+1. Lab → Compare 反向链接（labs catalog + LabDefinition + 详情页），补齐任务9 剩余关联
 2. 把 content-check 接入 GitHub Actions（content-validate.yml），并在 CI 用 `--strict` 或定时任务暴露 needs-review
+3. 朝 v0.1.0（任务10）推进：全量审查 Verified 内容（任务1/2）
+
+## 2026-07-09 Compare 栏目（批次D 起步）
+
+- 新增 `backend/modules/compare`（schemas/repository/service/router，镜像 radar），注册 main.py。
+- 首篇 Verified 文章《MCP vs Function Calling vs REST 工具接入怎么选》：3 方案对比对象、5 维功能矩阵、适用/不适用、决策树、成本、官方来源，关联 Secure MCP Lab / mcp-security-boundary Radar / MCP 图谱节点 / Learn。
+- 前端 `features/compare` + `app/compare` + `app/api/compare` 代理；导航栏新增 雷达/选型 入口；修复 Radar 页 `/docs/tech-comparisons` 死链 → `/compare`。
+- 验证：后端 46 pytest、content-check exit 0、前端 24 单测、typecheck、`pnpm build`（/compare、/compare/[id] 均编译）。
+- 待补：Lab→Compare 反向链接（本轮按范围守卫暂缓，避免扩张 labs 契约）。
 
 ## 最新提交与验证
 
