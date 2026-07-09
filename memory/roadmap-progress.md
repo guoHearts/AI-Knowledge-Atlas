@@ -20,7 +20,7 @@ metadata:
 | 2 | 修复或降级错误/过时内容 | ⬜ | |
 | 3 | 重写 README 第一屏 | ✅ | 已完成 |
 | 4 | 建立统一内容元数据与校验脚本 | 🔧 | Radar 已有最小元数据校验 |
-| 5 | 完成第一个高质量 Verified Lab | 🔧 | 骨架已有 |
+| 5 | 完成第一个高质量 Verified Lab | ✅ | Secure MCP Server 已完成内容闭环 |
 | 6 | 发布第一期 Radar | ✅ | 5 条正式条目 + 首页入口 + 下游关联 |
 | 7 | 完成一篇技术选型文章 | ⬜ | |
 | 8 | 重构首页核心入口 | ✅ | HomePageView 组件化 + getHomeStats API |
@@ -62,12 +62,13 @@ metadata:
 
 ## 下一优先
 
-1. 批次C 第一个高质量 Verified Lab（Secure MCP Server）
+1. 技术选型（Compare）栏目或内容过期检测
 
 ## 最新提交与验证
 
 - 最新提交：`e46ad5d feat: publish first radar loop`
 - 验证通过：前端 typecheck、前端单测、后端 pytest、Next.js build、Playwright 首页/Radar 详情烟测
+- Secure MCP Server 已完成首个 Verified Lab 内容闭环：后端元数据、详情页验证证据、README、metadata.yaml、Radar/Graph/Learn 关联。
 
 ## 下一步判定（对照 docs）
 
@@ -77,17 +78,19 @@ metadata:
 - `docs/specs/2026-07-08-雷达架构样板改造设计.md` 与 `docs/plans/2026-07-08-雷达架构样板改造实施计划.md`：Radar 架构样板已基本完成，剩余不是架构迁移，而是正式内容闭环。
 - `docs/2026-07-08-架构迁移进度评估.md` 的早期状态已有后续迁移更新；当前 Graph/Learn 类型与组件也已归位。
 
-结论：**批次B Radar 最小闭环已完成**，下一步应进入 **批次C 第一个高质量 Verified Lab**。
+结论：**批次B Radar 最小闭环与批次C 第一个高质量 Verified Lab 已完成**，下一步进入 **Compare 栏目或内容过期检测**。
 
 已完成：
 1. Radar 正式数据模型补齐 `status`、`published_at`、`last_verified_at`、`sources`、`related_lab_ids`、`related_node_ids`、`related_learning_paths`。
 2. 发布第一期 5 条以内正式 Radar 内容集，每条包含明确结论、官方来源、最后验证日期和适用/不适用场景。
 3. 首页增加 Radar 摘要区，形成 `首页 -> Radar -> Lab/Graph/Learn` 路径。
 4. 后端服务测试保护 Radar 条目必须具备来源、验证日期、状态和至少一个下游路径。
+5. Secure MCP Server 标记为首个 Verified Lab，并补齐依赖版本、运行命令、预期输出、常见失败、安全注意事项、最后验证日期与官方来源。
+6. Labs 详情页展示 Verified Lab 验证证据，并关联 Radar、Graph 和 Learn 路径。
 
 下一步建议执行拆解：
-1. 选择 Secure MCP Server 作为第一个 Verified Lab。
-2. 固定依赖版本、运行命令、预期输出和测试用例。
-3. 将 Lab 与 Radar MCP 条目、Graph 节点和 Learn 路径双向关联。
+1. 选择技术选型（Compare）栏目或内容过期检测作为下一批。
+2. 若选择 Compare，优先做与 Secure MCP Server 对应的 MCP / Function Calling / REST API 选型文章。
+3. 若选择内容过期检测，先定义 90 天未验证与 Lab CI 失败的状态流转规则。
 
 **How to apply**：完成任务后更新本文档。
