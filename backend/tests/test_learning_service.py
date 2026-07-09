@@ -100,6 +100,7 @@ def test_verified_secure_mcp_lab_exposes_trust_evidence():
     assert lab["relatedRadarItemIds"] == ["mcp-security-boundary-2026-07"]
     assert "MCP" in lab["relatedNodeIds"]
     assert lab["relatedLearningPaths"][0]["href"].startswith("/learn/")
+    assert lab["relatedCompareIds"] == ["mcp-vs-function-calling-vs-rest"]
 
 
 def test_learning_service_raises_app_error_for_missing_records():

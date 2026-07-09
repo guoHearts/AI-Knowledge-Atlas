@@ -163,6 +163,7 @@ export default async function LabDetailPage({
         ) : null}
 
         {lab.relatedRadarItemIds?.length ||
+        lab.relatedCompareIds?.length ||
         lab.relatedNodeIds?.length ||
         lab.relatedLearningPaths?.length ? (
           <div className="mt-8">
@@ -175,6 +176,15 @@ export default async function LabDetailPage({
                   className="rounded border border-cosmos-border px-3 py-2 text-stellar-green hover:text-stellar-green/80"
                 >
                   Radar: {radarId}
+                </Link>
+              ))}
+              {lab.relatedCompareIds?.map((compareId) => (
+                <Link
+                  key={compareId}
+                  href={`/compare/${compareId}`}
+                  className="rounded border border-cosmos-border px-3 py-2 text-stellar-green hover:text-stellar-green/80"
+                >
+                  Compare: {compareId}
                 </Link>
               ))}
               {lab.relatedNodeIds?.map((nodeId) => (

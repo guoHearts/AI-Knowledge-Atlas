@@ -30,6 +30,7 @@ const labs = [
     securityNotes: ['The tool allowlist blocks unknown tool names before parameter handling.'],
     knownLimitations: ['Rate limiting is documented but not implemented in the runnable sample.'],
     relatedRadarItemIds: ['mcp-security-boundary-2026-07'],
+    relatedCompareIds: ['mcp-vs-function-calling-vs-rest'],
     relatedNodeIds: ['MCP'],
     relatedLearningPaths: [
       {
@@ -87,6 +88,7 @@ test('listLabs exposes list page metadata', async () => {
     assert.equal(result[0].sources?.[0].type, 'official');
     assert.equal(result[0].expectedOutputs?.[0].includes('pytest'), true);
     assert.equal(result[0].relatedRadarItemIds?.[0], 'mcp-security-boundary-2026-07');
+    assert.equal(result[0].relatedCompareIds?.[0], 'mcp-vs-function-calling-vs-rest');
   } finally {
     restore();
   }

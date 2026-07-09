@@ -189,6 +189,7 @@ LABS: list[dict[str, Any]] = [
             "The audit log is local file output and is not wired to a SIEM or tracing platform.",
         ],
         "relatedRadarItemIds": ["mcp-security-boundary-2026-07"],
+        "relatedCompareIds": ["mcp-vs-function-calling-vs-rest"],
         "relatedNodeIds": ["MCP", "Tool Allowlist", "Prompt Injection"],
         "relatedLearningPaths": [
             {

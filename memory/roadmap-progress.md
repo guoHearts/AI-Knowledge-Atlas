@@ -24,7 +24,7 @@ metadata:
 | 6 | 发布第一期 Radar | ✅ | 5 条正式条目 + 首页入口 + 下游关联 |
 | 7 | 完成一篇技术选型文章 | ✅ | Compare 栏目 + 首篇 MCP vs Function Calling vs REST |
 | 8 | 重构首页核心入口 | ✅ | HomePageView 组件化 + getHomeStats API |
-| 9 | 打通模块关联 | 🔧 | Radar/Compare 已关联 Lab/Graph/Learn；Lab→Compare 反向链接待补 |
+| 9 | 打通模块关联 | ✅ | Radar/Compare/Lab 互链（含 Lab→Compare 反向）+ Graph/Learn 关联 |
 | 10 | 发布 v0.1.0 | ⬜ | |
 
 ## 阶段 0 交付物
@@ -62,9 +62,16 @@ metadata:
 
 ## 下一优先
 
-1. Lab → Compare 反向链接（labs catalog + LabDefinition + 详情页），补齐任务9 剩余关联
-2. 把 content-check 接入 GitHub Actions（content-validate.yml），并在 CI 用 `--strict` 或定时任务暴露 needs-review
-3. 朝 v0.1.0（任务10）推进：全量审查 Verified 内容（任务1/2）
+1. 把 content-check 接入 GitHub Actions（content-validate.yml），并在 CI 用 `--strict` 或定时任务暴露 needs-review
+2. 朝 v0.1.0（任务10）推进：全量审查 Verified 内容（任务1/2）
+3. 图谱决策化（批次D 剩余）
+
+## 2026-07-09 Lab→Compare 反向链接（任务9 收尾）
+
+- `catalog.py` secure-mcp lab 增加 `relatedCompareIds: ["mcp-vs-function-calling-vs-rest"]`。
+- `LabDefinition` 增加 `relatedCompareIds?`，Lab 详情页 Related paths 渲染 `Compare: <id>` → `/compare/<id>`。
+- 前后端测试各加一条断言。至此 Radar/Compare/Lab 三向互链闭合，任务9 完成。
+- 验证：后端 46 pytest、前端 24 单测 + typecheck + build、content-check exit 0。
 
 ## 2026-07-09 Compare 栏目（批次D 起步）
 

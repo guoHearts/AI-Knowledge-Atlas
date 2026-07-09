@@ -41,6 +41,7 @@ export interface LabDefinition {
   securityNotes?: string[];
   knownLimitations?: string[];
   relatedRadarItemIds?: string[];
+  relatedCompareIds?: string[];
   relatedNodeIds?: string[];
   relatedLearningPaths?: LabRelatedPath[];
 }
