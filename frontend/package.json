@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typegen": "next typegen",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "tsx --test \"src/test/**/*.test.mts\""
+    "test": "node scripts/run-tests.mjs"
   },
   "dependencies": {
     "@mdx-js/mdx": "^3.1.1",
