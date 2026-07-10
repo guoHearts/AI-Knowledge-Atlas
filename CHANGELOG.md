@@ -14,6 +14,7 @@
 - 后端 learning catalog 接口：`/learning/home/content`、`/learning/metadata`、`/learning/labs`
 - `next-intl` 国际化基础设施，默认中文，并提供导航栏语言切换按钮（中文 / English）
 - 第一期 AI Engineering Radar 最小闭环：5 条正式 Radar 条目、状态/验证日期/官方来源元数据、首页 Radar 摘要入口、Graph/Learn/Lab 下游关联
+- GitHub Actions CI（`.github/workflows/ci.yml`）：backend job 跑 `pytest` + `content_check.cli`，frontend job 跑 `lint` / `typecheck` / `test` / `build`
 
 ### 变更
 

@@ -38,7 +38,8 @@
 - [ ] 每周 Radar 发布节奏
 - [ ] 每两周一个新 Lab（Production Agent、Hybrid RAG Evaluation）
 - [ ] 技术选型（Compare）栏目
-- [ ] 内容过期检测（90 天未验证 → Needs Review；CI 失败 → 移除 Verified）
+- [x] 内容过期检测接入 CI（GitHub Actions 跑 `content_check`，error 级别阻断 PR）
+- [ ] Lab CI 失败 → 自动移除 Verified 状态的写回逻辑（当前仅检测，不自动改状态）
 - [ ] 知识图谱决策化：替代方案、相关实验、按成熟度筛选
 - [ ] 第一批 Good First Issue 与外部贡献者
 
