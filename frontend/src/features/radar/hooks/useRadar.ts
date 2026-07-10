@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLocale } from 'next-intl';
 import {
   listRadarCategories,
   listRadarItems,
@@ -8,12 +9,15 @@ import {
 import type { RadarCategory, RadarItem } from '../types/radar.types';
 
 export function useRadarList() {
+  const locale = useLocale();
   const [items, setItems] = useState<RadarItem[]>([]);
   const [categories, setCategories] = useState<RadarCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // The proxy route reads the locale cookie itself; re-running this effect
+  // when `locale` changes is what actually triggers the refetch.
   useEffect(() => {
     let cancelled = false;
 
@@ -39,7 +43,7 @@ export function useRadarList() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [locale]);
 
   const filteredItems = selectedCategory
     ? items.filter((item) => item.category === selectedCategory)

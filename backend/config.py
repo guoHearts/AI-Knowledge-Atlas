@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    database_url: str = "postgresql://app:app_password@localhost:5432/ai_knowledge_atlas"
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
     neo4j_password: str = "ai-knowledge-graph"

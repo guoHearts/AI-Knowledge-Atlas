@@ -44,12 +44,12 @@ AI Knowledge Atlas 帮助开发者理解快速变化的 AI 工程生态，把新
 - Python 3.12+
 - Node.js 20+
 - pnpm（版本锁定见 `frontend/package.json` 的 `packageManager` 字段）
-- **Windows 额外要求**：Visual Studio 2022 Build Tools（`better-sqlite3` 等原生模块需要 C++ 编译器）
+- **Windows 额外要求**：Visual Studio 2022 Build Tools（`sharp` 等原生模块需要 C++ 编译器）
 
 <details>
 <summary>Windows 安装 Visual Studio Build Tools</summary>
 
-`better-sqlite3`、`sharp` 等原生模块需要 C++ 编译工具链。缺少 VS Build Tools 时 `pnpm install` 会报 `Could not locate the bindings file`。
+`sharp` 等原生模块需要 C++ 编译工具链。缺少 VS Build Tools 时 `pnpm install` 会报 `Could not locate the bindings file`。
 
 ```powershell
 winget install Microsoft.VisualStudio.2022.BuildTools --silent `
@@ -129,6 +129,10 @@ make docker-app        # 构建并启动全部 Docker 服务
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=ai-knowledge-graph
+POSTGRES_DB=ai_knowledge_atlas
+POSTGRES_USER=app
+POSTGRES_PASSWORD=app_password
+DATABASE_URL=postgresql://app:app_password@localhost:5432/ai_knowledge_atlas
 ENABLE_SCHEDULER=false
 NEXT_PUBLIC_API_URL=http://localhost:8000
 BACKEND_INTERNAL_URL=http://localhost:8000
@@ -163,7 +167,7 @@ AI-Knowledge-Atlas/
 
 - **后端**：Python 3.12、FastAPI、Neo4j、OpenAI、APScheduler
 - **前端**：Next.js 16、React 19、TypeScript、D3.js、Tailwind CSS v4、MDX
-- **数据**：Neo4j 图数据库；SQLite（课程进度与索引）
+- **数据**：Neo4j 图数据库；PostgreSQL（课程、进度与索引）
 - **本地依赖服务**：Docker Compose
 
 ## 内容可信度

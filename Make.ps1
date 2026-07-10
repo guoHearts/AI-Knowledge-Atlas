@@ -1,7 +1,8 @@
 param(
     [Parameter(Position = 0)]
     [ValidateSet("help", "install", "start", "stop", "restart", "dev", "backend", "docker-up",
-                 "docker-app", "seed", "reseed", "build", "test", "status", "logs", "clean", "clean-all")]
+                 "docker-app", "seed", "reseed", "build", "test", "content-check", "status", "logs",
+                 "clean", "clean-all")]
     [string]$Command = "help",
 
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -45,22 +46,23 @@ switch ($Command) {
         Write-Host @"
 AI Knowledge Atlas — 两种启动方式
 
-  方式1: 混合模式 (前端+后端本地, Neo4j Docker)
-    .\Make.ps1 start       一键启动 (Neo4j Docker + 本地后端 + 本地前端)
+  方式1: 混合模式 (前端+后端本地, Neo4j + PostgreSQL Docker)
+    .\Make.ps1 start       一键启动 (Neo4j + PostgreSQL Docker + 本地后端 + 本地前端)
     .\Make.ps1 stop        停止所有服务
     .\Make.ps1 restart     重启整栈
 
   方式2: 全 Docker 模式
-    .\Make.ps1 docker-app  构建并启动全部服务 (Neo4j + 后端 + 前端)
+    .\Make.ps1 docker-app  构建并启动全部服务 (Neo4j + PostgreSQL + 后端 + 前端)
 
   单独启动/管理:
     .\Make.ps1 install     安装前后端依赖
-    .\Make.ps1 docker-up   仅启动 Docker 依赖服务 (Neo4j)
+    .\Make.ps1 docker-up   仅启动 Docker 依赖服务 (Neo4j + PostgreSQL)
     .\Make.ps1 backend     单独启动本地后端 (前景)
     .\Make.ps1 dev         单独启动本地前端 (前景)
     .\Make.ps1 seed        向 Neo4j 写入种子数据
     .\Make.ps1 build       构建前端
     .\Make.ps1 test        检查 HTTP 端点
+    .\Make.ps1 content-check  检测内容过期与元数据合规 (Radar/Labs/Compare)
     .\Make.ps1 status      显示 Docker 和 HTTP 状态
     .\Make.ps1 logs        查看本地后端/前端日志
     .\Make.ps1 clean       移除前端构建产物和数据库文件
@@ -101,7 +103,7 @@ AI Knowledge Atlas — 两种启动方式
     "docker-up" {
         Push-Location $ROOT
         try {
-            Invoke-DockerCompose up -d neo4j
+            Invoke-DockerCompose up -d neo4j postgres
         }
         finally {
             Pop-Location
@@ -146,7 +148,6 @@ AI Knowledge Atlas — 两种启动方式
         Push-Location $FRONTEND_DIR
         try {
             $env:NEXT_PUBLIC_API_URL = if ($env:NEXT_PUBLIC_API_URL) { $env:NEXT_PUBLIC_API_URL } else { "http://localhost:8000" }
-            $env:DATABASE_PATH = if ($env:DATABASE_PATH) { $env:DATABASE_PATH } else { ".\data\learning.db" }
             Invoke-Pnpm dev
         }
         finally {
@@ -167,8 +168,16 @@ AI Knowledge Atlas — 两种启动方式
     }
 
     "reseed" {
-        Remove-Item -Force (Join-Path $FRONTEND_DIR "data\learning.db") -ErrorAction SilentlyContinue
-        & $MyInvocation.MyCommand.Path "seed"
+        Push-Location $BACKEND_DIR
+        try {
+            if (-not $env:DATABASE_URL) {
+                $env:DATABASE_URL = "postgresql://app:app_password@localhost:5432/ai_knowledge_atlas"
+            }
+            & ".\.venv\Scripts\python.exe" "scripts\migrate_sqlite_learning_to_postgres.py"
+        }
+        finally {
+            Pop-Location
+        }
     }
 
     "build" {
@@ -202,6 +211,11 @@ AI Knowledge Atlas — 两种启动方式
         }
     }
 
+    "content-check" {
+        & (Join-Path $ROOT "scripts\check-content.ps1") @Remaining
+        exit $LASTEXITCODE
+    }
+
     "status" {
         Write-Host "--- Docker services ---" -ForegroundColor Cyan
         Invoke-DockerCompose ps
@@ -224,8 +238,7 @@ AI Knowledge Atlas — 两种启动方式
 
     "clean" {
         Remove-Item -Recurse -Force (Join-Path $FRONTEND_DIR ".next") -ErrorAction SilentlyContinue
-        Remove-Item -Force (Join-Path $FRONTEND_DIR "data\learning.db") -ErrorAction SilentlyContinue
-        Write-OK "Local frontend build/database artifacts removed"
+        Write-OK "Local frontend build artifacts removed"
     }
 
     "clean-all" {

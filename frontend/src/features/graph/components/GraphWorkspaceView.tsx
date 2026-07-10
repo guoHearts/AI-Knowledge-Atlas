@@ -1,16 +1,16 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { NodeDetailPanel } from '@/components/graph/NodeDetail';
+import { useTranslations } from 'next-intl';
+import { NodeDetailPanel } from './NodeDetail';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useGraphWorkspace } from '../hooks/useGraphWorkspace';
 import { GraphLegend } from './GraphLegend';
 import { GraphRelationsBadgeList } from './GraphRelationsBadgeList';
 import { GraphToolbar } from './GraphToolbar';
 
-const GraphCanvas = dynamic(() => import('@/components/graph/GraphCanvas').then((module) => ({ default: module.GraphCanvas })), {
+const GraphCanvas = dynamic(() => import('./GraphCanvas').then((module) => ({ default: module.GraphCanvas })), {
   ssr: false,
-  loading: () => <LoadingSpinner text="正在加载图谱画布..." />,
 });
 
 interface GraphWorkspaceViewProps {
@@ -19,8 +19,9 @@ interface GraphWorkspaceViewProps {
 
 export function GraphWorkspaceView({ focusId }: GraphWorkspaceViewProps) {
   const workspace = useGraphWorkspace(focusId);
+  const t = useTranslations('graph');
 
-  if (workspace.loading) return <LoadingSpinner text="正在加载知识图谱..." />;
+  if (workspace.loading) return <LoadingSpinner text={t('loadingGraph')} />;
 
   return (
     <div className="flex h-[calc(100vh-65px)] flex-col overflow-hidden">
@@ -45,6 +46,7 @@ export function GraphWorkspaceView({ focusId }: GraphWorkspaceViewProps) {
             onNodeClick={workspace.handleCanvasNodeClick}
             onNodeDblClick={workspace.handleCanvasNodeDblClick}
           />
+          {workspace.loading && <LoadingSpinner text={t('loadingCanvas')} />}
 
           <GraphLegend nodes={workspace.nodes} edges={workspace.edges} />
           <GraphRelationsBadgeList />
@@ -54,7 +56,7 @@ export function GraphWorkspaceView({ focusId }: GraphWorkspaceViewProps) {
               onClick={workspace.reopenPanel}
               className="absolute bottom-4 right-4 border border-cosmos-text bg-cosmos-text px-4 py-2.5 text-xs font-bold text-cosmos-surface shadow-[5px_5px_0_rgba(35,88,216,0.18)] transition-transform hover:-translate-y-0.5"
             >
-              查看节点详情
+              {t('viewNodeDetail')}
             </button>
           )}
         </div>

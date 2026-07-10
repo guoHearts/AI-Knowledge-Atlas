@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { listPublishedTrackRows } from '@/features/learn/api/learningApi';
 
 export async function GET() {
-  const db = getDb();
-  const tracks = db.prepare(
-    "SELECT * FROM learning_tracks WHERE status = 'published' ORDER BY sort_order"
-  ).all();
-  return NextResponse.json(tracks);
+  try {
+    return NextResponse.json(await listPublishedTrackRows());
+  } catch (error) {
+    return NextResponse.json(
+      { error: { code: 'TRACKS_FETCH_FAILED', message: error instanceof Error ? error.message : 'Unknown error' } },
+      { status: 500 },
+    );
+  }
 }

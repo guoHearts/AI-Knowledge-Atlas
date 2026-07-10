@@ -32,21 +32,42 @@ export function listRadarItems(
   );
 }
 
+export function listRadarItemsFromBackend(
+  params: { category?: string; locale?: string } = {},
+) {
+  const searchParams = new URLSearchParams();
+  if (params.category) searchParams.set('category', params.category);
+  if (params.locale) searchParams.set('locale', params.locale);
+  const query = searchParams.toString();
+
+  return request<RadarItemsData>(
+    `${getRadarServerBaseUrl()}/radar/items${query ? `?${query}` : ''}`,
+  );
+}
+
 export function getRadarItem(id: string, options: RadarRequestOptions = {}) {
   return request<RadarItem>(
     buildUrl(`/api/radar/items/${encodeURIComponent(id)}`, options),
   );
 }
 
-export function getRadarItemFromBackend(id: string) {
+export function getRadarItemFromBackend(id: string, locale?: string) {
+  const query = locale ? `?locale=${encodeURIComponent(locale)}` : '';
   return request<RadarItem>(
-    `${getRadarServerBaseUrl()}/radar/items/${encodeURIComponent(id)}`,
+    `${getRadarServerBaseUrl()}/radar/items/${encodeURIComponent(id)}${query}`,
   );
 }
 
 export function listRadarCategories(options: RadarRequestOptions = {}) {
   return request<RadarCategoriesData>(
     buildUrl('/api/radar/categories', options),
+  );
+}
+
+export function listRadarCategoriesFromBackend(locale?: string) {
+  const query = locale ? `?locale=${encodeURIComponent(locale)}` : '';
+  return request<RadarCategoriesData>(
+    `${getRadarServerBaseUrl()}/radar/categories${query}`,
   );
 }
 

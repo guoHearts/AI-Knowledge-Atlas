@@ -3,7 +3,7 @@ export function ProgressBar({ percent, size = 'sm' }: { percent: number; size?: 
   return (
     <div className={`w-full bg-cosmos-text/10 rounded-full ${h} overflow-hidden border border-cosmos-text/5`}>
       <div
-        className={`${h} bg-[linear-gradient(90deg,#2358d8,#0e8f72)] rounded-full transition-all duration-500`}
+        className={`${h} bg-[linear-gradient(90deg,var(--stellar-blue),var(--stellar-emerald))] rounded-full transition-all duration-500`}
         style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
       />
     </div>

@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getTrackRowWithModuleRows } from '@/features/learn/api/learningApi';
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { slug } = await params;
-  const db = getDb();
-  const track = db.prepare('SELECT * FROM learning_tracks WHERE slug = ?').get(slug);
-  if (!track) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  const modules = db.prepare(
-    'SELECT * FROM modules WHERE track_id = ? ORDER BY sort_order'
-  ).all((track as any).id);
-
-  return NextResponse.json({ ...(track as any), modules });
+  try {
+    const { slug } = await params;
+    const track = await getTrackRowWithModuleRows(slug);
+    if (!track) return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Track not found' } }, { status: 404 });
+    return NextResponse.json(track);
+  } catch (error) {
+    return NextResponse.json(
+      { error: { code: 'TRACK_FETCH_FAILED', message: error instanceof Error ? error.message : 'Unknown error' } },
+      { status: 500 },
+    );
+  }
 }

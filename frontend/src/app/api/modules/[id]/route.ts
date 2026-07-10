@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getModuleRowWithLessonRows } from '@/features/learn/api/learningApi';
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
-  const db = getDb();
-  const mod = db.prepare('SELECT * FROM modules WHERE id = ?').get(id);
-  if (!mod) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-
-  const lessons = db.prepare(
-    "SELECT * FROM lessons WHERE module_id = ? AND status = 'published' ORDER BY sort_order"
-  ).all(id);
-
-  return NextResponse.json({ ...(mod as any), lessons });
+  try {
+    const { id } = await params;
+    const row = await getModuleRowWithLessonRows(id);
+    if (!row) return NextResponse.json({ error: { code: 'NOT_FOUND', message: 'Module not found' } }, { status: 404 });
+    return NextResponse.json(row);
+  } catch (error) {
+    return NextResponse.json(
+      { error: { code: 'MODULE_FETCH_FAILED', message: error instanceof Error ? error.message : 'Unknown error' } },
+      { status: 500 },
+    );
+  }
 }

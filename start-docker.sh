@@ -42,7 +42,7 @@ if ! docker version >/dev/null 2>&1; then
 fi
 
 cd "$ROOT_DIR"
-"${COMPOSE[@]}" up -d neo4j
+"${COMPOSE[@]}" up -d neo4j postgres
 
 echo "==> Waiting for Neo4j"
 for i in $(seq 1 60); do
@@ -52,6 +52,19 @@ for i in $(seq 1 60); do
   fi
   if [ "$i" = "60" ]; then
     echo "[ERROR] Neo4j did not become reachable at 127.0.0.1:7687."
+    exit 1
+  fi
+  sleep 2
+done
+
+echo "==> Waiting for PostgreSQL"
+for i in $(seq 1 60); do
+  if python3 -c "import socket; s=socket.create_connection(('127.0.0.1',5432),timeout=2); s.close()" 2>/dev/null; then
+    echo "[OK] PostgreSQL is reachable at 127.0.0.1:5432"
+    break
+  fi
+  if [ "$i" = "60" ]; then
+    echo "[ERROR] PostgreSQL did not become reachable at 127.0.0.1:5432."
     exit 1
   fi
   sleep 2
@@ -73,6 +86,9 @@ fi
 cleanup() {
   if [ -n "${BACKEND_PID:-}" ]; then kill "$BACKEND_PID" 2>/dev/null || true; fi
   if [ -n "${FRONTEND_PID:-}" ]; then kill "$FRONTEND_PID" 2>/dev/null || true; fi
+  echo ""
+  echo "==> Stopping Docker services (Neo4j + PostgreSQL)"
+  "${COMPOSE[@]}" down
 }
 trap cleanup INT TERM EXIT
 
@@ -81,6 +97,7 @@ cd "$BACKEND_DIR"
 NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}" \
 NEO4J_USER="${NEO4J_USER:-neo4j}" \
 NEO4J_PASSWORD="${NEO4J_PASSWORD:-ai-knowledge-graph}" \
+DATABASE_URL="${DATABASE_URL:-postgresql://app:app_password@localhost:5432/ai_knowledge_atlas}" \
 ENABLE_SCHEDULER="${ENABLE_SCHEDULER:-false}" \
 .venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
@@ -110,7 +127,6 @@ fi
 echo "==> Starting local Next.js frontend"
 cd "$FRONTEND_DIR"
 NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:8000}" \
-DATABASE_PATH="${DATABASE_PATH:-./data/learning.db}" \
 pnpm dev &
 FRONTEND_PID=$!
 
@@ -121,7 +137,8 @@ echo "  Knowledge map: http://localhost:3000/graph"
 echo "  Backend API:   http://localhost:8000"
 echo "  API docs:      http://localhost:8000/docs"
 echo "  Neo4j Browser: http://localhost:7474"
+echo "  PostgreSQL:    localhost:5432"
 echo ""
-echo "Press Ctrl+C to stop local frontend/backend. Run '${COMPOSE[*]} down' to stop Neo4j."
+echo "Press Ctrl+C to stop all services (frontend, backend, Neo4j, PostgreSQL)."
 
 wait

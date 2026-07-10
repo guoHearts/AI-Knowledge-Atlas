@@ -1,7 +1,7 @@
 'use client';
 
-import { FilterPanel } from '@/components/graph/FilterPanel';
-import { SearchBar } from '@/components/graph/SearchBar';
+import { FilterPanel } from './FilterPanel';
+import { SearchBar } from './SearchBar';
 import type { GraphNode, NodeType } from '../types/graph.types';
 
 interface GraphToolbarProps {
@@ -22,7 +22,7 @@ export function GraphToolbar({
   onSearchSelect,
 }: GraphToolbarProps) {
   return (
-    <div className="border-b border-cosmos-border bg-cosmos-surface/92 backdrop-blur-xl">
+    <div className="relative z-20 border-b border-cosmos-border bg-cosmos-surface/92 backdrop-blur-xl">
       <div className="grid gap-3 px-5 py-4 xl:grid-cols-[minmax(320px,500px)_1fr] xl:items-center">
         <div>
           <div className="mb-2 flex items-center gap-2">

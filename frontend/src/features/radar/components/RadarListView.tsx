@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from 'next-intl';
 import { useRadarList } from '../hooks/useRadar';
 import { RadarCategoryFilter } from './RadarCategoryFilter';
 import { RadarItemCard } from './RadarItemCard';
@@ -29,6 +30,7 @@ function RadarListSkeleton() {
 }
 
 export function RadarListView() {
+  const locale = useLocale();
   const {
     items,
     categories,
@@ -73,7 +75,7 @@ export function RadarListView() {
       ) : (
         <div className="space-y-6">
           {filteredItems.map((item) => (
-            <RadarItemCard key={item.id} item={item} categories={categories} />
+            <RadarItemCard key={item.id} item={item} categories={categories} locale={locale} />
           ))}
         </div>
       )}

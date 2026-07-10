@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { listDesignPatternRows } from '@/features/learn/api/learningApi';
 
 export async function GET() {
-  const db = getDb();
-  const patterns = db.prepare('SELECT * FROM design_patterns ORDER BY category').all();
-  return NextResponse.json(patterns);
+  try {
+    return NextResponse.json(await listDesignPatternRows());
+  } catch (error) {
+    return NextResponse.json(
+      { error: { code: 'PATTERNS_FETCH_FAILED', message: error instanceof Error ? error.message : 'Unknown error' } },
+      { status: 500 },
+    );
+  }
 }

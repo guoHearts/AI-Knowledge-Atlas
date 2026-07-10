@@ -23,6 +23,7 @@ frontend/data/
 frontend/dev-server*.log
 
 # IDE
+.pytest_cache/
 .vscode/
 .idea/
 *.swp

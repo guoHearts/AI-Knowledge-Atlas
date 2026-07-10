@@ -1,22 +1,33 @@
-import type { Metadata } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, getTranslations } from 'next-intl/server';
+import { ThemeProvider } from 'next-themes';
 import './globals.css';
 import { NavBar } from '@/components/layout/NavBar';
 
-export const metadata: Metadata = {
-  title: 'AI Knowledge Atlas',
-  description: '用知识图谱和结构化课程理解 AI 工程、Agent、RAG、LLMOps 与企业级 AI 平台。',
-};
+export async function generateMetadata() {
+  const t = await getTranslations('metadata');
+  return {
+    title: t('title'),
+    description: t('description'),
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const messages = await getMessages();
+
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col">
-        <NavBar />
-        <main className="flex-1">{children}</main>
+        <NextIntlClientProvider messages={messages}>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+            <NavBar />
+            <main className="flex-1">{children}</main>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

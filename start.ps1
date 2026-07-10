@@ -19,10 +19,42 @@ $REQUIRED_PNPM_VERSION = "10.33.4"
 . (Join-Path $ROOT "scripts\common.ps1")
 Normalize-ProcessPathEnvironment
 
+$script:StartedDocker = $false
+$script:StartedBackend = $false
+$script:StartedFrontend = $false
+
+function Invoke-Cleanup {
+    Write-Host ""
+    Write-Host "==> Shutting down" -ForegroundColor Cyan
+
+    if ($script:StartedBackend) {
+        $backendPidFile = Join-Path $RUNTIME_DIR "backend.pid"
+        Stop-RecordedProcess $backendPidFile
+    }
+    if ($script:StartedFrontend) {
+        $frontendPidFile = Join-Path $RUNTIME_DIR "frontend.pid"
+        Stop-RecordedProcess $frontendPidFile
+    }
+    if ($script:StartedDocker) {
+        Write-Warn "Stopping Docker services (Neo4j + PostgreSQL)"
+        Push-Location $ROOT
+        try {
+            Invoke-DockerCompose down
+        }
+        catch {
+            Write-Warn "docker compose down failed, containers may still be running"
+        }
+        finally {
+            Pop-Location
+        }
+    }
+    Write-OK "All services stopped"
+}
+
 trap {
     Write-Host ""
-    Write-Warn "Script stopped due to error."
-    Write-Warn "Neo4j Docker container may still be running. Stop with: docker compose down"
+    Write-Warn "Script stopped due to error: $_"
+    Invoke-Cleanup
     break
 }
 
@@ -94,17 +126,20 @@ if (-not $SkipNeo4j) {
     Write-Step "Starting Docker dependency services"
     Push-Location $ROOT
     try {
-        Invoke-DockerCompose up -d neo4j
+        Invoke-DockerCompose up -d neo4j postgres
+        $script:StartedDocker = $true
     }
     finally {
         Pop-Location
     }
-    Write-OK "Neo4j is running in Docker"
+    Write-OK "Neo4j and PostgreSQL are running in Docker"
 }
 
 if (-not $SkipBackend) {
     Write-Step "Checking Neo4j connectivity"
     Wait-ForTcp "127.0.0.1" 7687 "Neo4j"
+    Write-Step "Checking PostgreSQL connectivity"
+    Wait-ForTcp "127.0.0.1" 5432 "PostgreSQL"
 }
 
 if (-not $SkipBackend) {
@@ -122,6 +157,7 @@ if ($InstallOnly) {
 
 if (-not $SkipBackend) {
     Write-Step "Starting local FastAPI backend"
+    $script:StartedBackend = $true
     $backendPidFile = Join-Path $RUNTIME_DIR "backend.pid"
     $backendOutLog = Join-Path $LOG_DIR "backend.out.log"
     $backendErrLog = Join-Path $LOG_DIR "backend.err.log"
@@ -133,6 +169,7 @@ if (-not $SkipBackend) {
         "`$env:NEO4J_URI = if (`$env:NEO4J_URI) { `$env:NEO4J_URI } else { 'bolt://127.0.0.1:7687' }; " +
         "`$env:NEO4J_USER = if (`$env:NEO4J_USER) { `$env:NEO4J_USER } else { 'neo4j' }; " +
         "`$env:NEO4J_PASSWORD = if (`$env:NEO4J_PASSWORD) { `$env:NEO4J_PASSWORD } else { 'ai-knowledge-graph' }; " +
+        "`$env:DATABASE_URL = if (`$env:DATABASE_URL) { `$env:DATABASE_URL } else { 'postgresql://app:app_password@127.0.0.1:5432/ai_knowledge_atlas' }; " +
         "`$env:ENABLE_SCHEDULER = if (`$env:ENABLE_SCHEDULER) { `$env:ENABLE_SCHEDULER } else { 'false' }; " +
         "& '$escapedBackendPython' -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload }"
 
@@ -168,6 +205,7 @@ if (-not $SkipBackend) {
 
 if (-not $SkipFrontend) {
     Write-Step "Starting local Next.js frontend"
+    $script:StartedFrontend = $true
     $frontendPidFile = Join-Path $RUNTIME_DIR "frontend.pid"
     $frontendOutLog = Join-Path $LOG_DIR "frontend.out.log"
     $frontendErrLog = Join-Path $LOG_DIR "frontend.err.log"
@@ -177,7 +215,6 @@ if (-not $SkipFrontend) {
     $escapedPnpmCommand = Escape-ForSingleQuotedPowerShellString (Resolve-PnpmCommand)
     $frontendCommand = "& { Set-Location -LiteralPath '$escapedFrontendDir'; " +
         "`$env:NEXT_PUBLIC_API_URL = if (`$env:NEXT_PUBLIC_API_URL) { `$env:NEXT_PUBLIC_API_URL } else { 'http://localhost:8000' }; " +
-        "`$env:DATABASE_PATH = if (`$env:DATABASE_PATH) { `$env:DATABASE_PATH } else { '.\data\learning.db' }; " +
         "& '$escapedPnpmCommand' dev }"
 
     $frontendProcess = Start-Process -FilePath "powershell.exe" `
@@ -204,6 +241,7 @@ if (-not $SkipBackend) {
 }
 if (-not $SkipNeo4j) {
     Write-Host "  Neo4j Browser: http://localhost:7474"
+    Write-Host "  PostgreSQL:    localhost:5432"
 }
 Write-Host ""
 Write-Host "Logs:"
@@ -215,12 +253,4 @@ if (-not $SkipFrontend) {
 }
 Write-Host ""
 Write-Host "Stop:"
-Write-Host "  .\Make.ps1 stop"
-if (-not $SkipNeo4j) {
-    if ($script:_DockerComposeCmd -eq "docker compose") {
-        Write-Host "  docker compose down"
-    }
-    else {
-        Write-Host "  docker-compose down"
-    }
-}
+Write-Host "  Ctrl+C or .\Make.ps1 stop"

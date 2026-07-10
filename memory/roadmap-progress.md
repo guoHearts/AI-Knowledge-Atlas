@@ -1,58 +1,121 @@
 ---
 name: roadmap-progress
-description: 对照战略路线图的当前执行进度，2026-07-07 更新
+description: 对照战略路线图的当前执行进度，2026-07-08 更新
 metadata: 
-  node_type: memory
   type: project
   originSessionId: 5daebc9a-99b3-4cc0-8999-2bd2133d4b93
 ---
 
 # 路线图执行进度
 
-源文档：`docs/AI-Knowledge-Atlas-项目战略与发展路线.md` 第 19 节"当前立即执行顺序"。
+源文档：`docs/AI-Knowledge-Atlas-项目战略与发展路线.md` 第 19 节。
 
-## 当前阶段：阶段 0 — 可信度清理期（第 1～2 周）
+## 当前阶段：阶段 0 — 可信度清理期
 
 ## 十大任务进度
 
 | # | 任务 | 状态 | 备注 |
 |---|------|------|------|
-| 1 | 全量审查 Verified 内容 | ⬜ | 未开始 |
-| 2 | 修复或降级错误/过时内容 | ⬜ | 未开始 |
-| 3 | 重写 README 第一屏 | 🔧 | 已更新技术栈和启动说明，但定位描述仍需强化 |
-| 4 | 建立统一内容元数据与校验脚本 | ⬜ | 未开始 |
-| 5 | 完成第一个高质量 Verified Lab | 🔧 | `labs/` 有 secure-mcp-server 和 production-agent 骨架，需按 Verified 标准完善 |
-| 6 | 发布第一期 Radar | 🔧 | 前后端代码骨架已有（`radar_routes.py`、`frontend/src/app/radar/`），内容待填 |
-| 7 | 完成一篇与 Lab 对应的技术选型文章 | ⬜ | 未开始 |
-| 8 | 重构首页核心入口 | ⬜ | 未开始 |
-| 9 | 打通 Radar / Compare / Labs / Atlas / Learn 关联 | ⬜ | 未开始 |
-| 10 | 发布 v0.1.0 | ⬜ | 未开始 |
+| 1 | 全量审查 Verified 内容 | ⬜ | |
+| 2 | 修复或降级错误/过时内容 | ⬜ | |
+| 3 | 重写 README 第一屏 | ✅ | 已完成 |
+| 4 | 建立统一内容元数据与校验脚本 | ✅ | content_check 统一校验 Radar/Labs/Compare 过期与元数据 |
+| 5 | 完成第一个高质量 Verified Lab | ✅ | Secure MCP Server 已完成内容闭环 |
+| 6 | 发布第一期 Radar | ✅ | 5 条正式条目 + 首页入口 + 下游关联 |
+| 7 | 完成一篇技术选型文章 | ✅ | Compare 栏目 + 首篇 MCP vs Function Calling vs REST |
+| 8 | 重构首页核心入口 | ✅ | HomePageView 组件化 + getHomeStats API |
+| 9 | 打通模块关联 | ✅ | Radar/Compare/Lab 互链（含 Lab→Compare 反向）+ Graph/Learn 关联 |
+| 10 | 发布 v0.1.0 | ⬜ | |
 
 ## 阶段 0 交付物
 
-| 交付物 | 状态 | 备注 |
-|--------|------|------|
-| 全量检查现有 Verified 内容 | ⬜ | |
-| 不符合要求的内容降级为 Draft/Stale | ⬜ | |
-| 统一 Frontmatter | ⬜ | |
-| 增加内容验证脚本 | ⬜ | |
-| 修复 README 不准确信息 | ✅ | Python 3.12+、LangChain→OpenAI、Next.js 16、双模式启动 |
-| 增加 LICENSE/CONTRIBUTING/SECURITY/ROADMAP/Issue 模板 | ✅ | 已全部添加 |
+| 交付物 | 状态 |
+|--------|------|
+| 全量检查 Verified 内容 | ⬜ |
+| 降级不合规内容 | ⬜ |
+| 统一 Frontmatter | ⬜ |
+| 增加内容验证脚本 | ✅ |
+| 修复 README | ✅ |
+| LICENSE/CONTRIBUTING/SECURITY/ROADMAP/Issue 模板 | ✅ |
+| 后端统一 API 响应 | ✅ |
+| 前端错误处理（全局边界 + request 加固） | ✅ |
+| 亮暗双主题 | ✅ |
+| 学习种子数据 | ✅ |
+| 前端硬编码数据迁后端 | ✅ |
+| i18n 默认中文 + 语言切换 | ✅ |
+| P2 组件归位 | ✅ |
+| Radar 最小闭环 | ✅ |
 
-## 已完成的工程基础
+## 工程基础
 
-- Next.js 16 + React 19 前端 ✅
-- FastAPI + Neo4j 后端 ✅
-- pnpm 10.33.4 统一 ✅
-- Tailwind CSS v4 迁移 ✅
-- 双模式启动（混合/全 Docker）✅
-- .gitattributes LF 统一 ✅
-- .gitignore 覆盖 runtime 产物 ✅
+- Next.js 16 + React 19 ✅
+- FastAPI + Neo4j + PostgreSQL ✅
+- pnpm 10.33.4 ✅
+- Tailwind CSS v4 ✅
+- 双模式启动 ✅
+- LF 统一 ✅
+- feature 目录对齐架构规范 ✅
+- 测试集中 src/test/ ✅
+- 首页/Labs/学习元数据由后端 learning catalog 接口提供 ✅
+- next-intl 默认中文 + cookie 语言切换 ✅
+- Graph/Learn 业务组件与类型归入 feature 目录 ✅
 
-## 下一优先任务
+## 下一优先
 
-按路线图顺序：任务 #1 → #2 → #3 → #4，即先审查内容质量，再改文案。
+1. 把 content-check 接入 GitHub Actions（content-validate.yml），并在 CI 用 `--strict` 或定时任务暴露 needs-review
+2. 朝 v0.1.0（任务10）推进：全量审查 Verified 内容（任务1/2）
+3. 图谱决策化（批次D 剩余）
 
-**Why:** 路线图要求阶段 0 核心目标是"清除影响信任的错误和过期内容"，必须先审计再修正。
+## 2026-07-09 Lab→Compare 反向链接（任务9 收尾）
 
-**How to apply:** 每次完成任务后更新本文档进度。
+- `catalog.py` secure-mcp lab 增加 `relatedCompareIds: ["mcp-vs-function-calling-vs-rest"]`。
+- `LabDefinition` 增加 `relatedCompareIds?`，Lab 详情页 Related paths 渲染 `Compare: <id>` → `/compare/<id>`。
+- 前后端测试各加一条断言。至此 Radar/Compare/Lab 三向互链闭合，任务9 完成。
+- 验证：后端 46 pytest、前端 24 单测 + typecheck + build、content-check exit 0。
+
+## 2026-07-09 Compare 栏目（批次D 起步）
+
+- 新增 `backend/modules/compare`（schemas/repository/service/router，镜像 radar），注册 main.py。
+- 首篇 Verified 文章《MCP vs Function Calling vs REST 工具接入怎么选》：3 方案对比对象、5 维功能矩阵、适用/不适用、决策树、成本、官方来源，关联 Secure MCP Lab / mcp-security-boundary Radar / MCP 图谱节点 / Learn。
+- 前端 `features/compare` + `app/compare` + `app/api/compare` 代理；导航栏新增 雷达/选型 入口；修复 Radar 页 `/docs/tech-comparisons` 死链 → `/compare`。
+- 验证：后端 46 pytest、content-check exit 0、前端 24 单测、typecheck、`pnpm build`（/compare、/compare/[id] 均编译）。
+- 待补：Lab→Compare 反向链接（本轮按范围守卫暂缓，避免扩张 labs 契约）。
+
+## 最新提交与验证
+
+- 最新提交：`e46ad5d feat: publish first radar loop`
+- 验证通过：前端 typecheck、前端单测、后端 pytest、Next.js build、Playwright 首页/Radar 详情烟测
+- Secure MCP Server 已完成首个 Verified Lab 内容闭环：后端元数据、详情页验证证据、README、metadata.yaml、Radar/Graph/Learn 关联。
+
+## 2026-07-09 内容过期检测（批次E 起步）
+
+- 新增 `backend/content_check`（models/checker/collectors/cli）+ `tests/test_content_check.py`，统一扫描 Radar/Labs/Compare 的可信度元数据。
+- 规则：90 天未验证→needs-review；缺状态/验证日期/官方来源/Lab 路径、ciStatus 失败但仍 Verified→error。`today` 可注入以保证测试确定性。
+- 接线：`make content-check`、`.\Make.ps1 content-check`、`scripts/check-content.ps1`；文档写入 `docs/content-standards.md#自动过期检测`。
+- 真实 today 全部通过（exit 0）；发现并修正 Compare 索引 README 误判（索引不作为文章参与校验）。
+- 验证通过：`cd backend && python -m pytest tests -q`（含新增 content_check 用例）、`python -m content_check.cli` exit 0。
+
+## 下一步判定（对照 docs）
+
+依据：
+- `docs/AI-Knowledge-Atlas-项目战略与发展路线.md` §19：当前立即执行顺序中，README 和首页核心入口已完成，后续应推进内容状态/标杆 Lab/第一期 Radar/模块关联。
+- `docs/AI-Knowledge-Atlas-改造方案.md` §21、§29：不要同时改所有模块，当前最重要的是建立可信度与核心产品闭环。
+- `docs/specs/2026-07-08-雷达架构样板改造设计.md` 与 `docs/plans/2026-07-08-雷达架构样板改造实施计划.md`：Radar 架构样板已基本完成，剩余不是架构迁移，而是正式内容闭环。
+- `docs/2026-07-08-架构迁移进度评估.md` 的早期状态已有后续迁移更新；当前 Graph/Learn 类型与组件也已归位。
+
+结论：**批次B Radar 最小闭环与批次C 第一个高质量 Verified Lab 已完成**，下一步进入 **Compare 栏目或内容过期检测**。
+
+已完成：
+1. Radar 正式数据模型补齐 `status`、`published_at`、`last_verified_at`、`sources`、`related_lab_ids`、`related_node_ids`、`related_learning_paths`。
+2. 发布第一期 5 条以内正式 Radar 内容集，每条包含明确结论、官方来源、最后验证日期和适用/不适用场景。
+3. 首页增加 Radar 摘要区，形成 `首页 -> Radar -> Lab/Graph/Learn` 路径。
+4. 后端服务测试保护 Radar 条目必须具备来源、验证日期、状态和至少一个下游路径。
+5. Secure MCP Server 标记为首个 Verified Lab，并补齐依赖版本、运行命令、预期输出、常见失败、安全注意事项、最后验证日期与官方来源。
+6. Labs 详情页展示 Verified Lab 验证证据，并关联 Radar、Graph 和 Learn 路径。
+
+下一步建议执行拆解：
+1. 选择技术选型（Compare）栏目或内容过期检测作为下一批。
+2. 若选择 Compare，优先做与 Secure MCP Server 对应的 MCP / Function Calling / REST API 选型文章。
+3. 若选择内容过期检测，先定义 90 天未验证与 Lab CI 失败的状态流转规则。
+
+**How to apply**：完成任务后更新本文档。

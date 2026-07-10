@@ -25,17 +25,21 @@
 - [x] 内容可信度标准文档
 - [x] 重写 README 与项目定位
 - [x] 首页移除无法解释的能力评分
-- [ ] 内容状态字段落地到数据层（radar_items / sources / content_verifications）
-- [ ] 第一个 Verified Lab（Secure MCP Server）
-- [ ] 第一期 AI Engineering Radar
-- [ ] 新首页（Radar / Labs / 选型入口）
+- [x] 首页 / 学习元数据 / Labs 静态数组迁移到后端 learning catalog
+- [x] 默认中文 i18n 与导航栏语言切换
+- [x] Graph / Learn 组件与类型文件归位到 feature 目录
+- [x] Radar 内容状态字段落地到数据层（radar_items / sources）
+- [x] 第一个 Verified Lab（Secure MCP Server）
+- [x] 第一期 AI Engineering Radar（最小闭环）
+- [x] 新首页 Radar 摘要入口
 
 ## 第 2 月：形成持续更新能力
 
 - [ ] 每周 Radar 发布节奏
 - [ ] 每两周一个新 Lab（Production Agent、Hybrid RAG Evaluation）
 - [ ] 技术选型（Compare）栏目
-- [ ] 内容过期检测（90 天未验证 → Needs Review；CI 失败 → 移除 Verified）
+- [x] 内容过期检测接入 CI（GitHub Actions 跑 `content_check`，error 级别阻断 PR）
+- [ ] Lab CI 失败 → 自动移除 Verified 状态的写回逻辑（当前仅检测，不自动改状态）
 - [ ] 知识图谱决策化：替代方案、相关实验、按成熟度筛选
 - [ ] 第一批 Good First Issue 与外部贡献者
 

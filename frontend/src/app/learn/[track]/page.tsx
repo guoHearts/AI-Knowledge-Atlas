@@ -1,12 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getDb } from '@/lib/db';
+import { getTranslations } from 'next-intl/server';
 import { ProgressBar } from '@/components/shared/ProgressBar';
-import { DifficultyBadge } from '@/components/shared/DifficultyBadge';
-import { STAGE_LABELS } from '@/lib/constants';
-import { AnimatedSection, StaggerList, StaggerItem, HoverCard } from '@/components/shared/AnimatedSection';
-import type { LearningTrackRow, ModuleRow, LessonRow, UserProgressRow } from '@/types/learning';
-import { toTrack, toModule, toLesson, toUserProgress } from '@/types/learning';
+import { DifficultyBadge } from '@/features/learn/components/DifficultyBadge';
+import { getLearningMetadata, getTrackPageData } from '@/features/learn/api/learningApi';
+
+export const dynamic = 'force-dynamic';
 
 export default async function TrackPage({
   params,
@@ -14,46 +13,21 @@ export default async function TrackPage({
   params: Promise<{ track: string }>;
 }) {
   const { track: slug } = await params;
+  const t = await getTranslations('learn');
 
-  const db = getDb();
-  const trackRow = db.prepare('SELECT * FROM learning_tracks WHERE slug = ? AND status = ?')
-    .get(slug, 'published') as LearningTrackRow | undefined;
-
-  if (!trackRow) notFound();
-  const track = toTrack(trackRow);
-
-  const moduleRows = db.prepare(
-    'SELECT * FROM modules WHERE track_id = ? AND status = ? ORDER BY sort_order'
-  ).all(track.id, 'published') as ModuleRow[];
-  const modules = moduleRows.map(toModule);
-
-  // Get all lessons for this track with progress
-  const allLessons: { lesson: ReturnType<typeof toLesson>; progress?: ReturnType<typeof toUserProgress> }[] = [];
-  for (const mod of modules) {
-    const lessonRows = db.prepare(
-      'SELECT * FROM lessons WHERE module_id = ? AND status = ? ORDER BY sort_order'
-    ).all(mod.id, 'published') as LessonRow[];
-
-    for (const row of lessonRows) {
-      const lesson = toLesson(row);
-      const progressRow = db.prepare(
-        'SELECT * FROM user_progress WHERE lesson_id = ? AND user_id = ?'
-      ).get(lesson.id, 'default') as UserProgressRow | undefined;
-      const progress = progressRow ? toUserProgress(progressRow) : undefined;
-      allLessons.push({ lesson, progress });
-    }
-  }
-
-  // Stats
-  const completedCount = allLessons.filter(l => l.progress?.status === 'completed').length;
-  const overallPercent = allLessons.length > 0 ? Math.round((completedCount / allLessons.length) * 100) : 0;
+  const [pageData, metadata] = await Promise.all([
+    getTrackPageData(slug),
+    getLearningMetadata(),
+  ]);
+  if (!pageData) notFound();
+  const { track, modules, allLessons, overallPercent } = pageData;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
       {/* ─── Track Header ──────────────────────────────── */}
       <div className="mb-12">
         <Link href="/" className="text-sm text-stellar-blue hover:text-stellar-violet mb-4 inline-block">
-          ← 返回路线列表
+          ← {t('backToTracks')}
         </Link>
         <div className="flex items-start gap-4 mt-4">
           <span className="text-4xl">{track.icon || '📚'}</span>
@@ -61,10 +35,10 @@ export default async function TrackPage({
             <h1 className="text-3xl font-bold text-cosmos-text font-display mb-2">{track.title}</h1>
             <p className="text-cosmos-dim mb-4">{track.subtitle}</p>
             <div className="flex items-center gap-4 text-sm text-cosmos-dim">
-              <DifficultyBadge difficulty={track.difficulty} size="md" />
-              <span>⏱️ {track.estimatedHours} 小时</span>
-              <span>📚 {allLessons.length} 课时</span>
-              <span>📦 {modules.length} 模块</span>
+              <DifficultyBadge difficulty={track.difficulty} label={metadata.difficultyLabels[track.difficulty]} size="md" />
+              <span>⏱️ {t('hours', { hours: track.estimatedHours })}</span>
+              <span>📚 {t('lessonCount', { count: allLessons.length })}</span>
+              <span>📦 {t('moduleCount', { count: modules.length })}</span>
             </div>
           </div>
           {/* Progress circle */}
@@ -102,7 +76,7 @@ export default async function TrackPage({
           const modLessons = allLessons.filter(l => l.lesson.moduleId === mod.id);
           const modCompleted = modLessons.filter(l => l.progress?.status === 'completed').length;
           const modPercent = modLessons.length > 0 ? Math.round((modCompleted / modLessons.length) * 100) : 0;
-          const stageInfo = STAGE_LABELS[mod.stage] || { title: `Stage ${mod.stage}`, goal: '' };
+          const stageInfo = metadata.stageLabels[String(mod.stage)] || { title: `Stage ${mod.stage}`, goal: '' };
 
           return (
             <div key={mod.id} className="glass-card p-6">
@@ -111,16 +85,16 @@ export default async function TrackPage({
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-xs font-bold text-stellar-blue bg-stellar-blue/10 px-2 py-0.5 rounded">
-                      Stage {mod.stage} · {stageInfo.title}
+                      {t('stage', { stage: mod.stage, title: stageInfo.title })}
                     </span>
-                    <DifficultyBadge difficulty={mod.difficulty} />
+                    <DifficultyBadge difficulty={mod.difficulty} label={metadata.difficultyLabels[mod.difficulty]} />
                   </div>
                   <h3 className="text-lg font-bold text-cosmos-text">{mod.title}</h3>
                   <p className="text-sm text-cosmos-dim mt-1">{mod.description}</p>
                   <p className="text-xs text-stellar-violet/70 mt-1 italic">🎯 {stageInfo.goal}</p>
                 </div>
                 <div className="text-right text-xs text-cosmos-dim shrink-0">
-                  <div>{modCompleted}/{modLessons.length} 完成</div>
+                  <div>{t('completedCount', { completed: modCompleted, total: modLessons.length })}</div>
                   <div className="w-24 mt-1"><ProgressBar percent={modPercent} /></div>
                 </div>
               </div>
@@ -157,12 +131,12 @@ export default async function TrackPage({
                         {lesson.title}
                       </span>
                       {lesson.experimentConfig && (
-                        <span className="text-[10px] text-stellar-violet ml-2">🔬 含实验</span>
+                        <span className="text-[10px] text-stellar-violet ml-2">🔬 {t('hasExperiment')}</span>
                       )}
                     </div>
 
                     <div className="flex items-center gap-3 text-xs">
-                      <DifficultyBadge difficulty={lesson.difficulty} />
+                      <DifficultyBadge difficulty={lesson.difficulty} label={metadata.difficultyLabels[lesson.difficulty]} />
                       <span className="text-cosmos-dim">{lesson.estimatedMinutes}min</span>
                     </div>
                   </Link>
@@ -174,21 +148,27 @@ export default async function TrackPage({
       </div>
 
       {/* ─── Outcome Section ────────────────────────────── */}
-      <div className="mt-12 glass-card p-8">
-        <h2 className="text-xl font-bold text-cosmos-text mb-4">🎓 学完你将能够</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {track.outcomeSkills.map((skill: string) => (
-            <div key={skill} className="flex items-center gap-3">
-              <span className="text-emerald-400 text-sm">✓</span>
-              <span className="text-sm text-cosmos-dim">{skill}</span>
+      {(track.outcomeSkills.length > 0 || track.outcomeProject) && (
+        <div className="mt-12 glass-card p-8">
+          <h2 className="text-xl font-bold text-cosmos-text mb-4">🎓 {t('outcomeTitle')}</h2>
+          {track.outcomeSkills.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {track.outcomeSkills.map((skill: string) => (
+                <div key={skill} className="flex items-center gap-3">
+                  <span className="text-emerald-400 text-sm">✓</span>
+                  <span className="text-sm text-cosmos-dim">{skill}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+          {track.outcomeProject && (
+            <div className="mt-6 p-4 rounded-xl bg-stellar-violet/5 border border-stellar-violet/10">
+              <span className="text-xs font-semibold text-stellar-violet">🏆 {t('graduationProject')}</span>
+              <p className="text-sm text-cosmos-dim mt-1">{track.outcomeProject}</p>
+            </div>
+          )}
         </div>
-        <div className="mt-6 p-4 rounded-xl bg-stellar-violet/5 border border-stellar-violet/10">
-          <span className="text-xs font-semibold text-stellar-violet">🏆 毕业项目</span>
-          <p className="text-sm text-cosmos-dim mt-1">{track.outcomeProject}</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,12 +1,35 @@
 id: secure-mcp-server
 title: Secure MCP Server
-status: draft
+status: verified
 difficulty: intermediate
-lastVerifiedAt: 2026-07-07
+createdAt: 2026-07-07
+updatedAt: 2026-07-09
+lastVerifiedAt: 2026-07-09
 
 estimatedSetupTime: 15min
 estimatedCost: "< $1"
 requiresApiKey: true
+ciStatus: local-passing
+
+packages:
+  - name: fastapi
+    version: 0.115.0
+  - name: uvicorn
+    version: 0.30.0
+  - name: pydantic
+    version: 2.9.0
+  - name: pydantic-settings
+    version: 2.5.0
+  - name: python-dotenv
+    version: 1.2.2
+  - name: structlog
+    version: 24.1.0
+  - name: slowapi
+    version: 0.1.9
+  - name: pyyaml
+    version: 6.0.1
+  - name: requests
+    version: 2.31.0
 
 stack:
   - Python
@@ -25,26 +48,59 @@ features:
 
 commands:
   install: pip install -r requirements.txt
+  test: python -m pytest tests -q
   run: python main.py
-  test: python -m pytest tests/ -v
 
 sources:
   - type: official
-    url: https://docs.anthropic.com/en/docs/agents-and-workflows/mcp
+    title: Model Context Protocol specification
+    url: https://modelcontextprotocol.io/specification
   - type: official
+    title: FastAPI documentation
     url: https://fastapi.tiangolo.com/
   - type: official
+    title: Pydantic documentation
     url: https://docs.pydantic.dev/
 
+expectedOutputs:
+  - pytest reports all Secure MCP Server tests passing.
+  - GET /mcp/health returns status=healthy when the server is running.
+  - Unauthorized tools are rejected before execution.
+  - Invalid parameters return validation errors instead of reaching tool logic.
+
+failureModes:
+  - title: Missing API key
+    resolution: Copy .env.example to .env and set API_KEY before starting the server.
+  - title: Port 8000 already in use
+    resolution: Stop the existing process or change the local port before running python main.py.
+  - title: Tool rejected by allowlist
+    resolution: Confirm ALLOWED_TOOLS contains only the intended tool names.
+
+securityNotes:
+  - The tool allowlist blocks unknown tool names before parameter handling.
+  - Pydantic validation rejects invalid tool parameters before execution.
+  - Audit logs record tool calls for review, but they are not a substitute for centralized production logging.
+  - Prompt injection checks are a defense layer, not a complete security boundary.
+
+knownLimitations:
+  - The lab uses a simple API key for local verification and does not include production identity management.
+  - Rate limiting is documented but not implemented in the runnable sample.
+  - The audit log is local file output and is not wired to a SIEM or tracing platform.
+
 relatedRadarItems:
-  - mcp-security-best-practices
-  - production-agent-deployment
+  - mcp-security-boundary-2026-07
+
+relatedGraphNodes:
+  - MCP
+  - Tool Allowlist
+  - Prompt Injection
+
+relatedLearningPaths:
+  - /learn/agent-engineer/module-03-mcp/01-mcp-protocol-principles
+  - /learn/agent-engineer/module-03-mcp/02-build-mcp-server
 
 relatedLabs:
   - production-agent-with-human-approval
-  - coding-agent-sandbox
-
-# ciStatus: passing  # Temporarily disabled until CI/CI is set up
 
 # Tool-specific metadata
 tools:
