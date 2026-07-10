@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 
 import { getLabById } from '@/features/labs/api/labsApi';
+import { translateDifficulty, translateStatus } from '@/lib/contentLabels';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,9 @@ export default async function LabDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const t = await getTranslations('labs');
+  const locale = await getLocale();
   const { id } = await params;
-  const lab = await getLabById(id);
+  const lab = await getLabById(id, locale);
 
   if (!lab) {
     notFound();
@@ -31,10 +33,10 @@ export default async function LabDetailPage({
       <section className="rounded-lg border border-cosmos-border bg-cosmos-surface p-8">
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <span className="rounded border border-yellow-500/30 bg-yellow-500/10 px-2 py-1 text-xs font-medium text-yellow-700">
-            {lab.status}
+            {translateStatus(lab.status, locale)}
           </span>
           <span className="rounded border border-cosmos-border px-2 py-1 text-xs text-cosmos-dim">
-            {lab.difficulty}
+            {translateDifficulty(lab.difficulty, locale)}
           </span>
           <span className="rounded border border-cosmos-border px-2 py-1 text-xs text-cosmos-dim">
             {lab.estimatedSetupTime}
@@ -63,7 +65,7 @@ export default async function LabDetailPage({
           </div>
           {lab.lastVerifiedAt && (
             <div>
-              <dt className="text-cosmos-dim">Last verified</dt>
+              <dt className="text-cosmos-dim">{t('lastVerified')}</dt>
               <dd className="mt-1 text-cosmos-text">{lab.lastVerifiedAt}</dd>
             </div>
           )}
@@ -85,7 +87,7 @@ export default async function LabDetailPage({
 
         {lab.expectedOutputs?.length ? (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-cosmos-text">Expected outputs</h2>
+            <h2 className="text-lg font-semibold text-cosmos-text">{t('expectedOutputs')}</h2>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-cosmos-dim">
               {lab.expectedOutputs.map((output) => (
                 <li key={output}>- {output}</li>
@@ -96,7 +98,7 @@ export default async function LabDetailPage({
 
         {lab.packages?.length ? (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-cosmos-text">Pinned packages</h2>
+            <h2 className="text-lg font-semibold text-cosmos-text">{t('pinnedPackages')}</h2>
             <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
               {lab.packages.map((pkg) => (
                 <div
@@ -112,7 +114,7 @@ export default async function LabDetailPage({
 
         {lab.sources?.length ? (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-cosmos-text">Official sources</h2>
+            <h2 className="text-lg font-semibold text-cosmos-text">{t('officialSources')}</h2>
             <ul className="mt-3 space-y-2 text-sm leading-6">
               {lab.sources.map((source) => (
                 <li key={source.url}>
@@ -128,7 +130,7 @@ export default async function LabDetailPage({
 
         {lab.failureModes?.length ? (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-cosmos-text">Common failure modes</h2>
+            <h2 className="text-lg font-semibold text-cosmos-text">{t('failureModes')}</h2>
             <div className="mt-3 space-y-3">
               {lab.failureModes.map((mode) => (
                 <div key={mode.title} className="rounded border border-cosmos-border p-3">
@@ -142,7 +144,7 @@ export default async function LabDetailPage({
 
         {lab.securityNotes?.length ? (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-cosmos-text">Security notes</h2>
+            <h2 className="text-lg font-semibold text-cosmos-text">{t('securityNotes')}</h2>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-cosmos-dim">
               {lab.securityNotes.map((note) => (
                 <li key={note}>- {note}</li>
@@ -153,7 +155,7 @@ export default async function LabDetailPage({
 
         {lab.knownLimitations?.length ? (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-cosmos-text">Known limitations</h2>
+            <h2 className="text-lg font-semibold text-cosmos-text">{t('knownLimitations')}</h2>
             <ul className="mt-3 space-y-2 text-sm leading-6 text-cosmos-dim">
               {lab.knownLimitations.map((limitation) => (
                 <li key={limitation}>- {limitation}</li>
@@ -167,7 +169,7 @@ export default async function LabDetailPage({
         lab.relatedNodeIds?.length ||
         lab.relatedLearningPaths?.length ? (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold text-cosmos-text">Related paths</h2>
+            <h2 className="text-lg font-semibold text-cosmos-text">{t('relatedPaths')}</h2>
             <div className="mt-3 grid gap-3 text-sm md:grid-cols-3">
               {lab.relatedRadarItemIds?.map((radarId) => (
                 <Link

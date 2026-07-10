@@ -5,7 +5,7 @@ export const DEFAULT_LOCALE = 'zh-CN';
 export const SUPPORTED_LOCALES = ['zh-CN', 'en-US'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
-function isSupportedLocale(value: string | undefined): value is SupportedLocale {
+export function isSupportedLocale(value: string | undefined): value is SupportedLocale {
   return SUPPORTED_LOCALES.includes(value as SupportedLocale);
 }
 

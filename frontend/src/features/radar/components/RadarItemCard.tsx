@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { RadarCategory, RadarItem } from '../types/radar.types';
+import { translateMaturity, translateStatus } from '@/lib/contentLabels';
 
 const MATURITY_COLORS = {
   'Early Adoption': 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30',
@@ -27,6 +28,7 @@ const STATUS_COLORS = {
 interface RadarItemCardProps {
   item: RadarItem;
   categories: RadarCategory[];
+  locale: string;
 }
 
 export function getCategoryColor(category: string) {
@@ -50,7 +52,7 @@ export function getStatusColor(status: string) {
   );
 }
 
-export function RadarItemCard({ item, categories }: RadarItemCardProps) {
+export function RadarItemCard({ item, categories, locale }: RadarItemCardProps) {
   return (
     <div className="bg-cosmos-surface rounded-lg p-6 border border-cosmos-border hover:border-cosmos-text transition-colors">
       <div className="flex items-center gap-2 mb-3">
@@ -58,10 +60,10 @@ export function RadarItemCard({ item, categories }: RadarItemCardProps) {
           {categories.find((category) => category.id === item.category)?.name || item.category}
         </span>
         <span className={`px-2 py-1 rounded text-xs font-medium border ${getMaturityColor(item.maturity)}`}>
-          {item.maturity}
+          {translateMaturity(item.maturity, locale)}
         </span>
         <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(item.status)}`}>
-          {item.status}
+          {translateStatus(item.status, locale)}
         </span>
         {item.has_lab && (
           <span className="px-2 py-1 rounded text-xs font-medium bg-stellar-green text-white">

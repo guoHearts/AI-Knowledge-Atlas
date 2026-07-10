@@ -1,13 +1,15 @@
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 
 import { listLabs } from '@/features/labs/api/labsApi';
+import { translateDifficulty, translateStatus } from '@/lib/contentLabels';
 
 export const dynamic = 'force-dynamic';
 
 export default async function LabsPage() {
   const t = await getTranslations('labs');
-  const labs = await listLabs();
+  const locale = await getLocale();
+  const labs = await listLabs(locale);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
@@ -32,10 +34,10 @@ export default async function LabsPage() {
           >
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <span className="rounded border border-yellow-500/30 bg-yellow-500/10 px-2 py-1 text-xs font-medium text-yellow-700">
-                {lab.status}
+                {translateStatus(lab.status, locale)}
               </span>
               <span className="rounded border border-cosmos-border px-2 py-1 text-xs text-cosmos-dim">
-                {lab.difficulty}
+                {translateDifficulty(lab.difficulty, locale)}
               </span>
               <span className="rounded border border-cosmos-border px-2 py-1 text-xs text-cosmos-dim">
                 {lab.estimatedSetupTime}

@@ -31,9 +31,12 @@ export function listCompareArticles(
   );
 }
 
-export function listCompareArticlesFromBackend(params: { category?: string } = {}) {
+export function listCompareArticlesFromBackend(
+  params: { category?: string; locale?: string } = {},
+) {
   const searchParams = new URLSearchParams();
   if (params.category) searchParams.set('category', params.category);
+  if (params.locale) searchParams.set('locale', params.locale);
   const query = searchParams.toString();
 
   return request<CompareArticlesData>(
@@ -47,9 +50,10 @@ export function getCompareArticle(id: string, options: CompareRequestOptions = {
   );
 }
 
-export function getCompareArticleFromBackend(id: string) {
+export function getCompareArticleFromBackend(id: string, locale?: string) {
+  const query = locale ? `?locale=${encodeURIComponent(locale)}` : '';
   return request<CompareArticle>(
-    `${getCompareServerBaseUrl()}/compare/articles/${encodeURIComponent(id)}`,
+    `${getCompareServerBaseUrl()}/compare/articles/${encodeURIComponent(id)}${query}`,
   );
 }
 

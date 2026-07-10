@@ -79,7 +79,15 @@
     "apiKeyRequired": "需要",
     "apiKeyNotRequired": "不需要",
     "localVerification": "本地验证",
-    "metadataNote": "此页面只负责路由和渲染。实验元数据由后端学习服务提供。"
+    "metadataNote": "此页面只负责路由和渲染。实验元数据由后端学习服务提供。",
+    "lastVerified": "最后验证",
+    "expectedOutputs": "预期输出",
+    "pinnedPackages": "锁定依赖版本",
+    "officialSources": "官方来源",
+    "failureModes": "常见故障与排查",
+    "securityNotes": "安全说明",
+    "knownLimitations": "已知限制",
+    "relatedPaths": "相关路径"
   },
   "learn": {
     "backToTracks": "返回路线列表",

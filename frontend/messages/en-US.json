@@ -79,7 +79,15 @@
     "apiKeyRequired": "Required",
     "apiKeyNotRequired": "Not required",
     "localVerification": "Local verification",
-    "metadataNote": "This page owns routing and rendering only. Lab metadata is provided by the backend learning service."
+    "metadataNote": "This page owns routing and rendering only. Lab metadata is provided by the backend learning service.",
+    "lastVerified": "Last verified",
+    "expectedOutputs": "Expected outputs",
+    "pinnedPackages": "Pinned packages",
+    "officialSources": "Official sources",
+    "failureModes": "Common failure modes",
+    "securityNotes": "Security notes",
+    "knownLimitations": "Known limitations",
+    "relatedPaths": "Related paths"
   },
   "learn": {
     "backToTracks": "Back to route list",

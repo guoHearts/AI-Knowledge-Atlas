@@ -12,13 +12,13 @@ class FakeCompareRepository:
     def __init__(self, article: CompareArticle):
         self._article = article
 
-    def list_articles(self):
+    def list_articles(self, locale="zh-CN"):
         return [self._article]
 
-    def get_article(self, article_id):
+    def get_article(self, article_id, locale="zh-CN"):
         return self._article if self._article.id == article_id else None
 
-    def list_categories(self):
+    def list_categories(self, locale="zh-CN"):
         return []
 
 
@@ -87,6 +87,20 @@ def test_mcp_article_has_trust_metadata_and_downstream_paths():
     assert len(article.contenders) >= 3
     assert article.dimensions
     assert article.decision_tree
+
+
+def test_mcp_article_switches_language_by_locale():
+    service = CompareService()
+
+    zh_article = service.get_article("mcp-vs-function-calling-vs-rest", locale="zh-CN")
+    en_article = service.get_article("mcp-vs-function-calling-vs-rest", locale="en-US")
+
+    assert zh_article.title != en_article.title
+    assert zh_article.id == en_article.id
+    # contender names are locale-neutral proper nouns and must stay identical
+    assert [c.name for c in zh_article.contenders] == [c.name for c in en_article.contenders]
+    # nested dimension cell text is localized
+    assert zh_article.dimensions[0].values != en_article.dimensions[0].values
 
 
 def test_get_article_raises_for_missing():

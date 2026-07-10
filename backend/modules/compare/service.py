@@ -1,6 +1,7 @@
 """Business rules for the Compare (技术选型) section."""
 
 from common.errors import AppError
+from common.i18n import DEFAULT_LOCALE
 from modules.compare.repository import CompareRepository
 from modules.compare.schemas import CompareArticle, CompareCategory
 
@@ -11,16 +12,16 @@ class CompareService:
     def __init__(self, repository: CompareRepository | None = None):
         self.repository = repository or CompareRepository()
 
-    def list_articles(self, category: str | None = None) -> list[CompareArticle]:
-        articles = self.repository.list_articles()
+    def list_articles(self, category: str | None = None, locale: str = DEFAULT_LOCALE) -> list[CompareArticle]:
+        articles = self.repository.list_articles(locale=locale)
         for article in articles:
             self._validate_article(article)
         if category:
             articles = [a for a in articles if a.category == category]
         return sorted(articles, key=lambda a: a.published_at, reverse=True)
 
-    def get_article(self, article_id: str) -> CompareArticle:
-        article = self.repository.get_article(article_id)
+    def get_article(self, article_id: str, locale: str = DEFAULT_LOCALE) -> CompareArticle:
+        article = self.repository.get_article(article_id, locale=locale)
         if article is None:
             raise AppError(
                 code="COMPARE_ARTICLE_NOT_FOUND",
@@ -31,8 +32,8 @@ class CompareService:
         self._validate_article(article)
         return article
 
-    def list_categories(self) -> list[CompareCategory]:
-        return self.repository.list_categories()
+    def list_categories(self, locale: str = DEFAULT_LOCALE) -> list[CompareCategory]:
+        return self.repository.list_categories(locale=locale)
 
     def _validate_article(self, article: CompareArticle) -> None:
         missing: list[str] = []

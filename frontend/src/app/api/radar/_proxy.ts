@@ -1,9 +1,18 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { getBackendInternalUrl } from '@/lib/env';
+import { DEFAULT_LOCALE, isSupportedLocale } from '@/i18n/request';
+
+async function withLocale(path: string) {
+  const cookieLocale = (await cookies()).get('locale')?.value;
+  const locale = isSupportedLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}locale=${encodeURIComponent(locale)}`;
+}
 
 export async function proxyRadarRequest(path: string) {
   try {
-    const upstream = await fetch(`${getBackendInternalUrl()}${path}`, {
+    const upstream = await fetch(`${getBackendInternalUrl()}${await withLocale(path)}`, {
       cache: 'no-store',
     });
     const body = await upstream.text();

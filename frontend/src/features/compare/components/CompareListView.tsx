@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from 'next-intl';
 import { useCompareList } from '../hooks/useCompare';
 import { CompareArticleCard } from './CompareArticleCard';
 
@@ -24,6 +25,7 @@ function CompareListSkeleton() {
 }
 
 export function CompareListView() {
+  const locale = useLocale();
   const {
     categories,
     selectedCategory,
@@ -84,7 +86,7 @@ export function CompareListView() {
       )}
 
       {filteredArticles.map((article) => (
-        <CompareArticleCard key={article.id} article={article} categories={categories} />
+        <CompareArticleCard key={article.id} article={article} categories={categories} locale={locale} />
       ))}
     </div>
   );

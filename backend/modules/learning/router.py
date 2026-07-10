@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, Query
 
 from common.errors import AppError
+from common.i18n import DEFAULT_LOCALE
 from common.response import error_response, success_response
 from modules.learning.schemas import ProgressUpsertRequest
 from modules.learning.service import LearningService
@@ -91,14 +92,21 @@ async def get_metadata(service: LearningService = Depends(get_learning_service))
 
 
 @router.get("/labs")
-async def list_labs(service: LearningService = Depends(get_learning_service)):
-    return success_response(service.list_labs())
+async def list_labs(
+    locale: str = Query(DEFAULT_LOCALE),
+    service: LearningService = Depends(get_learning_service),
+):
+    return success_response(service.list_labs(locale=locale))
 
 
 @router.get("/labs/{lab_id}")
-async def get_lab(lab_id: str, service: LearningService = Depends(get_learning_service)):
+async def get_lab(
+    lab_id: str,
+    locale: str = Query(DEFAULT_LOCALE),
+    service: LearningService = Depends(get_learning_service),
+):
     try:
-        return success_response(service.get_lab(lab_id))
+        return success_response(service.get_lab(lab_id, locale=locale))
     except AppError as error:
         return error_response(error)
 

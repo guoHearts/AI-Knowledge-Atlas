@@ -32,9 +32,12 @@ export function listRadarItems(
   );
 }
 
-export function listRadarItemsFromBackend(params: { category?: string } = {}) {
+export function listRadarItemsFromBackend(
+  params: { category?: string; locale?: string } = {},
+) {
   const searchParams = new URLSearchParams();
   if (params.category) searchParams.set('category', params.category);
+  if (params.locale) searchParams.set('locale', params.locale);
   const query = searchParams.toString();
 
   return request<RadarItemsData>(
@@ -48,9 +51,10 @@ export function getRadarItem(id: string, options: RadarRequestOptions = {}) {
   );
 }
 
-export function getRadarItemFromBackend(id: string) {
+export function getRadarItemFromBackend(id: string, locale?: string) {
+  const query = locale ? `?locale=${encodeURIComponent(locale)}` : '';
   return request<RadarItem>(
-    `${getRadarServerBaseUrl()}/radar/items/${encodeURIComponent(id)}`,
+    `${getRadarServerBaseUrl()}/radar/items/${encodeURIComponent(id)}${query}`,
   );
 }
 

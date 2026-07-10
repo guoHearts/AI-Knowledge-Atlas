@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { getCompareArticleFromBackend, CompareArticleDetailView } from '@/features/compare';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,8 @@ export default async function CompareArticlePage({
 }) {
   const { id } = await params;
   const t = await getTranslations('compare');
-  const article = await getCompareArticleFromBackend(id).catch(() => null);
+  const locale = await getLocale();
+  const article = await getCompareArticleFromBackend(id, locale).catch(() => null);
 
   if (!article) {
     notFound();
@@ -35,7 +36,7 @@ export default async function CompareArticlePage({
           </div>
         </div>
 
-        <CompareArticleDetailView article={article} />
+        <CompareArticleDetailView article={article} locale={locale} />
       </div>
     </div>
   );

@@ -1,16 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLocale } from 'next-intl';
 import { listCompareArticles, listCompareCategories } from '../api/compareApi';
 import type { CompareArticle, CompareCategory } from '../types/compare.types';
 
 export function useCompareList() {
+  const locale = useLocale();
   const [articles, setArticles] = useState<CompareArticle[]>([]);
   const [categories, setCategories] = useState<CompareCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // The proxy route reads the locale cookie itself; re-running this effect
+  // when `locale` changes is what actually triggers the refetch.
   useEffect(() => {
     let cancelled = false;
 
@@ -33,7 +37,7 @@ export function useCompareList() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [locale]);
 
   const filteredArticles = selectedCategory
     ? articles.filter((article) => article.category === selectedCategory)

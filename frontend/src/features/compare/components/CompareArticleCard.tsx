@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { CompareArticle, CompareCategory } from '../types/compare.types';
+import { translateStatus } from '@/lib/contentLabels';
 
 const STATUS_COLORS = {
   Verified: 'bg-stellar-green/15 text-stellar-green border-stellar-green/30',
@@ -18,9 +19,10 @@ export function getStatusColor(status: string) {
 interface CompareArticleCardProps {
   article: CompareArticle;
   categories: CompareCategory[];
+  locale: string;
 }
 
-export function CompareArticleCard({ article, categories }: CompareArticleCardProps) {
+export function CompareArticleCard({ article, categories, locale }: CompareArticleCardProps) {
   const categoryName =
     categories.find((category) => category.id === article.category)?.name || article.category;
 
@@ -31,7 +33,7 @@ export function CompareArticleCard({ article, categories }: CompareArticleCardPr
           {categoryName}
         </span>
         <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(article.status)}`}>
-          {article.status}
+          {translateStatus(article.status, locale)}
         </span>
         <span className="px-2 py-1 rounded text-xs font-medium border border-cosmos-border text-cosmos-dim">
           {article.contenders.length} 个方案对比

@@ -77,7 +77,7 @@ def test_learning_service_delegates_read_models():
 def test_verified_secure_mcp_lab_exposes_trust_evidence():
     service = LearningService(FakeLearningRepository())
 
-    lab = service.get_lab("secure-mcp-server")
+    lab = service.get_lab("secure-mcp-server", locale="en-US")
 
     assert lab["status"] == "Verified"
     assert lab["lastVerifiedAt"] == "2026-07-09"
@@ -101,6 +101,18 @@ def test_verified_secure_mcp_lab_exposes_trust_evidence():
     assert "MCP" in lab["relatedNodeIds"]
     assert lab["relatedLearningPaths"][0]["href"].startswith("/learn/")
     assert lab["relatedCompareIds"] == ["mcp-vs-function-calling-vs-rest"]
+
+
+def test_labs_switch_language_by_locale():
+    service = LearningService(FakeLearningRepository())
+
+    zh_lab = service.get_lab("secure-mcp-server", locale="zh-CN")
+    en_lab = service.get_lab("secure-mcp-server", locale="en-US")
+
+    assert zh_lab["title"] != en_lab["title"]
+    assert zh_lab["id"] == en_lab["id"]
+    assert zh_lab["status"] == en_lab["status"]  # enum tokens stay locale-neutral
+    assert zh_lab["failureModes"][0]["title"] != en_lab["failureModes"][0]["title"]
 
 
 def test_learning_service_raises_app_error_for_missing_records():

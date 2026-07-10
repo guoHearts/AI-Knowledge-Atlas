@@ -114,7 +114,7 @@ CATEGORY_LABELS: dict[str, str] = {
 LABS: list[dict[str, Any]] = [
     {
         "id": "secure-mcp-server",
-        "title": "Secure MCP Server",
+        "title": {"zh": "安全 MCP Server", "en": "Secure MCP Server"},
         "status": "Verified",
         "difficulty": "Intermediate",
         "estimatedSetupTime": "15min",
@@ -141,10 +141,22 @@ LABS: list[dict[str, Any]] = [
             "python main.py",
         ],
         "expectedOutputs": [
-            "pytest reports all Secure MCP Server tests passing.",
-            "GET /mcp/health returns status=healthy when the server is running.",
-            "Unauthorized tools are rejected before execution.",
-            "Invalid parameters return validation errors instead of reaching tool logic.",
+            {
+                "zh": "pytest 报告 Secure MCP Server 的所有测试通过。",
+                "en": "pytest reports all Secure MCP Server tests passing.",
+            },
+            {
+                "zh": "Server 运行时，GET /mcp/health 返回 status=healthy。",
+                "en": "GET /mcp/health returns status=healthy when the server is running.",
+            },
+            {
+                "zh": "未授权的工具在执行前就会被拒绝。",
+                "en": "Unauthorized tools are rejected before execution.",
+            },
+            {
+                "zh": "非法参数会返回校验错误，而不会进入工具逻辑。",
+                "en": "Invalid parameters return validation errors instead of reaching tool logic.",
+            },
         ],
         "sources": [
             {
@@ -165,47 +177,80 @@ LABS: list[dict[str, Any]] = [
         ],
         "failureModes": [
             {
-                "title": "Missing API key",
-                "resolution": "Copy .env.example to .env and set API_KEY before starting the server.",
+                "title": {"zh": "缺少 API Key", "en": "Missing API key"},
+                "resolution": {
+                    "zh": "启动服务前，把 .env.example 复制为 .env 并设置 API_KEY。",
+                    "en": "Copy .env.example to .env and set API_KEY before starting the server.",
+                },
             },
             {
-                "title": "Port 8000 already in use",
-                "resolution": "Stop the existing process or change the local port before running python main.py.",
+                "title": {"zh": "8000 端口已被占用", "en": "Port 8000 already in use"},
+                "resolution": {
+                    "zh": "运行 python main.py 前，停掉占用端口的进程或更换本地端口。",
+                    "en": "Stop the existing process or change the local port before running python main.py.",
+                },
             },
             {
-                "title": "Tool rejected by allowlist",
-                "resolution": "Confirm ALLOWED_TOOLS contains only the intended tool names.",
+                "title": {"zh": "工具被白名单拒绝", "en": "Tool rejected by allowlist"},
+                "resolution": {
+                    "zh": "确认 ALLOWED_TOOLS 中只包含预期的工具名称。",
+                    "en": "Confirm ALLOWED_TOOLS contains only the intended tool names.",
+                },
             },
         ],
         "securityNotes": [
-            "The tool allowlist blocks unknown tool names before parameter handling.",
-            "Pydantic validation rejects invalid tool parameters before execution.",
-            "Audit logs record tool calls for review, but they are not a substitute for centralized production logging.",
-            "Prompt injection checks are a defense layer, not a complete security boundary.",
+            {
+                "zh": "工具白名单会在参数处理之前拦截未知的工具名称。",
+                "en": "The tool allowlist blocks unknown tool names before parameter handling.",
+            },
+            {
+                "zh": "Pydantic 校验会在执行前拒绝非法的工具参数。",
+                "en": "Pydantic validation rejects invalid tool parameters before execution.",
+            },
+            {
+                "zh": "审计日志记录工具调用供审查使用，但不能替代生产环境的集中式日志系统。",
+                "en": "Audit logs record tool calls for review, but they are not a substitute for centralized production logging.",
+            },
+            {
+                "zh": "提示注入检测只是一层防御，不是完整的安全边界。",
+                "en": "Prompt injection checks are a defense layer, not a complete security boundary.",
+            },
         ],
         "knownLimitations": [
-            "The lab uses a simple API key for local verification and does not include production identity management.",
-            "Rate limiting is documented but not implemented in the runnable sample.",
-            "The audit log is local file output and is not wired to a SIEM or tracing platform.",
+            {
+                "zh": "本实验使用简单的 API Key 做本地验证，不包含生产环境的身份管理体系。",
+                "en": "The lab uses a simple API key for local verification and does not include production identity management.",
+            },
+            {
+                "zh": "限流机制只有文档说明，可运行示例中并未实现。",
+                "en": "Rate limiting is documented but not implemented in the runnable sample.",
+            },
+            {
+                "zh": "审计日志只输出到本地文件，未接入 SIEM 或链路追踪平台。",
+                "en": "The audit log is local file output and is not wired to a SIEM or tracing platform.",
+            },
         ],
         "relatedRadarItemIds": ["mcp-security-boundary-2026-07"],
         "relatedCompareIds": ["mcp-vs-function-calling-vs-rest"],
         "relatedNodeIds": ["MCP", "Tool Allowlist", "Prompt Injection"],
         "relatedLearningPaths": [
             {
-                "title": "MCP protocol principles",
+                "title": {"zh": "MCP 协议原理", "en": "MCP protocol principles"},
                 "href": "/learn/agent-engineer/module-03-mcp/01-mcp-protocol-principles",
             },
             {
-                "title": "Build MCP Server",
+                "title": {"zh": "构建 MCP Server", "en": "Build MCP Server"},
                 "href": "/learn/agent-engineer/module-03-mcp/02-build-mcp-server",
             },
         ],
-        "summary": "Verified MCP Server baseline lab with tool allowlist, parameter validation, audit logs, and documented security boundaries.",
+        "summary": {
+            "zh": "已验证的 MCP Server 基线实验，包含工具白名单、参数校验、审计日志和明确的安全边界文档。",
+            "en": "Verified MCP Server baseline lab with tool allowlist, parameter validation, audit logs, and documented security boundaries.",
+        },
     },
     {
         "id": "production-agent-with-human-approval",
-        "title": "Production Agent with Human Approval",
+        "title": {"zh": "带人工审批的生产级 Agent", "en": "Production Agent with Human Approval"},
         "status": "Draft",
         "difficulty": "Intermediate",
         "estimatedSetupTime": "20min",
@@ -219,6 +264,9 @@ LABS: list[dict[str, Any]] = [
             "python -m pytest tests -q",
             "python src/main.py",
         ],
-        "summary": "Production agent lab showing human approval, task state transitions, and operational boundaries.",
+        "summary": {
+            "zh": "展示人工审批、任务状态流转和运维边界的生产级 Agent 实验。",
+            "en": "Production agent lab showing human approval, task state transitions, and operational boundaries.",
+        },
     },
 ]

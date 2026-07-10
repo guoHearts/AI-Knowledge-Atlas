@@ -4,15 +4,17 @@ import { getTranslations } from 'next-intl/server';
 import { AnimatedSection, StaggerItem, StaggerList } from '@/components/shared/AnimatedSection';
 import { ProgressBar } from '@/components/shared/ProgressBar';
 import type { RadarItem } from '@/features/radar/types/radar.types';
+import { translateStatus } from '@/lib/contentLabels';
 import type { HomeContent, HomeStats } from '../api/homeApi';
 
 interface HomePageViewProps {
   stats: HomeStats;
   content: HomeContent;
   radarItems: RadarItem[];
+  locale: string;
 }
 
-export async function HomePageView({ stats, content, radarItems }: HomePageViewProps) {
+export async function HomePageView({ stats, content, radarItems, locale }: HomePageViewProps) {
   const t = await getTranslations('home');
   const statItems = [
     { label: t('stats.modules'), value: stats.totalModules },
@@ -100,7 +102,7 @@ export async function HomePageView({ stats, content, radarItems }: HomePageViewP
                   {item.category}
                 </span>
                 <span className="rounded border border-stellar-green/30 bg-stellar-green/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stellar-green">
-                  {item.status}
+                  {translateStatus(item.status, locale)}
                 </span>
               </div>
               <h3 className="text-lg font-bold leading-snug text-cosmos-text group-hover:text-stellar-blue">

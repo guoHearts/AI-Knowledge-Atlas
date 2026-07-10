@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { RadarItem } from '../types/radar.types';
 import { getCategoryColor, getMaturityColor, getStatusColor } from './RadarItemCard';
+import { translateMaturity, translateStatus } from '@/lib/contentLabels';
 
 function formatCategory(category: string) {
   return category.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -8,9 +9,10 @@ function formatCategory(category: string) {
 
 interface RadarItemDetailViewProps {
   item: RadarItem;
+  locale: string;
 }
 
-export function RadarItemDetailView({ item }: RadarItemDetailViewProps) {
+export function RadarItemDetailView({ item, locale }: RadarItemDetailViewProps) {
   return (
     <div className="bg-cosmos-surface rounded-lg p-8 border border-cosmos-border">
       <div className="flex items-center gap-3 mb-6">
@@ -18,10 +20,10 @@ export function RadarItemDetailView({ item }: RadarItemDetailViewProps) {
           {formatCategory(item.category)}
         </span>
         <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getMaturityColor(item.maturity)}`}>
-          {item.maturity}
+          {translateMaturity(item.maturity, locale)}
         </span>
         <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(item.status)}`}>
-          {item.status}
+          {translateStatus(item.status, locale)}
         </span>
         {item.has_lab && (
           <span className="px-3 py-1 rounded-full text-sm font-medium bg-stellar-green text-white">
@@ -175,7 +177,7 @@ export function RadarItemDetailView({ item }: RadarItemDetailViewProps) {
             </div>
             <div>
               <span className="text-cosmos-dim">状态:</span>
-              <span className="ml-2 text-cosmos-text">{item.status}</span>
+              <span className="ml-2 text-cosmos-text">{translateStatus(item.status, locale)}</span>
             </div>
             <div>
               <span className="text-cosmos-dim">创建时间:</span>

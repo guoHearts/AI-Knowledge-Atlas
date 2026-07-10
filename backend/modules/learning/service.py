@@ -3,6 +3,7 @@
 from typing import Any, Protocol
 
 from common.errors import AppError
+from common.i18n import DEFAULT_LOCALE, resolve_locale
 from modules.learning import catalog
 
 
@@ -67,12 +68,12 @@ class LearningService:
             "categoryLabels": catalog.CATEGORY_LABELS,
         }
 
-    def list_labs(self) -> list[dict[str, Any]]:
-        return catalog.LABS
+    def list_labs(self, locale: str = DEFAULT_LOCALE) -> list[dict[str, Any]]:
+        return resolve_locale(catalog.LABS, locale)
 
-    def get_lab(self, lab_id: str) -> dict[str, Any]:
+    def get_lab(self, lab_id: str, locale: str = DEFAULT_LOCALE) -> dict[str, Any]:
         lab = next((item for item in catalog.LABS if item["id"] == lab_id), None)
-        return self._required(lab, "lab", lab_id)
+        return resolve_locale(self._required(lab, "lab", lab_id), locale)
 
     def _required(self, value: dict[str, Any] | None, resource: str, identifier: str) -> dict[str, Any]:
         if value is None:

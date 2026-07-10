@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { getLocale } from 'next-intl/server';
 import { getRadarItemFromBackend, RadarItemDetailView } from '@/features/radar';
 
 export default async function RadarItemPage({
@@ -8,7 +9,8 @@ export default async function RadarItemPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const radarItem = await getRadarItemFromBackend(id).catch(() => null);
+  const locale = await getLocale();
+  const radarItem = await getRadarItemFromBackend(id, locale).catch(() => null);
 
   if (!radarItem) {
     notFound();
@@ -31,7 +33,7 @@ export default async function RadarItemPage({
           </div>
         </div>
 
-        <RadarItemDetailView item={radarItem} />
+        <RadarItemDetailView item={radarItem} locale={locale} />
       </div>
     </div>
   );

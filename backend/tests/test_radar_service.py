@@ -61,3 +61,27 @@ def test_get_weekly_radar_rejects_invalid_week():
 
     assert exc_info.value.code == "RADAR_WEEK_INVALID"
     assert exc_info.value.status_code == 400
+
+
+def test_list_items_switches_language_by_locale():
+    service = RadarService()
+
+    zh_item = service.get_item("mcp-security-boundary-2026-07", locale="zh-CN")
+    en_item = service.get_item("mcp-security-boundary-2026-07", locale="en-US")
+
+    assert zh_item.title != en_item.title
+    assert "MCP" in zh_item.title
+    assert "MCP" in en_item.title
+    # id/status/sources stay identical across locales
+    assert zh_item.id == en_item.id
+    assert zh_item.status == en_item.status
+
+
+def test_list_categories_switches_language_by_locale():
+    service = RadarService()
+
+    zh_categories = {c.id: c.name for c in service.list_categories(locale="zh-CN")}
+    en_categories = {c.id: c.name for c in service.list_categories(locale="en-US")}
+
+    assert zh_categories.keys() == en_categories.keys()
+    assert zh_categories["evaluation"] != en_categories["evaluation"]

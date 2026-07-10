@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import type { CompareArticle } from '../types/compare.types';
 import { getStatusColor } from './CompareArticleCard';
+import { translateStatus } from '@/lib/contentLabels';
 
 interface CompareArticleDetailViewProps {
   article: CompareArticle;
+  locale: string;
 }
 
-export function CompareArticleDetailView({ article }: CompareArticleDetailViewProps) {
+export function CompareArticleDetailView({ article, locale }: CompareArticleDetailViewProps) {
   const contenderNames = article.contenders.map((contender) => contender.name);
   const hasRelated =
     article.related_lab_ids.length > 0 ||
@@ -21,7 +23,7 @@ export function CompareArticleDetailView({ article }: CompareArticleDetailViewPr
           技术选型
         </span>
         <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(article.status)}`}>
-          {article.status}
+          {translateStatus(article.status, locale)}
         </span>
         <span className="text-cosmos-dim text-sm">
           最后验证: {new Date(article.last_verified_at).toLocaleDateString()}
