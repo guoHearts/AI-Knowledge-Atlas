@@ -82,8 +82,11 @@ async def get_home_stats(
 
 
 @router.get("/home/content")
-async def get_home_content(service: LearningService = Depends(get_learning_service)):
-    return success_response(service.get_home_content())
+async def get_home_content(
+    locale: str = Query(DEFAULT_LOCALE),
+    service: LearningService = Depends(get_learning_service),
+):
+    return success_response(service.get_home_content(locale=locale))
 
 
 @router.get("/metadata")

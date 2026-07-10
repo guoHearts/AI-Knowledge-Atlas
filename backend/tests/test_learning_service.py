@@ -68,6 +68,9 @@ def test_learning_service_delegates_read_models():
     assert service.list_design_patterns()[0]["name"] == "router"
     assert service.get_home_stats("default")["completionRate"] == 100
     assert service.get_home_content()["roadmap"][0]["layer"] == "01"
+    assert service.get_home_content("zh-CN")["roadmap"][0]["title"] == "Agent 基础"
+    assert service.get_home_content("en-US")["roadmap"][0]["title"] == "Agent foundations"
+    assert isinstance(service.get_home_content("en-US")["nextSteps"][0], str)
     assert service.get_metadata()["difficultyLabels"]["beginner"] == "入门"
     assert service.list_labs()[0]["id"] == "secure-mcp-server"
     assert service.get_lab("secure-mcp-server")["estimatedSetupTime"] == "15min"

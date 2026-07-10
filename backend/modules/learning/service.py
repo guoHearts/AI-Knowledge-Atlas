@@ -54,11 +54,14 @@ class LearningService:
     def get_cms_dashboard(self) -> dict[str, Any]:
         return self.repository.get_cms_dashboard()
 
-    def get_home_content(self) -> dict[str, Any]:
-        return {
-            "roadmap": catalog.ROADMAP,
-            "nextSteps": catalog.NEXT_STEPS,
-        }
+    def get_home_content(self, locale: str = DEFAULT_LOCALE) -> dict[str, Any]:
+        return resolve_locale(
+            {
+                "roadmap": catalog.ROADMAP,
+                "nextSteps": catalog.NEXT_STEPS,
+            },
+            locale,
+        )
 
     def get_metadata(self) -> dict[str, Any]:
         return {

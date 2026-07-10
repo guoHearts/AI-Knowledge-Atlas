@@ -1,7 +1,11 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getLocale } from 'next-intl/server';
-import { getRadarItemFromBackend, RadarItemDetailView } from '@/features/radar';
+import {
+  getRadarItemFromBackend,
+  listRadarCategoriesFromBackend,
+  RadarItemDetailView,
+} from '@/features/radar';
 
 export default async function RadarItemPage({
   params,
@@ -15,6 +19,11 @@ export default async function RadarItemPage({
   if (!radarItem) {
     notFound();
   }
+
+  const categories = await listRadarCategoriesFromBackend(locale)
+    .then((data) => data.items)
+    .catch(() => []);
+  const categoryName = categories.find((category) => category.id === radarItem.category)?.name;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -33,7 +42,7 @@ export default async function RadarItemPage({
           </div>
         </div>
 
-        <RadarItemDetailView item={radarItem} locale={locale} />
+        <RadarItemDetailView item={radarItem} locale={locale} categoryName={categoryName} />
       </div>
     </div>
   );

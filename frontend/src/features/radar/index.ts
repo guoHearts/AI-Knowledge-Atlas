@@ -1,4 +1,4 @@
-export { getRadarItemFromBackend } from './api/radarApi';
+export { getRadarItemFromBackend, listRadarCategoriesFromBackend } from './api/radarApi';
 export { RadarItemDetailView } from './components/RadarItemDetailView';
 export { RadarListView } from './components/RadarListView';
 export type {

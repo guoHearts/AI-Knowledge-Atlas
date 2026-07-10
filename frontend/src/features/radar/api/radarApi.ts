@@ -64,6 +64,13 @@ export function listRadarCategories(options: RadarRequestOptions = {}) {
   );
 }
 
+export function listRadarCategoriesFromBackend(locale?: string) {
+  const query = locale ? `?locale=${encodeURIComponent(locale)}` : '';
+  return request<RadarCategoriesData>(
+    `${getRadarServerBaseUrl()}/radar/categories${query}`,
+  );
+}
+
 export function getWeeklyRadar(
   week: string,
   options: RadarRequestOptions = {},

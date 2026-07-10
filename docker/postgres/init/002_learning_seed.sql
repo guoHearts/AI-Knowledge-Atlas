@@ -2,12 +2,19 @@
 -- Run: docker exec -i ai-knowledge-atlas-postgres-1 psql -U app -d ai_knowledge_atlas < this_file.sql
 
 -- Track
-insert into learning_tracks (id, slug, title, subtitle, description, difficulty, estimated_hours, icon, sort_order, status)
+insert into learning_tracks (id, slug, title, subtitle, description, difficulty, estimated_hours, outcome_skills, outcome_project, icon, sort_order, status)
 values ('agent-engineer', 'agent-engineer', 'Agent Engineer',
         '从零到一构建生产级 AI Agent 系统',
         '覆盖 Agent 基础、工具使用、MCP 协议、设计模式、多智能体协作、生产部署、RAG、微调、推理优化、安全治理、平台工程和产品模式。',
-        'intermediate', 120, 'agent', 1, 'published')
-on conflict (id) do update set title = excluded.title, status = excluded.status;
+        'intermediate', 120,
+        '["独立设计并实现具备工具调用与多智能体协作的 Agent 系统","开发并部署符合 MCP 协议的 Server/Client 与安全边界","搭建带可观测性、错误处理与人工审批的生产级 Agent 服务","构建包含向量检索与重排序的混合 RAG 管线","建立评估闭环：测试集、评分器与回归门禁","完成 LoRA/QLoRA 微调与偏好对齐的实践闭环"]',
+        '交付一个生产级 AI Agent 系统：从需求拆解、工具与 MCP 集成、RAG 检索、评估门禁到带人工审批的部署上线，形成可复现、可观测、可回归的完整工程闭环。',
+        'agent', 1, 'published')
+on conflict (id) do update set
+  title = excluded.title,
+  status = excluded.status,
+  outcome_skills = excluded.outcome_skills,
+  outcome_project = excluded.outcome_project;
 
 -- Modules (1-12)
 insert into modules (id, track_id, title, description, stage, sort_order, estimated_hours, difficulty, status)

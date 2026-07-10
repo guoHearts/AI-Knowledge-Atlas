@@ -15,9 +15,10 @@ export function CmsDashboardView({ data }: CmsDashboardViewProps) {
     { label: 'Design patterns', value: stats.designPatternCount, icon: 'P' },
   ];
 
+  const editorTrackSlug = tracks[0]?.slug ?? 'agent-engineer';
   const actions = [
     {
-      href: '/cms/editor',
+      href: `/cms/editor/${editorTrackSlug}`,
       title: 'Course editor',
       description: 'Edit MDX lessons, experiment metadata, and learning content.',
       accent: 'hover:border-stellar-blue/30',

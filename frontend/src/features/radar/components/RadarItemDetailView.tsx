@@ -10,14 +10,15 @@ function formatCategory(category: string) {
 interface RadarItemDetailViewProps {
   item: RadarItem;
   locale: string;
+  categoryName?: string;
 }
 
-export function RadarItemDetailView({ item, locale }: RadarItemDetailViewProps) {
+export function RadarItemDetailView({ item, locale, categoryName }: RadarItemDetailViewProps) {
   return (
     <div className="bg-cosmos-surface rounded-lg p-8 border border-cosmos-border">
       <div className="flex items-center gap-3 mb-6">
         <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getCategoryColor(item.category)}`}>
-          {formatCategory(item.category)}
+          {categoryName || formatCategory(item.category)}
         </span>
         <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getMaturityColor(item.maturity)}`}>
           {translateMaturity(item.maturity, locale)}

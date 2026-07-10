@@ -136,7 +136,7 @@ export async function HomePageView({ stats, content, radarItems, locale }: HomeP
           <div className="pointer-events-none absolute left-0 right-0 top-12 hidden h-px lg:block map-line" />
           {content.roadmap.map((item) => (
             <StaggerItem key={item.layer}>
-              <article className="relative min-h-[250px] border border-cosmos-border bg-cosmos-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-cosmos-text/30 hover:shadow-xl">
+              <article className="relative min-h-[250px] border border-cosmos-border bg-cosmos-surface p-5 pb-16 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-cosmos-text/30 hover:shadow-xl">
                 <div className={`mb-6 h-3 w-16 ${item.accent}`} />
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-bold text-cosmos-dim">{item.eyebrow}</span>

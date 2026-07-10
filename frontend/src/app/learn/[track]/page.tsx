@@ -148,21 +148,27 @@ export default async function TrackPage({
       </div>
 
       {/* ─── Outcome Section ────────────────────────────── */}
-      <div className="mt-12 glass-card p-8">
-        <h2 className="text-xl font-bold text-cosmos-text mb-4">🎓 {t('outcomeTitle')}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {track.outcomeSkills.map((skill: string) => (
-            <div key={skill} className="flex items-center gap-3">
-              <span className="text-emerald-400 text-sm">✓</span>
-              <span className="text-sm text-cosmos-dim">{skill}</span>
+      {(track.outcomeSkills.length > 0 || track.outcomeProject) && (
+        <div className="mt-12 glass-card p-8">
+          <h2 className="text-xl font-bold text-cosmos-text mb-4">🎓 {t('outcomeTitle')}</h2>
+          {track.outcomeSkills.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {track.outcomeSkills.map((skill: string) => (
+                <div key={skill} className="flex items-center gap-3">
+                  <span className="text-emerald-400 text-sm">✓</span>
+                  <span className="text-sm text-cosmos-dim">{skill}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+          {track.outcomeProject && (
+            <div className="mt-6 p-4 rounded-xl bg-stellar-violet/5 border border-stellar-violet/10">
+              <span className="text-xs font-semibold text-stellar-violet">🏆 {t('graduationProject')}</span>
+              <p className="text-sm text-cosmos-dim mt-1">{track.outcomeProject}</p>
+            </div>
+          )}
         </div>
-        <div className="mt-6 p-4 rounded-xl bg-stellar-violet/5 border border-stellar-violet/10">
-          <span className="text-xs font-semibold text-stellar-violet">🏆 {t('graduationProject')}</span>
-          <p className="text-sm text-cosmos-dim mt-1">{track.outcomeProject}</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

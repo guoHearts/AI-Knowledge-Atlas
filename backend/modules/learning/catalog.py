@@ -3,47 +3,74 @@
 from typing import Any
 
 
-ROADMAP: list[dict[str, str]] = [
+ROADMAP: list[dict[str, Any]] = [
     {
         "layer": "01",
-        "title": "Agent foundations",
-        "eyebrow": "Concepts",
-        "description": "Understand agents, tool use, MCP, design patterns, and multi-agent collaboration.",
-        "modules": "Modules 1-5",
+        "title": {"zh": "Agent 基础", "en": "Agent foundations"},
+        "eyebrow": {"zh": "概念", "en": "Concepts"},
+        "description": {
+            "zh": "理解 Agent、工具使用、MCP、设计模式与多智能体协作。",
+            "en": "Understand agents, tool use, MCP, design patterns, and multi-agent collaboration.",
+        },
+        "modules": {"zh": "模块 1-5", "en": "Modules 1-5"},
         "accent": "bg-stellar-blue",
     },
     {
         "layer": "02",
-        "title": "Production engineering",
-        "eyebrow": "Production",
-        "description": "Add observability, error handling, security, RAG, fine-tuning, and inference optimization.",
-        "modules": "Modules 6-10",
+        "title": {"zh": "生产工程", "en": "Production engineering"},
+        "eyebrow": {"zh": "生产", "en": "Production"},
+        "description": {
+            "zh": "加入可观测性、错误处理、安全、RAG、微调与推理优化。",
+            "en": "Add observability, error handling, security, RAG, fine-tuning, and inference optimization.",
+        },
+        "modules": {"zh": "模块 6-10", "en": "Modules 6-10"},
         "accent": "bg-stellar-emerald",
     },
     {
         "layer": "03",
-        "title": "Platform governance",
-        "eyebrow": "Platform",
-        "description": "Turn demos into systems with SDKs, LangGraph, MCP governance, and evaluation pipelines.",
-        "modules": "Module 11",
+        "title": {"zh": "平台治理", "en": "Platform governance"},
+        "eyebrow": {"zh": "平台", "en": "Platform"},
+        "description": {
+            "zh": "用 SDK、LangGraph、MCP 治理与评估流水线把演示变成系统。",
+            "en": "Turn demos into systems with SDKs, LangGraph, MCP governance, and evaluation pipelines.",
+        },
+        "modules": {"zh": "模块 11", "en": "Module 11"},
         "accent": "bg-stellar-violet",
     },
     {
         "layer": "04",
-        "title": "Product systems",
-        "eyebrow": "Product",
-        "description": "Explore voice, multimodal documents, coding agents, synthetic data, and deployment workflows.",
-        "modules": "Module 12",
+        "title": {"zh": "产品系统", "en": "Product systems"},
+        "eyebrow": {"zh": "产品", "en": "Product"},
+        "description": {
+            "zh": "探索语音、多模态文档、编码 Agent、合成数据与部署工作流。",
+            "en": "Explore voice, multimodal documents, coding agents, synthetic data, and deployment workflows.",
+        },
+        "modules": {"zh": "模块 12", "en": "Module 12"},
         "accent": "bg-stellar-rose",
     },
 ]
 
-NEXT_STEPS: list[str] = [
-    "Upgrade graph search into GraphRAG with entities, relationships, community summaries, and local/global queries.",
-    "Add vector search and hybrid retrieval with full-text search, embeddings, and reranking.",
-    "Add runtime state to agents: sessions, checkpoints, human approval, and task recovery.",
-    "Build an evaluation loop with test sets, scorers, regression gates, and trace inspection.",
-    "Add trust fields: source, publish time, confidence, and last verification time.",
+NEXT_STEPS: list[dict[str, str]] = [
+    {
+        "zh": "把图谱搜索升级为 GraphRAG：实体、关系、社区摘要与局部/全局查询。",
+        "en": "Upgrade graph search into GraphRAG with entities, relationships, community summaries, and local/global queries.",
+    },
+    {
+        "zh": "加入向量搜索与混合检索：全文检索、向量嵌入与重排序。",
+        "en": "Add vector search and hybrid retrieval with full-text search, embeddings, and reranking.",
+    },
+    {
+        "zh": "为 Agent 加入运行时状态：会话、检查点、人工审批与任务恢复。",
+        "en": "Add runtime state to agents: sessions, checkpoints, human approval, and task recovery.",
+    },
+    {
+        "zh": "构建评估闭环：测试集、评分器、回归门禁与链路检查。",
+        "en": "Build an evaluation loop with test sets, scorers, regression gates, and trace inspection.",
+    },
+    {
+        "zh": "补齐可信度字段：来源、发布时间、置信度与最后验证时间。",
+        "en": "Add trust fields: source, publish time, confidence, and last verification time.",
+    },
 ]
 
 STAGE_LABELS: dict[int, dict[str, str]] = {

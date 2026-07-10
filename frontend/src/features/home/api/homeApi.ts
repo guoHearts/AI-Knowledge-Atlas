@@ -30,6 +30,7 @@ export function getHomeStats(userId = 'default'): Promise<HomeStats> {
   );
 }
 
-export function getHomeContent(): Promise<HomeContent> {
-  return request<HomeContent>(`${getBackendInternalUrl()}/learning/home/content`);
+export function getHomeContent(locale?: string): Promise<HomeContent> {
+  const query = locale ? `?locale=${encodeURIComponent(locale)}` : '';
+  return request<HomeContent>(`${getBackendInternalUrl()}/learning/home/content${query}`);
 }

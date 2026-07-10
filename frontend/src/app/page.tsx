@@ -9,7 +9,7 @@ export default async function HomePage() {
   const locale = await getLocale();
   const [stats, content] = await Promise.all([
     getHomeStats(),
-    getHomeContent(),
+    getHomeContent(locale),
   ]);
   const radar = await listRadarItemsFromBackend({ locale });
 
