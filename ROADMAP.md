@@ -29,7 +29,7 @@
 - [x] 默认中文 i18n 与导航栏语言切换
 - [x] Graph / Learn 组件与类型文件归位到 feature 目录
 - [x] Radar 内容状态字段落地到数据层（radar_items / sources）
-- [ ] 第一个 Verified Lab（Secure MCP Server）
+- [x] 第一个 Verified Lab（Secure MCP Server）
 - [x] 第一期 AI Engineering Radar（最小闭环）
 - [x] 新首页 Radar 摘要入口
 

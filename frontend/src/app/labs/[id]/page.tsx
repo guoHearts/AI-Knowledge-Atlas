@@ -192,7 +192,7 @@ export default async function LabDetailPage({
               {lab.relatedNodeIds?.map((nodeId) => (
                 <Link
                   key={nodeId}
-                  href={`/graph?node=${encodeURIComponent(nodeId)}`}
+                  href={`/graph?focus=${encodeURIComponent(nodeId)}`}
                   className="rounded border border-cosmos-border px-3 py-2 text-stellar-green hover:text-stellar-green/80"
                 >
                   Graph: {nodeId}

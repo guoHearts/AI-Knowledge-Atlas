@@ -1,7 +1,7 @@
 import re
 import logging
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from .config import settings
 
 
@@ -102,7 +102,7 @@ class AuditLogger:
             hashed_user = hashlib.sha256(user_id.encode()).hexdigest()[:8]
         
         log_data = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "tool": tool_name,
             "execution_id": execution_id,
             "user_hash": hashed_user,
